@@ -59,7 +59,7 @@ function boot() {
     fetch: async () => { throw new Error("Network is disabled in tests."); }
   };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8"), context);
-  return { api: window.scrlTest, els };
+  return { api: window.scrlTest, els, sessionStorage };
 }
 
 test("страницы приложения запускаются в гостевом режиме", () => {
@@ -641,4 +641,97 @@ test("логотип и монета ScRl подключены из добавл
   assert.match(html, /class="brand-logo"/);
   assert.match(html, /assets\/coinn\.png/);
   assert.match(app, /currency-coin-icon--inline/);
+});
+
+
+function promoteBootUserToAdmin(api, sessionStorage) {
+  const user = api.data.users.find(item => item.id === "u0");
+  user.role = "admin";
+  sessionStorage.setItem("scrlSession", JSON.stringify({
+    id: "u0", name: user.name, mail: user.mail || "", token: "unit-test", guest: false
+  }));
+  assert.equal(api.isAdminAccount(), true);
+}
+
+test("ученик видит обычные разделы, но не может открыть кабинет учителя и администратора", () => {
+  const { api, els } = boot();
+  assert.equal(api.me().role, "student");
+  api.setPage("staff");
+  assert.match(els.get("page").innerHTML, /Привет/);
+  assert.match(api.staffPage(), /Нет доступа/);
+  api.setPage("admin");
+  assert.match(els.get("page").innerHTML, /Привет/);
+  assert.match(api.adminPage(), /Нет доступа/);
+  assert.match(api.financePage(), /Нет доступа/);
+  assert.match(api.assistantPage(), /Нет доступа/);
+});
+
+test("учитель открывает свой кабинет и пульс, но не финансовые и административные разделы", () => {
+  const { api, els } = boot();
+  api.data.users.find(item => item.id === "u0").role = "teacher";
+  api.setPage("staff");
+  assert.match(els.get("page").innerHTML, /Кабинет учителя/);
+  api.setPage("pulse");
+  assert.match(els.get("page").innerHTML, /Пульс лицея/);
+  assert.match(api.staffPage(), /Начислить ученику/);
+  api.setPage("admin");
+  assert.match(els.get("page").innerHTML, /Привет/);
+  assert.match(api.adminPage(), /Нет доступа/);
+  assert.match(api.financePage(), /Нет доступа/);
+  assert.match(api.assistantPage(), /Нет доступа/);
+});
+
+test("администратор открывает кабинеты учителя, администратора, финансов и AI-помощника", () => {
+  const { api, els, sessionStorage } = boot();
+  promoteBootUserToAdmin(api, sessionStorage);
+  api.setPage("staff");
+  assert.match(els.get("page").innerHTML, /Кабинет учителя/);
+  api.setPage("pulse");
+  assert.match(els.get("page").innerHTML, /Пульс лицея/);
+  api.setPage("admin");
+  assert.match(els.get("page").innerHTML, /Администрирование/);
+  api.setPage("finance");
+  assert.match(els.get("page").innerHTML, /Платежи/);
+  api.setPage("assistant");
+  assert.match(els.get("page").innerHTML, /AI Moderator/);
+});
+
+test("роль родителя доступна только как временный предпросмотр администратора", () => {
+  const { api, els, sessionStorage } = boot();
+  promoteBootUserToAdmin(api, sessionStorage);
+  const storedUser = api.data.users.find(item => item.id === "u0");
+  api.setAdminPreviewRole("parent");
+  assert.equal(api.me().role, "parent");
+  assert.equal(storedUser.role, "admin");
+  assert.match(api.parentPage(), /Кабинет родителя/);
+  assert.match(api.parentPage(), /не показываются данные учеников/);
+  api.setPage("admin");
+  assert.match(els.get("page").innerHTML, /Кабинет родителя/);
+  assert.match(api.adminPage(), /Нет доступа/);
+  assert.match(api.staffPage(), /Нет доступа/);
+  assert.equal(els.get("topbarBalance").hidden, true);
+  assert.equal(els.get("notificationWrap").hidden, true);
+  assert.equal(els.get("nav-home").hidden, true);
+  api.action({ dataset: { do: "exit-parent-preview" } });
+  assert.equal(api.me().role, "admin");
+  assert.match(els.get("page").innerHTML, /Привет/);
+});
+
+test("студент и учитель не могут включить тестовую роль родителя", () => {
+  const { api } = boot();
+  assert.throws(() => api.setAdminPreviewRole("parent"), /только аккаунту администратора/);
+  api.data.users.find(item => item.id === "u0").role = "teacher";
+  assert.throws(() => api.setAdminPreviewRole("parent"), /только аккаунту администратора/);
+});
+
+test("логотип и монета показываются в контрастных окнах, прозрачный рисунок увеличен", () => {
+  const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
+  assert.match(html, /brand-logo-frame[\s\S]*?assets\/crb,blb\.png/);
+  assert.match(html, /currency-coin-frame[\s\S]*?assets\/coinn\.png/);
+  assert.match(app, /currency-coin-frame--inline/);
+  assert.match(css, /\.brand-logo-frame[\s\S]*?overflow:hidden/);
+  assert.match(css, /\.currency-coin-frame[\s\S]*?border-radius:50%/);
+  assert.match(css, /html\[data-theme="light"\] body #page \.muted[\s\S]*?color:#596b61/);
 });

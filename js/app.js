@@ -322,7 +322,7 @@ function resetAdminPreviewRole() {
 function setAdminPreviewRole(role) {
   if (!isAdminAccount()) throw new Error("Режим просмотра доступен только аккаунту администратора.");
   const selected = String(role || "");
-  if (!["admin", "student", "teacher"].includes(selected)) {
+  if (!["admin", "student", "teacher", "parent"].includes(selected)) {
     throw new Error("Выбери роль администратора, ученика или учителя.");
   }
   adminPreviewRole = selected === "admin" ? "" : selected;
@@ -674,7 +674,8 @@ const pages = {
   profile: profilePage,
   staff: staffPage,
   admin: adminPage,
-  pulse: pulsePage
+  pulse: pulsePage,
+  parent: parentPage
 };
 
 function link(page, text) {
@@ -705,7 +706,16 @@ function homePage() {
 }
 
 function roleName(role) {
-  return ({ student: "Ученик", teacher: "Учитель", admin: "Администратор" })[role] || "Ученик";
+  return ({ student: "Ученик", teacher: "Учитель", admin: "Администратор", parent: "Родитель (тест)" })[role] || "Ученик";
+}
+
+function parentPage() {
+  return '<p class="eyebrow">ТЕСТОВЫЙ РЕЖИМ</p><h1>Кабинет родителя</h1>' +
+    '<section class="parent-preview-panel"><p class="parent-preview-status">Роль предпросмотра · не сохранена в базе</p>' +
+    '<h2>Доступ только для проверки интерфейса</h2>' +
+    '<p class="muted">Это демонстрационный экран. К аккаунту не привязан ребёнок, поэтому здесь не показываются данные учеников, классы, оценки, балансы или переписка.</p>' +
+    '<p class="muted">Настоящая роль аккаунта остаётся «Администратор». Режим родителя включён только в текущем сеансе и сбросится при следующем входе.</p>' +
+    '<button class="button button-secondary" type="button" data-do="exit-parent-preview">Вернуться к администратору</button></section>';
 }
 
 function walletPage() {
@@ -715,7 +725,7 @@ function walletPage() {
     (row.delta > 0 ? "+" : "") + money(row.delta) + ' ' + safe(row.currency) + '</b></div>'
   ).join("");
   return '<p class="eyebrow">ЛИЧНЫЕ ФИНАНСЫ</p><h1>Кошелёк</h1>' +
-    '<div class="demo-stats"><div class="demo-stat"><span>Доступно <img class="currency-coin-icon currency-coin-icon--inline" src="assets/coinn.png" alt=""> ScRl</span><b>' + money(user.scrl) + '</b><small>В резерве: ' + money(user.holdScrl) + '</small></div>' +
+    '<div class="demo-stats"><div class="demo-stat"><span>Доступно <span class="currency-coin-frame currency-coin-frame--inline" aria-hidden="true"><img class="currency-coin-icon currency-coin-icon--inline" src="assets/coinn.png" alt=""></span> ScRl</span><b>' + money(user.scrl) + '</b><small>В резерве: ' + money(user.holdScrl) + '</small></div>' +
     '<div class="demo-stat"><span>V-RUB</span><b>' + money(user.vrub) + '</b><small>В резерве: ' + money(user.holdVrub) + '</small></div></div>' +
     '<h2>История операций</h2><div class="data-list">' + (rows || '<p class="muted">Операций пока нет.</p>') + '</div>' +
     '<p class="small muted demo-note">ScRl и V-RUB здесь — только учебные единицы. Настоящие платежи и вывод денег не подключены.</p>';
@@ -918,7 +928,7 @@ function profilePage() {
   const roleChoice = sess()?.guest
     ? '<label>Демо-роль</label><select name="role"><option value="student"' + (user.role === "student" ? " selected" : "") + '>Ученик</option><option value="teacher"' + (user.role === "teacher" ? " selected" : "") + '>Учитель</option><option value="admin"' + (user.role === "admin" ? " selected" : "") + '>Администратор</option></select><p class="small muted">Только просмотр разных экранов. Настоящую роль выдаёт администратор.</p>'
     : isAdminAccount()
-      ? '<label for="profileRole">Режим просмотра</label><select id="profileRole" name="role"><option value="admin"' + (user.role === "admin" ? " selected" : "") + '>Администратор</option><option value="student"' + (user.role === "student" ? " selected" : "") + '>Ученик</option><option value="teacher"' + (user.role === "teacher" ? " selected" : "") + '>Учитель</option></select><p class="small muted">Это только переключение интерфейса. Настоящая роль в базе остаётся «Администратор». При новом входе режим сбрасывается.</p>'
+      ? '<label for="profileRole">Режим просмотра</label><select id="profileRole" name="role"><option value="admin"' + (user.role === "admin" ? " selected" : "") + '>Администратор</option><option value="student"' + (user.role === "student" ? " selected" : "") + '>Ученик</option><option value="teacher"' + (user.role === "teacher" ? " selected" : "") + '>Учитель</option><option value="parent"' + (user.role === "parent" ? " selected" : "") + '>Родитель (тест)</option></select><p class="small muted">Это только переключение интерфейса. Настоящая роль в базе остаётся «Администратор». Родитель — тестовый экран без данных учеников и без записи роли в базу. При новом входе режим сбрасывается.</p>'
       : '<p class="small muted">Роль: ' + roleName(user.role) + '. Изменить её может только администратор.</p>';
   const deleteSection = remoteReady && !sess()?.guest
     ? '<section class="account-danger"><h2>Удаление аккаунта</h2><p>Действие необратимо. Профиль будет обезличен; твои публикации и сообщения удалены, а финансовая история сохранена без личных данных. Остатки ScRl и V-RUB после удаления недоступны. Перед удалением заверши активные сделки, заявки на бирже, аукционы и освободи все резервы.</p><form id="deleteAccountForm" class="demo-form account-delete-form"><label for="deleteAccountConfirm">Введи слово УДАЛИТЬ для подтверждения</label><input id="deleteAccountConfirm" name="confirmation" maxlength="7" autocomplete="off" required><button class="button button-danger" type="submit">Удалить аккаунт окончательно</button></form></section>'
@@ -1175,19 +1185,31 @@ function pulsePage() {
 
 function updateMenu() {
   const role = me().role;
+  const parentMode = role === "parent";
   document.querySelectorAll("[data-role]").forEach(btn => {
     btn.hidden = !(btn.dataset.role.split(" ").includes(role));
   });
   if (el("extraMenu")) {
     el("extraMenu").querySelectorAll("[data-page]").forEach(btn => {
-      if (btn.dataset.page === "staff") btn.hidden = role !== "teacher" && role !== "admin";
-      if (btn.dataset.page === "admin") btn.hidden = role !== "admin";
-      if (btn.dataset.page === "pulse") btn.hidden = role !== "teacher" && role !== "admin";
-      if (btn.dataset.page === "finance") btn.hidden = role !== "admin";
-      if (btn.dataset.page === "assistant") btn.hidden = role !== "admin";
+      const page = btn.dataset.page;
+      if (parentMode) { btn.hidden = page !== "parent"; return; }
+      if (page === "parent") btn.hidden = true;
+      if (page === "staff") btn.hidden = role !== "teacher" && role !== "admin";
+      if (page === "admin") btn.hidden = role !== "admin";
+      if (page === "pulse") btn.hidden = role !== "teacher" && role !== "admin";
+      if (page === "finance") btn.hidden = role !== "admin";
+      if (page === "assistant") btn.hidden = role !== "admin";
     });
   }
+  document.querySelectorAll(".nav-tab").forEach(btn => { btn.hidden = parentMode; });
+  const name = el("userName");
+  const avatar = el("avatar");
+  if (name) name.textContent = parentMode ? "Родитель · тест" : (me().name || "Участник");
+  if (avatar) avatar.textContent = parentMode ? "Р" : String(me().name || "У").charAt(0).toUpperCase();
+  const notifications = el("notificationWrap");
+  if (notifications) notifications.hidden = parentMode;
 }
+
 
 function updateTopbarBalance() {
   const user = me();
@@ -1195,8 +1217,9 @@ function updateTopbarBalance() {
   const vrub = el("topbarVrubBalance");
   const control = el("topbarBalance");
   if (!user) return;
-  if (scrl) scrl.textContent = money(user.scrl);
-  if (vrub) vrub.textContent = money(user.vrub);
+  if (control) control.hidden = user.role === "parent";
+  if (scrl) scrl.textContent = user.role === "parent" ? "—" : money(user.scrl);
+  if (vrub) vrub.textContent = user.role === "parent" ? "—" : money(user.vrub);
   if (control) control.setAttribute("aria-label",
     "Открыть кошелёк. Доступно " + money(user.scrl) + " ScRl и " + money(user.vrub) + " V-RUB."
   );
@@ -1218,6 +1241,8 @@ function setPage(name) {
   closeExpiredAuctions();
   let page = pages[name] ? name : "home";
   const role = me().role;
+  if (role === "parent") page = "parent";
+  else if (page === "parent") page = "home";
   if (page === "staff" && role !== "teacher" && role !== "admin") page = "home";
   if (page === "admin" && role !== "admin") page = "home";
   if (page === "pulse" && role !== "teacher" && role !== "admin") page = "home";
@@ -1570,6 +1595,11 @@ function action(btn) {
   if (me().blocked) throw new Error("Аккаунт заблокирован.");
   const id = btn.dataset.id;
   const type = btn.dataset.do;
+  if (me().role === "parent" && type !== "exit-parent-preview") throw new Error("В тестовом режиме родителя действия отключены.");
+  if (type === "exit-parent-preview") {
+    if (!isAdminAccount() || adminPreviewRole !== "parent") throw new Error("Нет доступа.");
+    resetAdminPreviewRole(); setPage("home"); msg("Тестовый режим родителя завершён."); return;
+  }
   if (type === "fav") {
     fav(btn.dataset.kind, id);
     setPage("favorites");
@@ -1764,6 +1794,11 @@ async function actionRemote(btn) {
   const id = btn.dataset.id;
   const type = btn.dataset.do;
 
+  if (me().role === "parent" && type !== "exit-parent-preview") throw new Error("В тестовом режиме родителя действия отключены.");
+  if (type === "exit-parent-preview") {
+    if (!isAdminAccount() || adminPreviewRole !== "parent") throw new Error("Нет доступа.");
+    resetAdminPreviewRole(); setPage("home"); msg("Тестовый режим родителя завершён."); return;
+  }
   if (type === "fav") {
     await fav(btn.dataset.kind, id);
     setPage("favorites");

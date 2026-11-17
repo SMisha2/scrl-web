@@ -8,11 +8,11 @@
   <link rel="icon" type="image/png" href="assets/crb,blb.png">
   <title>ScRl — мир взаимопомощи</title>
   <link rel="preload" href="assets/MinecraftRus.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/style.css?v=164">
+  <link rel="stylesheet" href="css/style.css?v=165">
   <script src="js/config.js" defer></script>
   <script src="js/core.js" defer></script>
   <script src="js/backend.js?v=153" defer></script>
-  <script src="js/app.js?v=165" defer></script>
+  <script src="js/app.js?v=166" defer></script>
 </head>
 <body>
   <div id="worldScenery" class="world-scenery" aria-hidden="true">
@@ -103,7 +103,7 @@
     <header class="topbar">
       <div class="topbar-inner">
         <a class="brand" href="#" aria-label="ScRl — главная">
-          <img class="brand-logo" src="assets/crb,blb.png" alt=""><span>ScRl</span>
+          <span class="brand-logo-frame" aria-hidden="true"><img class="brand-logo" src="assets/crb,blb.png" alt=""></span><span>ScRl</span>
         </a>
         <nav class="main-nav" aria-label="Основная навигация">
           <button class="nav-tab is-active" type="button" data-page="home">Главная</button>
@@ -125,10 +125,11 @@
               <button type="button" data-page="staff" data-role="teacher admin" hidden>Кабинет учителя</button>
               <button type="button" data-page="pulse" data-role="teacher admin" hidden>Пульс лицея</button>
               <button type="button" data-page="admin" data-role="admin" hidden>Администрирование</button>
+              <button type="button" data-page="parent" data-role="parent" hidden>Кабинет родителя (тест)</button>
             </div>
           </div>
           <button id="topbarBalance" class="topbar-balance" type="button" title="Открыть кошелёк" aria-label="Открыть кошелёк">
-            <span class="balance-group balance-group--scrl"><img class="currency-coin-icon" src="assets/coinn.png" alt=""><small>ScRl</small><strong id="topbarScrlBalance">0</strong></span>
+            <span class="balance-group balance-group--scrl"><span class="currency-coin-frame" aria-hidden="true"><img class="currency-coin-icon" src="assets/coinn.png" alt=""></span><small>ScRl</small><strong id="topbarScrlBalance">0</strong></span>
             <span class="balance-divider" aria-hidden="true">·</span>
             <span class="balance-group balance-group--vrub"><small>V-RUB</small><strong id="topbarVrubBalance">0</strong></span>
           </button>
@@ -138,7 +139,7 @@
             <span id="userName" class="user-name">Гость</span>
             <button id="logout" class="logout-button" type="button" aria-label="Выйти из аккаунта" title="Выйти из аккаунта">Выйти</button>
           </div>
-          <div class="notification-wrap">
+          <div class="notification-wrap" id="notificationWrap">
             <button id="notificationBell" class="notification-bell" type="button" aria-label="Уведомления" aria-expanded="false" aria-controls="notificationPanel" title="Уведомления">
               <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>

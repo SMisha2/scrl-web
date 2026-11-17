@@ -6498,3 +6498,70 @@ html[data-theme="dark"] body #auth .book-guide-item p { color:#e1e6d9 !important
   #auth .book-page--registration { padding-top:14px !important; padding-bottom:12px !important; }
   #auth .book-page-top { margin-bottom:9px !important; }
 }
+
+
+/* Transparent ScRl images: crop their empty canvas and give them a clear frame. */
+.brand-logo-frame {
+  position:relative; display:block; width:44px; height:44px; flex:0 0 44px;
+  overflow:hidden; border:2px solid #536d4d; border-radius:3px;
+  background:linear-gradient(145deg,#fbfdec,#e4edcf);
+  box-shadow:0 3px 0 rgba(22,38,24,.42),inset 0 1px 0 rgba(255,255,255,.95),0 0 0 2px rgba(222,239,198,.55);
+}
+.brand-logo {
+  position:absolute; display:block; width:100%; height:100%; max-width:none !important;
+  inset:0; object-fit:contain; transform:scale(1.9); image-rendering:auto;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.35));
+}
+.currency-coin-frame {
+  display:inline-grid; width:27px; height:27px; flex:0 0 27px; place-items:center;
+  overflow:hidden; border:1px solid #647d59; border-radius:50%;
+  background:linear-gradient(145deg,#fffef4,#dfe9cf);
+  box-shadow:0 2px 0 rgba(24,44,26,.38),0 0 0 2px rgba(240,247,223,.75);
+  vertical-align:middle;
+}
+.currency-coin-icon {
+  display:block; width:100%; height:100%; max-width:none !important; flex:0 0 auto;
+  object-fit:cover; object-position:center; image-rendering:auto;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.5));
+}
+.currency-coin-frame--inline { margin:0 4px; }
+.currency-coin-icon--inline { margin:0; }
+html[data-theme="dark"] body .brand-logo-frame {
+  border-color:#8ba77b; background:linear-gradient(145deg,#f4f6e8,#d9e5c5);
+  box-shadow:0 3px 0 rgba(0,0,0,.55),0 0 0 2px rgba(214,229,190,.2);
+}
+html[data-theme="dark"] body .currency-coin-frame {
+  border-color:#b5c89a; background:linear-gradient(145deg,#f4f6e8,#ceddb8);
+  box-shadow:0 2px 0 rgba(0,0,0,.55),0 0 0 2px rgba(214,229,190,.15);
+}
+
+/* Lighter neutral-grey labels in the light theme, while keeping them readable. */
+html[data-theme="light"] body #page .muted,
+html[data-theme="light"] body #page .small,
+html[data-theme="light"] body #page .section-hint,
+html[data-theme="light"] body #page .data-row small,
+html[data-theme="light"] body #page .demo-stat span,
+html[data-theme="light"] body #page .demo-stat small,
+html[data-theme="light"] body #page .activity-item small {
+  color:#596b61 !important;
+}
+html[data-theme="light"] body #auth .auth-moderation-disclosure,
+html[data-theme="light"] body #auth .code-help,
+html[data-theme="light"] body #auth .book-guide-item p {
+  color:#596b61 !important;
+}
+
+/* Parent is a non-persistent preview for the signed-in administrator only. */
+#page .parent-preview-panel {
+  margin:18px 0; padding:18px; border:2px solid var(--border);
+  background:var(--surface); box-shadow:0 4px 0 rgba(0,0,0,.12);
+}
+#page .parent-preview-panel .parent-preview-status {
+  display:inline-flex; align-items:center; gap:7px; margin:0 0 12px; padding:5px 9px;
+  border:1px solid var(--border); background:var(--surface2); color:var(--muted); font-size:12px;
+}
+#page .parent-preview-panel .button { margin-top:15px; }
+@media (max-width:620px) {
+  html body .brand-logo-frame { width:40px; height:40px; flex-basis:40px; }
+  html body .currency-coin-frame { width:24px; height:24px; flex-basis:24px; }
+}
