@@ -542,7 +542,7 @@ test("email confirmation accepts the eight-digit OTP configured in Supabase", ()
   assert.match(app, /\[0-9\]\{8\}/);
   assert.match(html, /id="code"[^>]*maxlength="8" pattern="\[0-9\]\{8\}"/);
   assert.match(html, /восьмизначный код/);
-  assert.ok(html.includes("js/app.js?v=167"));
+  assert.ok(html.includes("js/app.js?v=168"));
 });
 
 
@@ -764,11 +764,14 @@ test("удаление поста не обходит защиту активн�
 test("фоновая сцена кэшируется service worker для повторных посещений", () => {
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const worker = fs.readFileSync(path.join(__dirname, "../sw.js"), "utf8");
-  assert.match(app, /navigator\.serviceWorker\.register\(new URL\("\.\/sw\.js", document\.baseURI\)/);
-  assert.match(worker, /scrl-world-backgrounds-v3/);
+  assert.match(app, /new URL\("\.\.\/sw\.js", appScriptUrl\)\.href/);
+  assert.match(app, /не удалось зарегистрировать кэш фона/);
+  assert.match(worker, /scrl-world-backgrounds-v4/);
   assert.match(worker, /night\.png/);
   assert.match(worker, /day\.png/);
-  assert.match(worker, /cache\.match\(request, \{ ignoreSearch: true \}\)/);
+  assert.match(worker, /cache\.match\(cacheUrl, \{ ignoreSearch: true \}\)/);
+  assert.match(worker, /cache\.put\(url, response\.clone\(\)\)/);
+  assert.match(worker, /await self\.skipWaiting\(\)/);
 });
 
 test("small metadata text and logo/coin alignment overrides are present", () => {
