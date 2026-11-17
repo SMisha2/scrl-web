@@ -12,11 +12,11 @@
   <link rel="preload" href="assets/MinecraftRus.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/backgrounds/day.png" as="image" fetchpriority="high">
   <link rel="preload" href="assets/backgrounds/night.png" as="image" fetchpriority="low">
-  <link rel="stylesheet" href="css/style.css?v=177">
+  <link rel="stylesheet" href="css/style.css?v=178">
   <script src="js/config.js" defer></script>
   <script src="js/core.js" defer></script>
   <script src="js/backend.js?v=159" defer></script>
-  <script src="js/app.js?v=182" defer></script>
+  <script src="js/app.js?v=183" defer></script>
 </head>
 <body>
   <div id="worldScenery" class="world-scenery" aria-hidden="true">
@@ -73,12 +73,20 @@
               <button class="switch-button" id="regTab" type="button">Регистрация</button>
             </div>
             <form id="regForm" class="auth-form book-form book-form--registration" hidden>
-              <label for="regLast">Фамилия:</label>
-              <span class="mc-input-shell"><input id="regLast" name="lastName" type="text" autocomplete="family-name" maxlength="40" required></span>
-              <label for="regFirst">Имя:</label>
-              <span class="mc-input-shell"><input id="regFirst" name="firstName" type="text" autocomplete="given-name" maxlength="40" required></span>
-              <label for="regPat">Отчество (необязательно):</label>
-              <span class="mc-input-shell"><input id="regPat" name="patronymic" type="text" autocomplete="additional-name" maxlength="40"></span>
+              <div class="reg-name-grid" aria-label="ФИО">
+                <div class="reg-name-field">
+                  <label for="regLast">Фамилия:</label>
+                  <span class="mc-input-shell"><input id="regLast" name="lastName" type="text" autocomplete="family-name" maxlength="40" required></span>
+                </div>
+                <div class="reg-name-field">
+                  <label for="regFirst">Имя:</label>
+                  <span class="mc-input-shell"><input id="regFirst" name="firstName" type="text" autocomplete="given-name" maxlength="40" required></span>
+                </div>
+                <div class="reg-name-field">
+                  <label for="regPat">Отчество:</label>
+                  <span class="mc-input-shell"><input id="regPat" name="patronymic" type="text" autocomplete="additional-name" maxlength="40"></span>
+                </div>
+              </div>
               <label for="regMail">Электронная почта:</label>
               <span class="mc-input-shell"><input id="regMail" name="email" type="email" autocomplete="email" maxlength="120" required></span>
               <label for="regPass">Пароль:</label>
