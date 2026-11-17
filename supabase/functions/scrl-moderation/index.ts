@@ -1,6 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const DEFAULT_ORIGIN = "https://smisha2.github.io";
+const DEFAULT_ORIGIN = "https://www.scrl.site";
+const LEGACY_ORIGIN = "https://smisha2.github.io";
+const CONFIGURED_ORIGIN = Deno.env.get("SCRL_MODERATION_ALLOWED_ORIGIN") || "";
+const ALLOWED_ORIGINS = new Set([DEFAULT_ORIGIN, LEGACY_ORIGIN, CONFIGURED_ORIGIN].filter(Boolean));
 const MODEL = "openai/gpt-oss-safeguard-20b";
 const ALLOWED_KINDS = new Set(["post","listing","auction","deal","message","review","profile","report","teacher_issue"]);
 const AUTO_BAN_CATEGORIES = new Set([
@@ -289,36 +292,36 @@ async function adminReviewAppeal(adminId:string,appealId:string,decision:string,
 }
 
 Deno.serve(async (request:Request)=>{
-  const originAllowed=Deno.env.get("SCRL_MODERATION_ALLOWED_ORIGIN")||DEFAULT_ORIGIN;
-  const origin=request.headers.get("origin")||"";
-  if(origin&&origin!==originAllowed) return json({error:"Источник запроса не разрешён."},403,originAllowed);
+  const requestOrigin=request.headers.get("origin")||"";
+  const origin=requestOrigin&&ALLOWED_ORIGINS.has(requestOrigin)?requestOrigin:DEFAULT_ORIGIN;
+  if(requestOrigin&&!ALLOWED_ORIGINS.has(requestOrigin)) return json({error:"Источник запроса не разрешён."},403,origin);
   if(request.method==="OPTIONS") return new Response("ok",{headers:{
-    "Access-Control-Allow-Origin":originAllowed,"Access-Control-Allow-Headers":"authorization, apikey, content-type, x-client-info",
+    "Access-Control-Allow-Origin":origin,"Access-Control-Allow-Headers":"authorization, apikey, content-type, x-client-info",
     "Access-Control-Allow-Methods":"POST, OPTIONS","Vary":"Origin"
   }});
-  if(request.method!=="POST") return json({error:"Метод не поддерживается."},405,originAllowed);
+  if(request.method!=="POST") return json({error:"Метод не поддерживается."},405,origin);
   try {
     const identity=await authenticate(request);
     const body=await request.json().catch(()=>null);
-    if(!body||typeof body!=="object") return json({error:"Некорректный запрос."},400,originAllowed);
+    if(!body||typeof body!=="object") return json({error:"Некорректный запрос."},400,origin);
     const action=String(body.action||"");
-    if(action==="my_status") return json(await myStatus(identity.id),200,originAllowed);
-    if(action==="submit_appeal") return json(await submitAppeal(identity.id,String(body.ban_id||""),String(body.reason||"")),200,originAllowed);
-    if(action==="admin_review_case") return json(await adminReviewCase(identity.id,String(body.case_id||""),String(body.decision||"")),200,originAllowed);
-    if(action==="admin_review_appeal") return json(await adminReviewAppeal(identity.id,String(body.appeal_id||""),String(body.decision||""),String(body.note||"")),200,originAllowed);
-    if(action!=="check") return json({error:"Неизвестное действие модерации."},400,originAllowed);
+    if(action==="my_status") return json(await myStatus(identity.id),200,origin);
+    if(action==="submit_appeal") return json(await submitAppeal(identity.id,String(body.ban_id||""),String(body.reason||"")),200,origin);
+    if(action==="admin_review_case") return json(await adminReviewCase(identity.id,String(body.case_id||""),String(body.decision||"")),200,origin);
+    if(action==="admin_review_appeal") return json(await adminReviewAppeal(identity.id,String(body.appeal_id||""),String(body.decision||""),String(body.note||"")),200,origin);
+    if(action!=="check") return json({error:"Неизвестное действие модерации."},400,origin);
     if(Deno.env.get("SCRL_MODERATION_ENABLED")!=="true"||Deno.env.get("SCRL_MODERATION_EXTERNAL_PROCESSING_APPROVED")!=="true") {
-      return json({error:"ИИ-модерация ещё не активирована. Нужны новый ключ Groq и разрешение на внешнюю проверку пользовательского контента."},503,originAllowed);
+      return json({error:"ИИ-модерация ещё не активирована. Нужны новый ключ Groq и разрешение на внешнюю проверку пользовательского контента."},503,origin);
     }
-    if(!body.payload||typeof body.payload!=="object") return json({error:"Не передано содержимое для проверки."},400,originAllowed);
+    if(!body.payload||typeof body.payload!=="object") return json({error:"Не передано содержимое для проверки."},400,origin);
     const result=await checkContent(identity.id,String(body.kind||""),body.payload);
-    return json(result,result.allowed?200:403,originAllowed);
+    return json(result,result.allowed?200:403,origin);
   } catch(error) {
     if(error instanceof Response) {
       const payload=await error.json().catch(()=>({error:"Запрос отклонён."}));
-      return json(payload,error.status,originAllowed);
+      return json(payload,error.status,origin);
     }
     console.error("ScRl moderation failed:",error instanceof Error?error.message:"unknown error");
-    return json({error:error instanceof Error?error.message:"Ошибка ИИ-модерации."},500,originAllowed);
+    return json({error:error instanceof Error?error.message:"Ошибка ИИ-модерации."},500,origin);
   }
 });

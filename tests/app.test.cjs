@@ -893,3 +893,17 @@ test("перелистывание авторизации сохраняет г�
   assert.match(css, /#auth \.auth-book\.is-spread #loginPage[\s\S]*?transform: rotateY\(-180deg\) !important/);
   assert.match(css, /backface-visibility: hidden !important/);
 });
+
+
+test("Supabase Edge Functions allow the new ScRl domain and keep the legacy origin during migration", () => {
+  const root = path.join(__dirname, "../supabase/functions");
+  const account = fs.readFileSync(path.join(root, "scrl-account/index.ts"), "utf8");
+  const ai = fs.readFileSync(path.join(root, "scrl-ai/index.ts"), "utf8");
+  const moderation = fs.readFileSync(path.join(root, "scrl-moderation/index.ts"), "utf8");
+  for (const source of [account, ai, moderation]) {
+    assert.match(source, /DEFAULT_ORIGIN\s*=\s*"https:\/\/www\.scrl\.site"/);
+    assert.match(source, /LEGACY_ORIGIN\s*=\s*"https:\/\/smisha2\.github\.io"/);
+    assert.match(source, /ALLOWED_ORIGINS/);
+  }
+  assert.match(ai, /HTTP-Referer": "https:\/\/www\.scrl\.site\//);
+});

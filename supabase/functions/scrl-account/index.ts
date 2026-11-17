@@ -1,8 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const DEFAULT_ORIGIN = "https://smisha2.github.io";
-const ALLOWED_ORIGINS = new Set([DEFAULT_ORIGIN, "http://localhost:3000", "http://127.0.0.1:5500"]);
+const DEFAULT_ORIGIN = "https://www.scrl.site";
+const LEGACY_ORIGIN = "https://smisha2.github.io";
+const ALLOWED_ORIGINS = new Set([DEFAULT_ORIGIN, LEGACY_ORIGIN, "http://localhost:3000", "http://127.0.0.1:5500"]);
 
 function response(body: unknown, status: number, origin: string) {
   return new Response(JSON.stringify(body), {

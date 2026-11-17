@@ -1,6 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const DEFAULT_ORIGIN = "https://smisha2.github.io";
+const DEFAULT_ORIGIN = "https://www.scrl.site";
+const LEGACY_ORIGIN = "https://smisha2.github.io";
+const CONFIGURED_ORIGIN = Deno.env.get("SCRL_AI_ALLOWED_ORIGIN") || "";
+const ALLOWED_ORIGINS = new Set([DEFAULT_ORIGIN, LEGACY_ORIGIN, CONFIGURED_ORIGIN].filter(Boolean));
 const ALLOWED_TASKS: Record<string, string> = {
   economy_report: "Подготовь краткий отчёт по экономике школьных учебных единиц.",
   moderation_overview: "Оцени общую нагрузку на модерацию и предложи безопасный порядок приоритизации.",
@@ -30,11 +33,11 @@ function responseJson(body: unknown, status: number, origin: string) {
 }
 
 Deno.serve(async (request: Request) => {
-  const allowedOrigin = Deno.env.get("SCRL_AI_ALLOWED_ORIGIN") || DEFAULT_ORIGIN;
   const origin = request.headers.get("origin") || "";
-  if (origin !== allowedOrigin) {
-    return responseJson({ error: "Источник запроса не разрешён." }, 403, allowedOrigin);
+  if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+    return responseJson({ error: "Источник запроса не разрешён." }, 403, DEFAULT_ORIGIN);
   }
+  const allowedOrigin = origin;
   if (request.method === "OPTIONS") {
     return new Response("ok", {
       headers: {
@@ -104,7 +107,7 @@ Deno.serve(async (request: Request) => {
       headers: {
         Authorization: "Bearer " + apiKey,
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://smisha2.github.io/scrl-web/",
+        "HTTP-Referer": "https://www.scrl.site/",
         "X-Title": "ScRl Web"
       },
       body: JSON.stringify({
