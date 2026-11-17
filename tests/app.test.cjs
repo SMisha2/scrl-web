@@ -556,7 +556,7 @@ test("страницы книги используют читаемый текс
 test("signup opens the eight-digit code step immediately and uses the published app redirect", () => {
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
-  assert.ok(app.includes("const APP_REDIRECT_URL = window.location?.origin && window.location?.pathname"));
+  assert.ok(app.includes('const APP_REDIRECT_URL = "https://www.scrl.site/";'));
   assert.match(app, /ask\("signup\?redirect_to=" \+ encodeURIComponent\(APP_REDIRECT_URL\)/);
   assert.match(app, /setCodePage\(\);/);
   assert.match(app, /type: "email"/);
@@ -1001,7 +1001,7 @@ test("курсор использует нативный underscore без ве�
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
   const nativeStart = css.lastIndexOf("@supports (caret-shape: underscore)");
-  const fallbackRule = css.lastIndexOf("html body #auth #authBook .mc-input-shell input");
+  const fallbackRule = css.lastIndexOf("html body #auth #authBook .mc-input-shell input", nativeStart - 1);
   assert.ok(nativeStart > fallbackRule);
   assert.ok(css.slice(nativeStart).includes("caret-shape:underscore !important"));
   assert.ok(css.slice(nativeStart).includes("caret-color:#344b36 !important"));
