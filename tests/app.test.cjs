@@ -286,8 +286,8 @@ test("переключатель темы — двухпозиционный с�
   assert.equal((html.match(/class="theme-switch-track"/g) || []).length, 2);
   assert.ok(app.includes('button.setAttribute("aria-checked", String(normalized === "dark"))'));
   assert.ok(css.includes(".theme-switch-thumb"));
-  assert.match(css, /translateX\\(30px\\)/);
-  assert.match(css, /translateX\\(26px\\)/);
+  assert.ok(css.includes("translateX(30px)"));
+  assert.ok(css.includes("translateX(26px)"));
   assert.ok(css.includes(".theme-switch-thumb::after"));
 });
 
@@ -579,7 +579,7 @@ test("underscore отображается и в форме регистраци�
   assert.ok(app.includes('document.querySelectorAll("#authBook .mc-input-shell input")'));
   assert.ok(app.includes('input.type === "password"'));
   assert.ok(app.includes('"•".repeat(input.value.length)'));
-  assert.match(app, /cursor\\.textContent = "_"/);
+  assert.ok(app.includes('cursor.textContent = "_"'));
   assert.ok(css.includes("html body #auth #codeForm input#code"));
   assert.ok(css.includes("html body .mc-writing-cursor[hidden]"));
   assert.match(app, /Этот код уже использован, заменён новым или истёк/);
