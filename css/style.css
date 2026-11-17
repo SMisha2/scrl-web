@@ -7274,3 +7274,143 @@ html body #page .admin-section .data-row { gap:10px !important; }
   html body #page .admin-overview { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
   html body #page .admin-user-action-list { grid-template-columns:1fr !important; }
 }
+
+
+/* Final responsive repair: keep every navigation destination visible on phones. */
+@media (max-width:760px) {
+  html body #app .topbar .main-nav {
+    display:grid !important;
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    grid-auto-flow:row !important;
+    grid-auto-rows:minmax(40px,auto) !important;
+    flex:0 0 100% !important;
+    width:100% !important;
+    height:auto !important;
+    min-height:0 !important;
+    align-self:auto !important;
+    align-items:stretch !important;
+    gap:5px !important;
+    overflow:visible !important;
+    overflow-x:visible !important;
+    overflow-y:visible !important;
+    white-space:normal !important;
+  }
+  html body #app .topbar .main-nav .nav-tab {
+    display:flex !important;
+    width:100% !important;
+    min-width:0 !important;
+    min-height:40px !important;
+    height:auto !important;
+    flex:initial !important;
+    padding:6px 4px !important;
+    justify-content:center !important;
+    text-align:center !important;
+    white-space:normal !important;
+    overflow-wrap:anywhere !important;
+    line-height:1.2 !important;
+    font-size:clamp(10px,2.9vw,12px) !important;
+  }
+  html body #app .topbar .main-nav .more-wrap {
+    display:flex !important;
+    position:relative !important;
+    width:100% !important;
+    min-width:0 !important;
+    height:40px !important;
+    min-height:40px !important;
+    flex:initial !important;
+    margin:0 !important;
+    align-items:stretch !important;
+    z-index:90 !important;
+  }
+  html body #app .topbar .main-nav .more-btn {
+    display:inline-flex !important;
+    width:100% !important;
+    min-width:0 !important;
+    max-width:none !important;
+    height:40px !important;
+    min-height:40px !important;
+    padding:0 5px !important;
+    justify-content:center !important;
+    font-size:11px !important;
+  }
+  html body #app .topbar .main-nav .more-menu {
+    position:absolute !important;
+    top:calc(100% + 5px) !important;
+    right:0 !important;
+    left:auto !important;
+    width:min(280px,calc(100vw - 20px)) !important;
+    min-width:min(220px,calc(100vw - 20px)) !important;
+    max-width:calc(100vw - 20px) !important;
+    max-height:min(65dvh,calc(100dvh - 24px)) !important;
+    overflow-x:hidden !important;
+    overflow-y:auto !important;
+    z-index:2147482000 !important;
+  }
+}
+@media (min-width:701px) {
+  html body #auth .auth-theme-btn {
+    top:50% !important;
+    right:max(16px,calc((100vw - 520px)/2 - 84px)) !important;
+    left:auto !important;
+    z-index:60 !important;
+    transform:translateY(-50%) !important;
+  }
+  html body #auth .auth-theme-btn:hover {
+    transform:translateY(calc(-50% - 1px)) !important;
+  }
+}
+
+/* Registration name fields share one row on desktop; the submit button stays in flow. */
+@media (min-width:701px) {
+  html body #auth #regForm .reg-name-grid {
+    display:grid !important;
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    align-items:start !important;
+    gap:9px !important;
+    width:100% !important;
+    min-width:0 !important;
+  }
+  html body #auth #regForm .reg-name-field {
+    display:grid !important;
+    grid-template-rows:auto auto !important;
+    min-width:0 !important;
+    gap:3px !important;
+  }
+  html body #auth #regForm .reg-name-field label {
+    min-height:2.7em !important;
+    margin:0 !important;
+    font-size:11px !important;
+    line-height:1.25 !important;
+  }
+  html body #auth #regForm .reg-name-field .mc-input-shell,
+  html body #auth #regForm .reg-name-field input {
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+  }
+}
+html body #auth #bookSign.book-action-button {
+  position:static !important;
+  display:flex !important;
+  flex:0 0 auto !important;
+  width:min(100%,340px) !important;
+  min-height:46px !important;
+  margin:12px auto 0 !important;
+  inset:auto !important;
+  transform:none !important;
+  z-index:2 !important;
+}
+html body #auth #bookSign.book-action-button:active {
+  transform:translateY(2px) !important;
+}
+html body #auth .book-page {
+  padding-bottom:22px !important;
+}
+@media (max-width:560px) {
+  html body #auth #bookSign.book-action-button {
+    width:100% !important;
+    margin-top:10px !important;
+  }
+}
+
+/* Do not move the More popover outside its navigation anchor on mobile. */
