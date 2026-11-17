@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#e8eee4">
   <meta name="description" content="ScRl — уютное пространство школьной взаимопомощи.">
-  <link rel="icon" type="image/svg+xml" href="assets/grass.svg">
+  <link rel="icon" type="image/svg+xml" href="assets/crb,blb.png">
   <title>ScRl — мир взаимопомощи</title>
   <link rel="preload" href="assets/MinecraftRus.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/style.css?v=163">
+  <link rel="stylesheet" href="css/style.css?v=164">
   <script src="js/config.js" defer></script>
   <script src="js/core.js" defer></script>
   <script src="js/backend.js?v=153" defer></script>
-  <script src="js/app.js?v=164" defer></script>
+  <script src="js/app.js?v=165" defer></script>
 </head>
 <body>
   <div id="worldScenery" class="world-scenery" aria-hidden="true">
@@ -27,7 +27,7 @@
 
         <section class="book-page book-page--single" id="loginPage" aria-label="Страница 1 — вход">
           <div class="book-page-top">
-            <span class="page-counter">Page 1 of 3</span>
+            <span class="page-counter">Страница 1 / 2</span>
           </div>
           <div class="book-copy">
             <h1 class="book-title">С Возвращением,</h1>
@@ -44,28 +44,9 @@
           <button class="book-page-link" id="openRegistration" type="button">Нет аккаунта? Зарегистрируйся</button>
         </section>
 
-        <div class="book-spread" id="bookSpread" aria-hidden="true">
-          <section class="book-page book-page--spread-left" id="infoPage2" aria-label="Страница 2 — как работает ScRl">
+          <section class="book-page book-page--registration" id="registrationPage" aria-label="Страница 2 — регистрация">
             <div class="book-page-top">
-              <span class="page-counter">Page 2 of 3</span>
-              <span class="book-page-kicker">ПАМЯТКА УЧАСТНИКА</span>
-            </div>
-            <div class="book-copy">
-              <h2 class="book-title">Как устроен ScRl?</h2>
-              <p class="book-subtitle">Главное о возможностях платформы — перед началом работы.</p>
-            </div>
-            <div class="book-guide-list">
-              <article class="book-guide-item"><span class="book-guide-number">01</span><div><h3>Доска помощи</h3><p>Публикуй просьбы и предложения, находи тех, кому можешь помочь.</p></div></article>
-              <article class="book-guide-item"><span class="book-guide-number">02</span><div><h3>Биржа ScRl</h3><p>Размещай и покупай предложения по обмену ScRl и V-RUB.</p></div></article>
-              <article class="book-guide-item"><span class="book-guide-number">03</span><div><h3>Сделки и аукционы</h3><p>Условия сделки фиксируются, а средства удерживаются до её завершения.</p></div></article>
-              <article class="book-guide-item"><span class="book-guide-number">04</span><div><h3>Безопасность</h3><p>Общайся уважительно и не публикуй пароли, адреса и другие личные данные.</p></div></article>
-            </div>
-            <div class="book-guide-note">ScRl создан для взаимопомощи. Валюта платформы не является реальными деньгами.</div>
-          </section>
-
-          <section class="book-page book-page--spread-right" id="registrationPage" aria-label="Страница 3 — регистрация">
-            <div class="book-page-top">
-              <span class="page-counter">Page 3 of 3</span>
+              <span class="page-counter">Страница 2 / 2</span>
               <button class="book-close" id="backToLogin" type="button" aria-label="Вернуться на первую страницу" title="Назад">×</button>
             </div>
             <div class="book-copy book-copy--registration">
@@ -94,11 +75,6 @@
             </form>
             <form id="codeForm" class="auth-form book-form book-form--registration" hidden>
               <p class="code-info">Мы отправили восьмизначный код на <b id="codeMail"></b>.</p>
-              <div class="code-device-control" aria-label="Настройка отображения">
-                <span>Телефон</span>
-                <input id="codeDeviceMode" class="code-device-slider" type="range" min="0" max="1" step="1" value="0" aria-label="Переключить режим между телефоном и ноутбуком">
-                <span>Ноутбук</span>
-              </div>
               <label for="code">Код из письма:</label>
               <span class="mc-input-shell"><input id="code" class="code-input" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" maxlength="8" pattern="[0-9]{8}" aria-describedby="codeHelp" required></span>
               <p class="code-help" id="codeHelp">8 цифр · можно вставить код целиком</p>
@@ -117,7 +93,6 @@
             </section>
             <button class="book-page-link book-page-link--return" id="returnToPage2" type="button">Уже есть аккаунт? Войти</button>
           </section>
-        </div>
       </section>
       <div class="book-actions" aria-label="Действия">
         <button class="button button-primary book-action-button" id="bookSign" type="submit" form="loginForm">Готово</button>
@@ -128,7 +103,7 @@
     <header class="topbar">
       <div class="topbar-inner">
         <a class="brand" href="#" aria-label="ScRl — главная">
-          <span class="brand-mark">S</span><span>ScRl</span>
+          <img class="brand-logo" src="assets/crb,blb.png" alt=""><span>ScRl</span>
         </a>
         <nav class="main-nav" aria-label="Основная навигация">
           <button class="nav-tab is-active" type="button" data-page="home">Главная</button>
@@ -139,7 +114,7 @@
         </nav>
         <div class="topbar-actions">
           <div class="more-wrap">
-            <button id="moreBtn" class="more-btn" type="button" aria-expanded="false" aria-controls="extraMenu">Ещё <span aria-hidden="true">▾</span></button>
+            <button id="moreBtn" class="more-btn" type="button" aria-expanded="false" aria-controls="extraMenu">ЕЩЁ <span aria-hidden="true">▾</span></button>
             <div id="extraMenu" class="more-menu" hidden>
               <button type="button" data-page="wallet">Кошелёк</button>
               <button type="button" data-page="orders">Мои заказы</button>
@@ -153,7 +128,7 @@
             </div>
           </div>
           <button id="topbarBalance" class="topbar-balance" type="button" title="Открыть кошелёк" aria-label="Открыть кошелёк">
-            <span class="balance-group balance-group--scrl"><small>ScRl</small><strong id="topbarScrlBalance">0</strong></span>
+            <span class="balance-group balance-group--scrl"><img class="currency-coin-icon" src="assets/coinn.png" alt=""><small>ScRl</small><strong id="topbarScrlBalance">0</strong></span>
             <span class="balance-divider" aria-hidden="true">·</span>
             <span class="balance-group balance-group--vrub"><small>V-RUB</small><strong id="topbarVrubBalance">0</strong></span>
           </button>

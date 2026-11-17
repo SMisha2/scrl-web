@@ -273,23 +273,18 @@ test("светлая тема запускается по умолчанию и 
 
 
 
-test("книга авторизации имеет разворот из двух страниц без нижних значков", () => {
+test("книга авторизации содержит только две страницы без промежуточного разворота", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
-  assert.match(html, /Page 1 of 3/);
-  assert.match(html, /Page 2 of 3/);
-  assert.match(html, /Page 3 of 3/);
-  assert.match(html, /book-spread/);
-  assert.doesNotMatch(html, /id="loginForm2"/);
+  assert.match(html, /Страница 1 \/ 2/);
+  assert.match(html, /Страница 2 \/ 2/);
+  assert.match(html, /id="loginPage"[^>]*aria-label="Страница 1 — вход"/);
+  assert.match(html, /id="registrationPage"[^>]*aria-label="Страница 2 — регистрация"/);
+  assert.doesNotMatch(html, /Page 3 of 3|book-spread|infoPage2|Как устроен ScRl/);
   assert.match(html, /id="regForm"/);
+  assert.match(css, /\.auth-book\.is-spread #registrationPage/);
   assert.doesNotMatch(html, /book-bottom-mark/);
-  assert.match(css, /grid-template-columns: minmax\(0,1fr\) minmax\(0,1fr\)/);
-  assert.match(css, /auth-book\.is-page-2 \.book-page--back/);
 });
-
-
-
-
 
 test("светлая тема использует серую пиксельную рамку достижения для всех полей", () => {
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
@@ -315,47 +310,37 @@ test("светлые поля привязаны напрямую к data-theme=
   assert.ok(css.includes('html[data-theme="light"] body textarea'));
   assert.ok(css.includes('border: 4px solid #111111 !important'));
   assert.ok(css.includes('background-color: #c4c4c4 !important'));
-  assert.ok(html.includes('css/style.css?v=163'));
+  assert.ok(html.includes('css/style.css?v=164'));
 });
 
 
-test("книга начинает с одной страницы входа, регистрация открывает разворот 2–3", () => {
+test("вход и регистрация занимают страницы 1 и 2 на всех размерах", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
   assert.match(html, /id="loginPage"[^>]*aria-label="Страница 1 — вход"/);
-  assert.match(html, /Page 1 of 3/);
-  assert.match(html, /id="infoPage2"/);
-  assert.match(html, /Page 2 of 3/);
-  assert.match(html, /Как устроен ScRl\?/);
-  assert.match(html, /id="registrationPage"/);
-  assert.match(html, /Page 3 of 3/);
-  assert.doesNotMatch(html, /id="loginForm2"/);
-  assert.match(html, /id="regForm"/);
-  assert.doesNotMatch(html, /book-quill|quill-inkwell|quillFeather|quillShaft/);
-  assert.match(app, /const loginFormConfigs = \[/);
+  assert.match(html, /id="registrationPage"[^>]*aria-label="Страница 2 — регистрация"/);
+  assert.doesNotMatch(html, /infoPage2|book-spread|Page 3 of 3/);
   assert.match(app, /book\.classList\.toggle\("is-spread", isSpread\)/);
-  assert.match(css, /\.auth-book\.is-spread \.book-spread/);
+  assert.match(app, /registrationPage\.inert = !isRegistration/);
+  assert.match(css, /#auth \.auth-book\.is-spread #registrationPage/);
+  assert.match(css, /@media \(max-width:620px\)/);
 });
 
-test("текст книги статичен, а поля имеют отдельный мигающий курсор-подчёркивание", () => {
+test("авторизация сохраняет читаемые поля и точный подчёркивающий курсор", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
   assert.equal((html.match(/С Возвращением,/g) || []).length, 1);
   assert.equal((html.match(/войдите, чтоб начать пользоваться/g) || []).length, 1);
-  assert.match(html, /Как устроен ScRl\?/);
   assert.match(html, /Нет аккаунта\? Зарегистрируйся/);
   assert.match(html, /class="mc-input-shell"/);
   assert.match(app, /cursor\.textContent = "_"/);
-  assert.match(app, /@?installMinecraftBookCursors/);
+  assert.match(app, /marker\.getBoundingClientRect\(\)/);
+  assert.match(app, /prefix\.nodeValue = visibleText\.slice\(0, caret\)/);
+  assert.match(css, /\.mc-caret-measure/);
   assert.match(css, /\.mc-writing-cursor/);
-  assert.match(css, /minecraft-book-caret/);
-  assert.match(css, /\.book-guide-item/);
-  assert.match(css, /top:17px !important/);
 });
-
-
 
 test("вход только по email и паролю доступен после регистрации", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
@@ -440,7 +425,7 @@ test("uploaded day/night photos are rendered smoothly, not pixelated", () => {
   assert.match(tail, /transform: none !important/);
   assert.match(tail, /background-size: cover !important/);
   assert.match(tail, /transition: opacity 1\.15s ease !important/);
-  assert.ok(html.includes('css/style.css?v=163'));
+  assert.ok(html.includes('css/style.css?v=164'));
 });
 
 
@@ -524,33 +509,31 @@ test("signup opens the eight-digit code step immediately and uses the published 
   assert.doesNotMatch(html, /openRegistrationFromPage2|Перейти к регистрации/);
 });
 
-test("page change uses a stable slide instead of rotating the whole auth page", () => {
+test("переключение входа и регистрации меняет одну страницу без разворота", () => {
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
-  assert.match(css, /A stable page change replaces the broken 3D hinge/);
-  assert.match(css, /#auth \.auth-book\.is-spread \.book-page--single\s*\{\s*transform:translateX\(-12px\) scale\(\.985\) !important/);
-  assert.match(css, /html\[data-theme="light"\][\s\S]*--scrl-pastel-page/);
-  assert.match(css, /html\[data-theme="dark"\][\s\S]*--scrl-pastel-page/);
+  const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  assert.match(css, /#auth \.auth-book\.is-spread #registrationPage/);
+  assert.match(css, /#auth \.auth-book\.is-spread #loginPage/);
+  assert.doesNotMatch(html, /book-spread|infoPage2|Страница 3/);
+  assert.match(css, /#auth \.book-page::before[\s\S]*?display:none !important/);
 });
 
-
-test("custom auth caret follows centered text and letter spacing, and OTP resend clears old code", () => {
+test("курсор ввода совпадает с реальной позицией текста, повторный OTP очищает поле", () => {
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
-  assert.match(app, /const letterSpacing = Number\.parseFloat\(style\.letterSpacing\)/);
-  assert.match(app, /style\.textAlign === "center"/);
-  assert.match(app, /inputRect\.left - shellRect\.left \+ input\.clientLeft/);
+  assert.match(app, /const mirror = document\.createElement\("span"\)/);
+  assert.match(app, /marker\.getBoundingClientRect\(\)/);
+  assert.match(app, /mirror\.style\.textAlign = style\.textAlign/);
   assert.match(app, /if \(input\.id === "code"\) return/);
   assert.match(app, /Этот код уже использован, заменён новым или истёк/);
   assert.match(app, /el\("code"\)\.value = ""/);
   assert.match(app, /button\.disabled = true/);
-  assert.match(css, /\.mc-writing-cursor[\s\S]*?letter-spacing:0 !important/);
+  assert.match(css, /\.mc-caret-measure/);
   assert.match(css, /#auth #codeForm input#code[\s\S]*?text-overflow: clip !important/);
-  assert.match(html, /id="codeDeviceMode" class="code-device-slider" type="range"/);
-  assert.match(app, /scrlAuthDeviceMode/);
-  assert.match(css, /#auth\[data-device-mode="phone"\] \.book-page--spread-left/);
+  assert.doesNotMatch(html, /codeDeviceMode/);
+  assert.doesNotMatch(app, /scrlAuthDeviceMode|setupAuthDeviceMode/);
 });
-
 
 test("email confirmation accepts the eight-digit OTP configured in Supabase", () => {
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
@@ -559,7 +542,7 @@ test("email confirmation accepts the eight-digit OTP configured in Supabase", ()
   assert.match(app, /\[0-9\]\{8\}/);
   assert.match(html, /id="code"[^>]*maxlength="8" pattern="\[0-9\]\{8\}"/);
   assert.match(html, /восьмизначный код/);
-  assert.ok(html.includes("js/app.js?v=164"));
+  assert.ok(html.includes("js/app.js?v=165"));
 });
 
 
@@ -645,4 +628,14 @@ test("sign-in no longer waits for the dark book transition", () => {
   const remoteEnd = app.indexOf("function enter(name", remoteStart);
   assert.doesNotMatch(app.slice(localStart, localEnd), /setTimeout\(revealApp, 420\)/);
   assert.doesNotMatch(app.slice(remoteStart, remoteEnd), /setTimeout\(revealApp, 420\)/);
+});
+
+
+test("логотип и монета ScRl подключены из добавленных пользовательских ресурсов", () => {
+  const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  assert.match(html, /assets\/crb,blb\.png/);
+  assert.match(html, /class="brand-logo"/);
+  assert.match(html, /assets\/coinn\.png/);
+  assert.match(app, /currency-coin-icon--inline/);
 });

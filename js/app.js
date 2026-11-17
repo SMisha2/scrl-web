@@ -29,58 +29,63 @@ function msg(text) {
 
 function installMinecraftBookCursors() {
   if (window.__scrlTestMode || !document.querySelectorAll) return;
-  const measureCanvas = document.createElement("canvas");
-  const measureContext = measureCanvas.getContext && measureCanvas.getContext("2d");
+
   document.querySelectorAll("#authBook .mc-input-shell input").forEach(input => {
-    if (input.id === "code") return; // OTP uses the browser caret so it cannot drift.
+    if (input.id === "code") return; // OTP keeps the native browser caret.
     const shell = input.parentElement;
     if (!shell || shell.querySelector(".mc-writing-cursor")) return;
+
     const cursor = document.createElement("span");
     cursor.className = "mc-writing-cursor";
     cursor.textContent = "_";
     cursor.setAttribute("aria-hidden", "true");
     shell.appendChild(cursor);
 
+    // This mirror is laid out by the browser with the input's actual font and alignment.
+    // A zero-width marker gives the exact insertion point, including centered fields.
+    const mirror = document.createElement("span");
+    mirror.className = "mc-caret-measure";
+    mirror.setAttribute("aria-hidden", "true");
+    const prefix = document.createTextNode("");
+    const marker = document.createElement("span");
+    marker.className = "mc-caret-marker";
+    const suffix = document.createTextNode("");
+    mirror.append(prefix, marker, suffix);
+    shell.appendChild(mirror);
+
     const positionCursor = () => {
       if (document.activeElement !== input) return;
+
       const style = window.getComputedStyle(input);
-      const text = input.type === "password" ? "•".repeat(input.value.length) : input.value;
-      const caret = typeof input.selectionStart === "number" ? input.selectionStart : text.length;
-      const letterSpacing = Number.parseFloat(style.letterSpacing) || 0;
-
-      if (measureContext) {
-        measureContext.font = style.font || (style.fontWeight + " " + style.fontSize + " " + style.fontFamily);
-      }
-      const measure = value => {
-        if (!value) return 0;
-        const glyphWidth = measureContext ? measureContext.measureText(value).width : value.length * 8;
-        return glyphWidth + Math.max(0, value.length - 1) * letterSpacing;
-      };
-
-      const prefix = text.slice(0, caret);
-      let prefixWidth = measure(prefix);
-      if (caret > 0 && caret < text.length) prefixWidth += letterSpacing;
-
-      const leftPad = parseFloat(style.paddingLeft) || 0;
-      const rightPad = parseFloat(style.paddingRight) || 0;
-      const contentWidth = Math.max(0, input.clientWidth - leftPad - rightPad);
-      const fullTextWidth = measure(text);
-      let textStart = leftPad;
-      if (style.textAlign === "center") {
-        textStart += (contentWidth - fullTextWidth) / 2;
-      } else if (style.textAlign === "right" || style.textAlign === "end") {
-        textStart += contentWidth - fullTextWidth;
-      }
+      const visibleText = input.type === "password" ? "•".repeat(input.value.length) : input.value;
+      const rawCaret = typeof input.selectionStart === "number" ? input.selectionStart : visibleText.length;
+      const caret = Math.max(0, Math.min(visibleText.length, rawCaret));
+      prefix.nodeValue = visibleText.slice(0, caret);
+      suffix.nodeValue = visibleText.slice(caret);
 
       const shellRect = shell.getBoundingClientRect();
       const inputRect = input.getBoundingClientRect();
-      const inputLeft = inputRect.left - shellRect.left + input.clientLeft;
-      const minLeft = inputLeft + leftPad;
-      const maxLeft = Math.max(minLeft, inputLeft + input.clientWidth - rightPad);
-      const caretLeft = inputLeft + textStart + prefixWidth - input.scrollLeft;
-      cursor.style.left = Math.max(minLeft, Math.min(maxLeft, caretLeft)) + "px";
-      if (style.font) cursor.style.font = style.font;
-      cursor.style.letterSpacing = "0";
+      mirror.style.left = (inputRect.left - shellRect.left + input.clientLeft) + "px";
+      mirror.style.top = (inputRect.top - shellRect.top + input.clientTop) + "px";
+      mirror.style.width = input.clientWidth + "px";
+      mirror.style.height = input.clientHeight + "px";
+      mirror.style.paddingLeft = style.paddingLeft;
+      mirror.style.paddingRight = style.paddingRight;
+      mirror.style.font = style.font;
+      mirror.style.letterSpacing = style.letterSpacing;
+      mirror.style.wordSpacing = style.wordSpacing;
+      mirror.style.lineHeight = style.lineHeight;
+      mirror.style.textAlign = style.textAlign;
+      mirror.style.textIndent = style.textIndent;
+      mirror.style.textTransform = style.textTransform;
+      mirror.style.direction = style.direction;
+      mirror.style.whiteSpace = "pre";
+      mirror.scrollLeft = input.scrollLeft;
+
+      const markerRect = marker.getBoundingClientRect();
+      cursor.style.left = (markerRect.left - shellRect.left) + "px";
+      cursor.style.font = style.font;
+      cursor.style.lineHeight = style.lineHeight;
     };
 
     input.addEventListener("focus", () => {
@@ -88,41 +93,38 @@ function installMinecraftBookCursors() {
       positionCursor();
     });
     input.addEventListener("blur", () => shell.classList.remove("is-typing"));
-    ["input", "keyup", "click", "select", "scroll"].forEach(name => input.addEventListener(name, positionCursor));
+    ["input", "keyup", "click", "select", "scroll", "change"].forEach(name =>
+      input.addEventListener(name, positionCursor)
+    );
   });
 }
-
 function updateBookControls() {
   const book = el("authBook");
   if (!book) return;
-  const isSpread = book.classList.contains("is-spread");
-  const activePage = book.dataset.activePage || (isSpread ? "3" : "1");
+
+  const isRegistration = book.classList.contains("is-spread");
   const isCode = !codeForm.hidden;
   const sign = el("bookSign");
   if (sign) {
-    const target = !isSpread ? "loginForm" : isCode ? "codeForm" : "regForm";
-    sign.setAttribute("form", target);
+    sign.setAttribute("form", !isRegistration ? "loginForm" : isCode ? "codeForm" : "regForm");
     sign.textContent = "Готово";
   }
-  const single = el("loginPage");
-  const spread = el("bookSpread");
-  const page2 = el("infoPage2");
-  const page3 = el("registrationPage");
-  if (single) single.inert = isSpread;
-  if (spread) {
-    spread.setAttribute("aria-hidden", String(!isSpread));
-    spread.inert = !isSpread;
-  }
-  if (page2) page2.inert = !isSpread;
-  if (page3) page3.inert = !isSpread;
-  const bookDone = el("bookDone");
-  if (bookDone) bookDone.textContent = isSpread ? "Назад" : "Готово";
-}
 
+  const loginPage = el("loginPage");
+  const registrationPage = el("registrationPage");
+  if (loginPage) {
+    loginPage.inert = isRegistration;
+    loginPage.setAttribute("aria-hidden", String(isRegistration));
+  }
+  if (registrationPage) {
+    registrationPage.inert = !isRegistration;
+    registrationPage.setAttribute("aria-hidden", String(!isRegistration));
+  }
+}
 function setMode(mode) {
   const book = el("authBook");
   const isSpread = mode === "reg";
-  const activePage = isSpread ? "3" : "1";
+  const activePage = isSpread ? "2" : "1";
   if (book) {
     book.classList.toggle("is-spread", isSpread);
     book.classList.remove("is-page-2");
@@ -137,7 +139,7 @@ function setMode(mode) {
   if (el("bookSign")) el("bookSign").hidden = false;
 
   if (el("loginTab")) el("loginTab").classList.toggle("is-active", activePage === "2");
-  if (el("regTab")) el("regTab").classList.toggle("is-active", activePage === "3");
+  if (el("regTab")) el("regTab").classList.toggle("is-active", activePage === "2");
   if (el("authTitle")) el("authTitle").textContent = "Регистрация";
   if (el("authDesc")) el("authDesc").textContent = "Создайте новую запись в книге.";
   if (el("logErr")) el("logErr").textContent = "";
@@ -469,7 +471,7 @@ function showBanAppeal() {
   const book = el("authBook");
   if (book) {
     book.classList.add("is-spread");
-    book.dataset.activePage = "3";
+    book.dataset.activePage = "2";
   }
   login.hidden = true;
   reg.hidden = true;
@@ -633,48 +635,6 @@ async function refreshRemoteData(options = {}) {
   return pending;
 }
 
-function setupAuthDeviceMode() {
-  const slider = el("codeDeviceMode");
-  if (!slider || window.__scrlTestMode) return;
-
-  const storageKey = "scrlAuthDeviceMode";
-  const media = window.matchMedia ? window.matchMedia("(max-width: 760px)") : null;
-  let saved = null;
-  try {
-    saved = localStorage.getItem(storageKey);
-  } catch (_) {
-    saved = null;
-  }
-  let manual = saved === "phone" || saved === "laptop";
-
-  const apply = (mode, persist = false) => {
-    const next = mode === "laptop" ? "laptop" : "phone";
-    if (auth) auth.dataset.deviceMode = next;
-    slider.value = next === "laptop" ? "1" : "0";
-    if (persist) {
-      try {
-        localStorage.setItem(storageKey, next);
-      } catch (_) {
-        // The current selection still works when storage is unavailable.
-      }
-    }
-  };
-
-  apply(manual ? saved : (media && media.matches ? "phone" : "laptop"));
-  slider.addEventListener("input", () => {
-    manual = true;
-    apply(slider.value === "1" ? "laptop" : "phone", true);
-  });
-
-  if (media) {
-    const syncToScreen = event => {
-      if (!manual) apply(event.matches ? "phone" : "laptop");
-    };
-    if (typeof media.addEventListener === "function") media.addEventListener("change", syncToScreen);
-    else if (typeof media.addListener === "function") media.addListener(syncToScreen);
-  }
-}
-
 function setCodePage() {
   if (el("banAppealPanel")) el("banAppealPanel").hidden = true;
   if (el("returnToPage2")) el("returnToPage2").hidden = false;
@@ -682,7 +642,7 @@ function setCodePage() {
   const book = el("authBook");
   if (book) {
     book.classList.add("is-spread");
-    book.dataset.activePage = "3";
+    book.dataset.activePage = "2";
   }
   login.hidden = false;
   reg.hidden = true;
@@ -755,7 +715,7 @@ function walletPage() {
     (row.delta > 0 ? "+" : "") + money(row.delta) + ' ' + safe(row.currency) + '</b></div>'
   ).join("");
   return '<p class="eyebrow">ЛИЧНЫЕ ФИНАНСЫ</p><h1>Кошелёк</h1>' +
-    '<div class="demo-stats"><div class="demo-stat"><span>Доступно ScRl</span><b>' + money(user.scrl) + '</b><small>В резерве: ' + money(user.holdScrl) + '</small></div>' +
+    '<div class="demo-stats"><div class="demo-stat"><span>Доступно <img class="currency-coin-icon currency-coin-icon--inline" src="assets/coinn.png" alt=""> ScRl</span><b>' + money(user.scrl) + '</b><small>В резерве: ' + money(user.holdScrl) + '</small></div>' +
     '<div class="demo-stat"><span>V-RUB</span><b>' + money(user.vrub) + '</b><small>В резерве: ' + money(user.holdVrub) + '</small></div></div>' +
     '<h2>История операций</h2><div class="data-list">' + (rows || '<p class="muted">Операций пока нет.</p>') + '</div>' +
     '<p class="small muted demo-note">ScRl и V-RUB здесь — только учебные единицы. Настоящие платежи и вывод денег не подключены.</p>';
@@ -2482,7 +2442,6 @@ el("backReg").addEventListener("click", () => {
   setMode("reg");
   el("regLast").focus();
 });
-setupAuthDeviceMode();
 
 const otpInput = el("code");
 if (otpInput && !window.__scrlTestMode) {
@@ -2505,7 +2464,7 @@ if (authBook && !window.__scrlTestMode) {
   authBook.addEventListener("focusin", event => {
     const target = event.target;
     if (target.closest && target.closest("#regForm, #codeForm")) {
-      authBook.dataset.activePage = "3";
+      authBook.dataset.activePage = "2";
     }
     updateBookControls();
   });

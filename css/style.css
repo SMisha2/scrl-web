@@ -6000,3 +6000,501 @@ html[data-theme="dark"] body #auth .code-help,
 html[data-theme="dark"] body #auth .book-guide-item p { color:#e1e6d9 !important; font-size:12px !important; }
 .auth-screen.is-closing .auth-book { filter:none !important; opacity:1 !important; transform:none !important; }
 #app.is-entering, #app.is-entering.is-ready { opacity:1 !important; animation:none !important; transform:none !important; }
+
+
+/* ScRl mobile and auth repair: exactly two single-page auth states. */
+.brand-logo {
+  display:block;
+  width:34px;
+  height:34px;
+  flex:0 0 34px;
+  object-fit:contain;
+  image-rendering:auto;
+}
+.currency-coin-icon {
+  display:inline-block;
+  width:17px;
+  height:17px;
+  flex:0 0 17px;
+  vertical-align:middle;
+  object-fit:contain;
+  image-rendering:auto;
+}
+.currency-coin-icon--inline { margin:0 3px; }
+
+#auth .auth-stage {
+  width:min(100%,540px) !important;
+  gap:12px !important;
+  perspective:none !important;
+}
+#auth .auth-book {
+  width:min(100%,520px) !important;
+  height:min(700px,calc(100svh - 150px)) !important;
+  min-height:min(480px,calc(100svh - 150px)) !important;
+  padding:10px !important;
+  border:3px solid #291710 !important;
+  border-radius:10px !important;
+  transform:none !important;
+  transform-style:flat !important;
+}
+#auth .book-page-stack,
+#auth .auth-book::before,
+#auth .auth-book::after {
+  display:none !important;
+}
+#auth .book-page,
+#auth .book-page--single,
+#auth .book-page--registration {
+  position:absolute !important;
+  inset:8px !important;
+  display:flex !important;
+  flex-direction:column !important;
+  width:auto !important;
+  height:auto !important;
+  min-width:0 !important;
+  min-height:0 !important;
+  overflow-x:hidden !important;
+  overflow-y:auto !important;
+  padding:24px 30px 22px !important;
+  border:1px solid #c6b491 !important;
+  border-radius:5px !important;
+  opacity:0 !important;
+  visibility:hidden !important;
+  pointer-events:none !important;
+  transform:translateX(10px) !important;
+  transition:opacity .18s ease,transform .2s ease,visibility 0s linear .2s !important;
+  scrollbar-width:thin;
+  overscroll-behavior:contain;
+}
+#auth .book-page::before,
+#auth .book-page::after {
+  display:none !important;
+  content:none !important;
+}
+#auth .auth-book:not(.is-spread) #loginPage,
+#auth .auth-book.is-spread #registrationPage {
+  z-index:2 !important;
+  opacity:1 !important;
+  visibility:visible !important;
+  pointer-events:auto !important;
+  transform:translateX(0) !important;
+  transition:opacity .18s ease,transform .2s ease,visibility 0s !important;
+}
+#auth .auth-book.is-spread #loginPage {
+  z-index:1 !important;
+  opacity:0 !important;
+  visibility:hidden !important;
+  pointer-events:none !important;
+  transform:translateX(-10px) !important;
+}
+#auth .book-page-top {
+  min-height:22px !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  gap:8px !important;
+  margin:0 0 18px !important;
+  padding:0 0 9px !important;
+  font-size:12px !important;
+}
+#auth .page-counter {
+  font-size:12px !important;
+  line-height:1.4 !important;
+}
+#auth .book-title {
+  margin:0 0 9px !important;
+  font-size:clamp(22px,4vw,28px) !important;
+  line-height:1.35 !important;
+}
+#auth .book-subtitle {
+  margin:0 0 15px !important;
+  font-size:13px !important;
+  line-height:1.55 !important;
+}
+#auth .auth-moderation-disclosure {
+  margin:0 0 12px !important;
+  font-size:11px !important;
+  line-height:1.5 !important;
+  overflow-wrap:anywhere !important;
+}
+#auth .book-page .book-form {
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+}
+#auth .book-page .book-form label {
+  margin:8px 0 4px !important;
+  font-size:13px !important;
+  line-height:1.4 !important;
+}
+#auth .book-page .book-form .mc-input-shell {
+  display:block !important;
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  overflow:hidden !important;
+}
+#auth .book-page .book-form input {
+  display:block !important;
+  box-sizing:border-box !important;
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  min-height:42px !important;
+  margin:0 !important;
+  padding:8px 10px !important;
+  font-size:14px !important;
+  line-height:1.4 !important;
+  overflow:hidden !important;
+  text-overflow:clip !important;
+}
+#auth .book-page .book-form--registration label {
+  margin:5px 0 3px !important;
+  font-size:12.5px !important;
+}
+#auth .book-page .book-form--registration input {
+  min-height:40px !important;
+  padding:7px 9px !important;
+  font-size:14px !important;
+}
+#auth .book-page .book-form .form-error {
+  min-height:16px !important;
+  margin:4px 0 0 !important;
+  font-size:11px !important;
+  line-height:1.4 !important;
+  overflow-wrap:anywhere !important;
+}
+#auth #registrationPage .book-copy {
+  margin-bottom:8px !important;
+}
+#auth #registrationPage .book-copy--registration .book-title {
+  font-size:clamp(21px,3.7vw,26px) !important;
+}
+#auth .book-page-link,
+#auth .book-inline-link {
+  max-width:100% !important;
+  margin-top:10px !important;
+  padding:7px 0 2px !important;
+  font-size:12px !important;
+  line-height:1.5 !important;
+  white-space:normal !important;
+  overflow-wrap:anywhere !important;
+}
+#auth #registrationPage #backToLogin {
+  position:static !important;
+  display:grid !important;
+  width:32px !important;
+  min-width:32px !important;
+  height:32px !important;
+  place-items:center !important;
+  margin-left:auto !important;
+  font-size:22px !important;
+}
+#auth #registrationPage .book-page-top { padding-right:0 !important; }
+#auth .code-info { font-size:13px !important; line-height:1.55 !important; }
+#auth #codeForm input#code {
+  min-height:48px !important;
+  padding:9px 8px !important;
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif !important;
+  font-size:clamp(18px,4vw,22px) !important;
+  text-align:center !important;
+}
+#auth .book-actions {
+  display:grid !important;
+  width:min(100%,440px) !important;
+  grid-template-columns:minmax(0,1fr) !important;
+  gap:0 !important;
+}
+#auth .book-action-button {
+  width:100% !important;
+  min-height:46px !important;
+  font-size:13px !important;
+}
+#auth .book-spread,
+#auth .book-page--spread-left,
+#auth .book-page--spread-right { display:none !important; }
+
+/* The underscore caret follows the real browser text layout, not estimated glyph widths. */
+.mc-caret-measure {
+  position:absolute !important;
+  z-index:-1 !important;
+  display:block !important;
+  box-sizing:border-box !important;
+  overflow:hidden !important;
+  white-space:pre !important;
+  visibility:hidden !important;
+  pointer-events:none !important;
+  border:0 !important;
+  margin:0 !important;
+  color:transparent !important;
+}
+.mc-caret-marker {
+  display:inline-block !important;
+  width:0 !important;
+  min-width:0 !important;
+  height:1em !important;
+  margin:0 !important;
+  padding:0 !important;
+  border:0 !important;
+  vertical-align:baseline !important;
+}
+
+/* Phone/tablet header: keep the complete ЕЩЁ label and every action inside the viewport. */
+@media (max-width:1100px) {
+  html body .topbar-inner {
+    grid-template-columns:max-content minmax(0,1fr) !important;
+    grid-template-rows:auto auto !important;
+    gap:8px 10px !important;
+  }
+  html body .topbar-actions {
+    min-width:0 !important;
+    gap:5px !important;
+    justify-content:flex-end !important;
+  }
+  html body .more-wrap { flex:0 0 auto !important; margin:0 !important; }
+  html body .more-btn {
+    width:auto !important;
+    min-width:56px !important;
+    padding:0 7px !important;
+    font-size:10px !important;
+    white-space:nowrap !important;
+  }
+  html body .more-btn span { font-size:10px !important; }
+  html body .main-nav .nav-tab { white-space:normal !important; }
+}
+@media (max-width:620px) {
+  html body .topbar-inner {
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) !important;
+    grid-template-rows:auto auto auto !important;
+    width:calc(100% - 12px) !important;
+    gap:6px !important;
+    padding:7px 0 !important;
+  }
+  html body .brand {
+    grid-column:1 !important;
+    grid-row:1 !important;
+    gap:6px !important;
+    font-size:15px !important;
+  }
+  html body .brand-logo {
+    width:30px !important;
+    height:30px !important;
+    flex-basis:30px !important;
+  }
+  html body .topbar-actions {
+    grid-column:1 !important;
+    grid-row:2 !important;
+    display:flex !important;
+    width:100% !important;
+    min-width:0 !important;
+    align-items:center !important;
+    justify-content:space-between !important;
+    flex-flow:row nowrap !important;
+    gap:3px !important;
+  }
+  html body .more-wrap { flex:0 0 auto !important; }
+  html body .more-btn {
+    width:auto !important;
+    min-width:52px !important;
+    max-width:none !important;
+    height:34px !important;
+    min-height:34px !important;
+    padding:0 6px !important;
+    font-size:10px !important;
+    line-height:1 !important;
+    white-space:nowrap !important;
+  }
+  html body .more-btn span { display:inline !important; font-size:9px !important; }
+  html body .topbar-balance {
+    display:inline-flex !important;
+    flex:0 1 88px !important;
+    width:88px !important;
+    min-width:80px !important;
+    max-width:88px !important;
+    height:34px !important;
+    min-height:34px !important;
+    justify-content:center !important;
+    gap:3px !important;
+    padding:0 4px !important;
+  }
+  html body .balance-group--vrub,
+  html body .balance-divider { display:none !important; }
+  html body .balance-group--scrl {
+    display:inline-flex !important;
+    align-items:center !important;
+    gap:3px !important;
+    white-space:nowrap !important;
+  }
+  html body .balance-group--scrl small { font-size:9px !important; }
+  html body .balance-group--scrl strong { font-size:10px !important; }
+  html body .currency-coin-icon { width:14px !important; height:14px !important; flex-basis:14px !important; }
+  html body .topbar-user {
+    display:flex !important;
+    flex:0 0 auto !important;
+    align-items:center !important;
+    gap:3px !important;
+    margin:0 !important;
+  }
+  html body .user-name { display:none !important; }
+  html body .theme-btn {
+    display:inline-flex !important;
+    width:32px !important;
+    min-width:32px !important;
+    height:34px !important;
+    min-height:34px !important;
+    padding:0 !important;
+    font-size:0 !important;
+  }
+  html body .theme-btn::after {
+    content:"☀";
+    font:15px/1 sans-serif;
+  }
+  html[data-theme="light"] body .theme-btn::after { content:"☾"; }
+  html body .user-avatar {
+    width:26px !important;
+    min-width:26px !important;
+    height:26px !important;
+    font-size:10px !important;
+  }
+  html body .logout-button {
+    width:46px !important;
+    min-width:46px !important;
+    height:34px !important;
+    min-height:34px !important;
+    padding:0 4px !important;
+    font-size:10px !important;
+  }
+  html body .notification-wrap { flex:0 0 auto !important; }
+  html body .notification-bell {
+    width:32px !important;
+    min-width:32px !important;
+    height:34px !important;
+    min-height:34px !important;
+  }
+  html body .main-nav {
+    grid-column:1 !important;
+    grid-row:3 !important;
+    display:grid !important;
+    grid-template-columns:repeat(5,minmax(0,1fr)) !important;
+    width:100% !important;
+    min-width:0 !important;
+    gap:3px !important;
+    overflow:visible !important;
+  }
+  html body .main-nav .nav-tab {
+    display:flex !important;
+    min-width:0 !important;
+    min-height:40px !important;
+    padding:5px 2px !important;
+    align-items:center !important;
+    justify-content:center !important;
+    font-size:clamp(9px,2.65vw,11px) !important;
+    line-height:1.2 !important;
+    text-align:center !important;
+    overflow-wrap:anywhere !important;
+  }
+  html body .page-wrap {
+    width:calc(100% - 16px) !important;
+    padding:16px 0 32px !important;
+  }
+  html body #page { min-width:0 !important; }
+  html body #page > * { min-width:0 !important; max-width:100% !important; }
+  html body #page h1 { font-size:clamp(22px,6.8vw,29px) !important; line-height:1.25 !important; }
+  html body #page h2 { font-size:clamp(17px,5vw,21px) !important; line-height:1.3 !important; }
+  html body #page p, html body #page li { font-size:13px !important; line-height:1.55 !important; }
+  html body #page .demo-form,
+  html body #page .demo-card,
+  html body #page .match-box { padding:12px !important; }
+  html body #page .demo-form input,
+  html body #page .demo-form select,
+  html body #page .demo-form textarea,
+  html body #page .filter-row input,
+  html body #page .filter-row select,
+  html body #page .msg-form input,
+  html body #page .msg-form select {
+    box-sizing:border-box !important;
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    min-height:42px !important;
+    font-size:16px !important;
+  }
+  html body #page .filter-row {
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) !important;
+    gap:8px !important;
+  }
+  html body #page .filter-row > * { width:100% !important; min-width:0 !important; }
+  html body #page .demo-form > .button { width:100% !important; min-height:42px !important; }
+  html body #page .actions { display:flex !important; flex-wrap:wrap !important; gap:6px !important; }
+  html body #page .button,
+  html body #page .text-button { min-height:38px !important; max-width:100% !important; white-space:normal !important; }
+  html body #page table { display:block !important; max-width:100% !important; overflow-x:auto !important; }
+  html body .more-menu {
+    right:0 !important;
+    min-width:min(220px,calc(100vw - 16px)) !important;
+    max-width:calc(100vw - 16px) !important;
+  }
+  html body .notification-panel {
+    right:0 !important;
+    width:min(340px,calc(100vw - 16px)) !important;
+    max-width:calc(100vw - 16px) !important;
+  }
+
+  #auth .auth-screen { padding:54px 10px 18px !important; }
+  #auth .auth-stage { width:100% !important; max-width:460px !important; gap:10px !important; }
+  #auth .auth-book {
+    width:100% !important;
+    height:min(720px,calc(100svh - 166px)) !important;
+    min-height:min(430px,calc(100svh - 166px)) !important;
+    padding:7px !important;
+  }
+  #auth .book-page,
+  #auth .book-page--single,
+  #auth .book-page--registration {
+    inset:6px !important;
+    padding:19px 17px 18px !important;
+  }
+  #auth .book-page-top { margin-bottom:13px !important; }
+  #auth .book-title { font-size:clamp(21px,6vw,25px) !important; }
+  #auth .book-subtitle { margin-bottom:12px !important; font-size:13px !important; }
+  #auth .auth-moderation-disclosure { font-size:11px !important; line-height:1.45 !important; }
+  #auth .book-page .book-form label,
+  #auth .book-page .book-form--registration label {
+    margin:6px 0 3px !important;
+    font-size:12px !important;
+  }
+  #auth .book-page .book-form input,
+  #auth .book-page .book-form--registration input {
+    min-height:42px !important;
+    padding:8px 9px !important;
+    font-size:16px !important;
+  }
+  #auth .book-page .book-form .form-error { font-size:12px !important; }
+  #auth .book-page-link,
+  #auth .book-inline-link { font-size:12px !important; }
+  #auth .book-actions { width:100% !important; max-width:460px !important; }
+  #auth .book-action-button { min-height:44px !important; font-size:13px !important; }
+}
+@media (max-width:380px) {
+  html body .topbar-inner { width:calc(100% - 10px) !important; }
+  html body .more-btn { min-width:49px !important; padding:0 4px !important; font-size:9px !important; }
+  html body .topbar-balance { flex-basis:78px !important; width:78px !important; min-width:76px !important; padding:0 2px !important; }
+  html body .topbar-actions { gap:2px !important; }
+  html body .logout-button { width:42px !important; min-width:42px !important; font-size:9px !important; }
+  html body .notification-bell { width:30px !important; min-width:30px !important; }
+  html body .main-nav .nav-tab { padding:4px 1px !important; font-size:9px !important; }
+  #auth .book-page,
+  #auth .book-page--single,
+  #auth .book-page--registration { padding-left:13px !important; padding-right:13px !important; }
+}
+@media (max-height:690px) {
+  #auth .auth-book {
+    height:calc(100svh - 148px) !important;
+    min-height:380px !important;
+  }
+  #auth .book-page,
+  #auth .book-page--single,
+  #auth .book-page--registration { padding-top:14px !important; padding-bottom:12px !important; }
+  #auth .book-page-top { margin-bottom:9px !important; }
+}
