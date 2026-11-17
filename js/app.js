@@ -2984,12 +2984,22 @@ if (el("moreBtn") && el("extraMenu")) {
       const viewportHeight = Math.max(320, Number(window.innerHeight || 768));
       const anchor = moreButton.getBoundingClientRect();
       const width = Math.min(260, viewportWidth - 16);
-      extraMenu.style.position = "fixed";
-      extraMenu.style.width = width + "px";
-      extraMenu.style.maxHeight = "min(70dvh, calc(100dvh - 24px))";
-      extraMenu.style.right = "auto";
-      extraMenu.style.left = Math.max(8, Math.min(anchor.right - width, viewportWidth - width - 8)) + "px";
-      extraMenu.style.top = Math.max(8, Math.min(anchor.bottom + 6, viewportHeight - 280)) + "px";
+      extraMenu.style.setProperty("position", "fixed", "important");
+      extraMenu.style.setProperty("width", width + "px", "important");
+      extraMenu.style.setProperty("max-height", "min(70dvh, calc(100dvh - 24px))", "important");
+      extraMenu.style.setProperty("right", "auto", "important");
+      extraMenu.style.setProperty("left", Math.max(8, Math.min(anchor.right - width, viewportWidth - width - 8)) + "px", "important");
+      extraMenu.style.setProperty("top", "8px", "important");
+      const menuHeight = extraMenu.getBoundingClientRect().height;
+      const preferredTop = anchor.bottom + 6;
+      const aboveTop = anchor.top - menuHeight - 6;
+      const maxTop = Math.max(8, viewportHeight - Math.min(menuHeight, viewportHeight - 16) - 8);
+      const top = preferredTop + menuHeight <= viewportHeight - 8
+        ? preferredTop
+        : aboveTop >= 8
+          ? aboveTop
+          : maxTop;
+      extraMenu.style.setProperty("top", Math.max(8, Math.min(top, maxTop)) + "px", "important");
     }
   });
 
