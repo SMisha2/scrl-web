@@ -1,4 +1,4 @@
-const CACHE_NAME = "scrl-world-backgrounds-v2";
+const CACHE_NAME = "scrl-world-backgrounds-v3";
 const CACHE_PREFIX = "scrl-world-backgrounds-";
 const BACKGROUND_FILES = new Set(["night.png", "day.png"]);
 
@@ -10,7 +10,7 @@ self.addEventListener("install", event => {
     );
     await Promise.all(urls.map(async url => {
       try {
-        const response = await fetch(url, { cache: "reload" });
+        const response = await fetch(url);
         if (response.ok) await cache.put(url, response);
       } catch (_) {
         // Keep installing even when the user is temporarily offline.
