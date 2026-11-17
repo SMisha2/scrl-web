@@ -12,11 +12,11 @@
   <link rel="preload" href="assets/MinecraftRus.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/backgrounds/day.png" as="image" fetchpriority="high">
   <link rel="preload" href="assets/backgrounds/night.png" as="image" fetchpriority="low">
-  <link rel="stylesheet" href="css/style.css?v=178">
+  <link rel="stylesheet" href="css/style.css?v=179">
   <script src="js/config.js" defer></script>
   <script src="js/core.js" defer></script>
   <script src="js/backend.js?v=159" defer></script>
-  <script src="js/app.js?v=185" defer></script>
+  <script src="js/app.js?v=186" defer></script>
 </head>
 <body>
   <div id="worldScenery" class="world-scenery" aria-hidden="true">
@@ -159,8 +159,10 @@
             <span class="balance-group balance-group--vrub"><small>V-RUB</small><strong id="topbarVrubBalance">0</strong></span>
           </button>
           <div class="topbar-user">
-            <span id="avatar" class="user-avatar">Г</span>
-            <span id="userName" class="user-name">Гость</span>
+            <button id="profileShortcut" class="topbar-profile" type="button" aria-label="Открыть профиль" title="Открыть профиль">
+              <span id="avatar" class="user-avatar" aria-hidden="true">Г</span>
+              <span id="userName" class="user-name">Гость</span>
+            </button>
             <button id="logout" class="logout-button" type="button" aria-label="Выйти из аккаунта" title="Выйти из аккаунта">Выйти</button>
           </div>
           <div class="notification-wrap" id="notificationWrap">
