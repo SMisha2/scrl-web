@@ -943,7 +943,7 @@ test("перелистывание авторизации сохраняет г�
   const readme = fs.readFileSync(path.join(__dirname, "../README.md"), "utf8");
   assert.match(html, /rel="canonical" href="https:\/\/www\.scrl\.site\//);
   assert.match(html, /property="og:url" content="https:\/\/www\.scrl\.site\//);
-  assert.match(app, /: "https:\/\/scrl\.site\/"\;/);
+  assert.match(app, /: "https:\/\/www\.scrl\.site\/"\;/);
   assert.match(readme, /https:\/\/scrl\.site\//);
   assert.match(css, /#auth \.auth-book\.is-spread,[\s\S]*?width: min\(100%,520px\) !important;[\s\S]*?height: min\(700px,calc\(100svh - 150px\)\) !important;/);
   assert.match(css, /#auth \.auth-book\.is-spread #loginPage[\s\S]*?transform: rotateY\(-180deg\) !important/);
