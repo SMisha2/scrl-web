@@ -94,12 +94,29 @@
                   <span class="mc-input-shell"><input id="regPat" name="patronymic" type="text" autocomplete="additional-name" maxlength="40"></span>
                 </div>
               </div>
+              <label for="regBirth">Дата рождения:</label>
+              <span class="mc-input-shell"><input id="regBirth" name="birthDate" type="date" autocomplete="bday" required></span>
               <label for="regMail">Электронная почта:</label>
               <span class="mc-input-shell"><input id="regMail" name="email" type="email" autocomplete="email" maxlength="120" required></span>
               <label for="regPass">Пароль:</label>
               <span class="mc-input-shell"><input id="regPass" name="password" type="password" autocomplete="new-password" minlength="8" required></span>
               <label for="regAgain">Повторите пароль:</label>
               <span class="mc-input-shell"><input id="regAgain" name="passwordAgain" type="password" autocomplete="new-password" minlength="8" required></span>
+              <div class="auth-consent-list" aria-label="Согласия">
+                <label class="auth-consent-check" for="regPersonalConsent">
+                  <input id="regPersonalConsent" name="personalConsent" type="checkbox" required>
+                  <span>Согласен(на) на обработку персональных данных для работы ScRl, безопасности, поддержки и рассмотрения споров.</span>
+                </label>
+                <label class="auth-consent-check" for="regAiConsent">
+                  <input id="regAiConsent" name="aiConsent" type="checkbox" required>
+                  <span>Отдельно соглашаюсь на ИИ-модерацию моих публикаций, сообщений, отзывов и данных профиля.</span>
+                </label>
+              </div>
+              <details class="auth-consent-details">
+                <summary>Подробнее о данных и ИИ</summary>
+                <p>Обрабатываются ФИО, e-mail, дата рождения, класс, публикации, сообщения, отзывы и сведения об операциях. Дата рождения и журнал согласий хранятся отдельно от общего профиля.</p>
+                <p>Для автоматической проверки текст может передаваться Groq — внешнему поставщику ИИ. Спорные случаи могут просматриваться администрацией. ИИ может ошибаться; решения можно обжаловать. Не отправляй в тексты пароли, адреса и телефоны.</p>
+              </details>
               <p class="form-error" id="regErr" aria-live="polite"></p>
             </form>
             <form id="codeForm" class="auth-form book-form book-form--registration" hidden>
@@ -150,6 +167,7 @@
               <button type="button" data-page="orders">Мои заказы</button>
               <button type="button" data-page="favorites">Избранное</button>
               <button type="button" data-page="profile">Профиль</button>
+              <button type="button" data-page="privacy">Конфиденциальность и согласия</button>
               <button type="button" data-page="finance" data-role="admin" hidden>Платежи</button>
               <button type="button" data-page="assistant" data-role="admin" hidden>AI Moderator</button>
               <button type="button" data-page="staff" data-role="teacher admin" hidden>Кабинет учителя</button>
