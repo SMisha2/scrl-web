@@ -599,7 +599,7 @@ test("email confirmation accepts the eight-digit OTP configured in Supabase", ()
   assert.match(app, /\[0-9\]\{8\}/);
   assert.match(html, /id="code"[^>]*maxlength="8" pattern="\[0-9\]\{8\}"/);
   assert.match(html, /восьмизначный код/);
-  assert.ok(html.includes("js/app.js?v=187"));
+  assert.ok(html.includes("js/app.js?v=188"));
 });
 
 
@@ -1180,4 +1180,16 @@ test("administrator deletion accepts other admin accounts but validates the acti
   assert.match(account, /auth\.admin\.deleteUser\(targetId\)/);
   assert.match(migration, /AND NOT public\.scrl_is_admin\(\)/);
   assert.match(migration, /Сначала назначь другого администратора/);
+});
+
+test("администратор может снять обычную и ИИ-блокировку отдельным действием", () => {
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  const backend = fs.readFileSync(path.join(__dirname, "../js/backend.js"), "utf8");
+  const migration = fs.readFileSync(path.join(__dirname, "../supabase/migrations/20261117025403_admin_unblock_users_and_lift_ai_bans.sql"), "utf8");
+
+  assert.match(app, /if \(wasBlocked\) \{\s*await backend\.adminUnblockUser\(id\);/);
+  assert.match(backend, /adminUnblockUser\(id\)\s*\{\s*return rpc\("scrl_admin_unblock_user",\s*\{\s*p_target:\s*id\s*\}\);\s*\}/);
+  assert.match(migration, /public\.scrl_is_admin\(\)/);
+  assert.match(migration, /UPDATE public\.scrl_moderation_bans[\s\S]*?active = false/);
+  assert.match(migration, /UPDATE public\.profiles[\s\S]*?blocked = false/);
 });

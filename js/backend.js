@@ -469,6 +469,9 @@
     adminSetUser(id, action, reason = "", room = "") {
       return rpc("scrl_admin_set_user", { p_target: id, p_action: action, p_reason: reason, p_room: room });
     },
+    adminUnblockUser(id) {
+      return rpc("scrl_admin_unblock_user", { p_target: id });
+    },
     adminDeleteUser(id) {
       return edgeFunction("scrl-account", { action: "delete_user", target_user_id: id });
     },

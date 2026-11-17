@@ -2230,11 +2230,17 @@ async function actionRemote(btn) {
     if (me().role !== "admin") throw new Error("Нет доступа.");
     const target = getUser(id);
     if (!target) throw new Error("Участник не найден.");
-    const reason = target.blocked ? "" : prompt("Причина блокировки участника " + target.name + ":");
-    if (!target.blocked && (!reason || !reason.trim())) throw new Error("Нужно указать причину блокировки.");
-    await backend.adminSetUser(id, "block", reason || "");
+    const wasBlocked = Boolean(target.blocked);
+    const reason = wasBlocked ? "" : prompt("Причина блокировки участника " + target.name + ":");
+    if (!wasBlocked && (!reason || !reason.trim())) throw new Error("Нужно указать причину блокировки.");
+    if (wasBlocked) {
+      await backend.adminUnblockUser(id);
+    } else {
+      await backend.adminSetUser(id, "block", reason || "");
+    }
     await refreshRemoteData();
     setPage("admin");
+    msg(wasBlocked ? "Блокировка снята. Пользователь может войти снова." : "Пользователь заблокирован.");
     return;
   }
   if (type === "promote") {
