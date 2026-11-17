@@ -7641,3 +7641,80 @@ html body #app .topbar .theme-btn.theme-switch::after {
     padding:0 5px !important;
   }
 }
+
+
+/* Theme-independent toolbar geometry: lock every desktop control to fixed dimensions. */
+@media (min-width:761px) {
+  html body #app .topbar .main-nav > .nav-tab[data-page="home"] {
+    flex:0 0 96px !important; width:96px !important; min-width:96px !important; max-width:96px !important;
+  }
+  html body #app .topbar .main-nav > .nav-tab[data-page="board"],
+  html body #app .topbar .main-nav > .nav-tab[data-page="exchange"] {
+    flex:0 0 78px !important; width:78px !important; min-width:78px !important; max-width:78px !important;
+  }
+  html body #app .topbar .main-nav > .nav-tab[data-page="auctions"] {
+    flex:0 0 102px !important; width:102px !important; min-width:102px !important; max-width:102px !important;
+  }
+  html body #app .topbar .main-nav > .nav-tab[data-page="activity"] {
+    flex:0 0 108px !important; width:108px !important; min-width:108px !important; max-width:108px !important;
+  }
+  html body #app .topbar .main-nav > .more-wrap {
+    flex:0 0 74px !important; width:74px !important; min-width:74px !important; max-width:74px !important;
+  }
+  html body #app .topbar .main-nav > .more-wrap > .more-btn {
+    flex:0 0 74px !important; width:74px !important; min-width:74px !important; max-width:74px !important;
+  }
+  html body #app .topbar .topbar-balance {
+    flex:0 0 154px !important; width:154px !important; min-width:154px !important; max-width:154px !important;
+  }
+  html body #app .topbar .topbar-profile {
+    flex:0 0 180px !important; width:180px !important; min-width:180px !important; max-width:180px !important;
+  }
+  html body #app .topbar .logout-button {
+    flex:0 0 88px !important; width:88px !important; min-width:88px !important; max-width:88px !important;
+  }
+  html body #app .topbar .notification-bell {
+    flex:0 0 38px !important; width:38px !important; min-width:38px !important; max-width:38px !important;
+  }
+  html body #app .topbar .theme-btn.theme-switch {
+    flex:0 0 68px !important; width:68px !important; min-width:68px !important; max-width:68px !important;
+  }
+}
+
+/* The achievement-frame dimensions and spacing do not depend on the active theme. */
+html[data-theme="light"] body #app .topbar .main-nav .nav-tab,
+html[data-theme="dark"] body #app .topbar .main-nav .nav-tab,
+html[data-theme="light"] body #app .topbar .main-nav .more-btn,
+html[data-theme="dark"] body #app .topbar .main-nav .more-btn,
+html[data-theme="light"] body #app .topbar .topbar-balance,
+html[data-theme="dark"] body #app .topbar .topbar-balance,
+html[data-theme="light"] body #app .topbar .topbar-profile,
+html[data-theme="dark"] body #app .topbar .topbar-profile,
+html[data-theme="light"] body #app .topbar .logout-button,
+html[data-theme="dark"] body #app .topbar .logout-button,
+html[data-theme="light"] body #app .topbar .notification-bell,
+html[data-theme="dark"] body #app .topbar .notification-bell {
+  box-sizing:border-box !important;
+  border-width:3px !important;
+  border-radius:0 !important;
+  letter-spacing:0 !important;
+}
+html[data-theme="light"] body #app .topbar .main-nav .nav-tab,
+html[data-theme="dark"] body #app .topbar .main-nav .nav-tab {
+  font-family:var(--mc-font) !important;
+  font-size:12px !important;
+  font-weight:650 !important;
+  padding-left:10px !important;
+  padding-right:10px !important;
+}
+html[data-theme="light"] body #app .topbar .main-nav .nav-tab.is-active,
+html[data-theme="dark"] body #app .topbar .main-nav .nav-tab.is-active {
+  border-bottom-width:3px !important;
+}
+
+/* Lift the login/registration theme control to the upper edge of the book. */
+@media (min-width:701px) {
+  html body #auth.auth-screen .auth-theme-btn {
+    top:clamp(16px,calc(50% - 285px),220px) !important;
+  }
+}
