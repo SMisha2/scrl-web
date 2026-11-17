@@ -284,11 +284,11 @@ test("переключатель темы — двухпозиционный с�
   assert.match(html, /id="themeBtn"[^>]*role="switch"[^>]*aria-checked="false"/);
   assert.match(html, /id="authThemeBtn"[^>]*role="switch"[^>]*aria-checked="false"/);
   assert.equal((html.match(/class="theme-switch-track"/g) || []).length, 2);
-  assert.match(app, /button\\.setAttribute\\("aria-checked", String\\(normalized === "dark"\\)\\)/);
-  assert.match(css, /\\.theme-switch-thumb/);
+  assert.ok(app.includes('button.setAttribute("aria-checked", String(normalized === "dark"))'));
+  assert.ok(css.includes(".theme-switch-thumb"));
   assert.match(css, /translateX\\(30px\\)/);
   assert.match(css, /translateX\\(26px\\)/);
-  assert.match(css, /theme-switch-thumb::after/);
+  assert.ok(css.includes(".theme-switch-thumb::after"));
 });
 
 
@@ -348,8 +348,10 @@ test("светлые поля привязаны напрямую к data-theme=
 
 test("в светлой теме текстовые блоки всегда имеют светлую подложку", () => {
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
-  assert.match(css, /html\\[data-theme="light"\\] body #page p[\\s\\S]*?background-color:#f7f9f1 !important/);
-  assert.match(css, /html\\[data-theme="light"\\] body #auth \\.book-subtitle[\\s\\S]*?background-color:#f8f8ee !important/);
+  assert.ok(css.includes('html[data-theme="light"] body #page p,'));
+  assert.ok(css.includes("background-color:#f7f9f1 !important"));
+  assert.ok(css.includes('html[data-theme="light"] body #auth .book-subtitle'));
+  assert.ok(css.includes("background-color:#f8f8ee !important"));
 });
 
 test("вход и регистрация занимают страницы 1 и 2 на всех размерах", () => {
@@ -373,14 +375,14 @@ test("курсор underscore следует за реальной каретк�
   assert.match(html, /id="regForm"/);
   assert.match(html, /id="codeForm"/);
   assert.match(app, /function installMinecraftBookCursors\(\)/);
-  assert.match(app, /#authBook \\.mc-input-shell input/);
-  assert.match(app, /cursor\\.textContent = "_"/);
-  assert.match(app, /marker\\.getBoundingClientRect\\(\\)/);
-  assert.match(app, /document\\.body\\.append\\(mirror, cursor\\)/);
-  assert.match(app, /document\\.addEventListener\\("selectionchange", updateSelection\\)/);
-  assert.match(css, /\\.mc-writing-cursor/);
-  assert.match(css, /\\.mc-caret-measure/);
-  assert.match(css, /caret-color:transparent !important/);
+  assert.ok(app.includes('document.querySelectorAll("#authBook .mc-input-shell input")'));
+  assert.ok(app.includes('cursor.textContent = "_"'));
+  assert.ok(app.includes("marker.getBoundingClientRect()"));
+  assert.ok(app.includes("document.body.append(mirror, cursor)"));
+  assert.ok(app.includes('document.addEventListener("selectionchange", updateSelection)'));
+  assert.ok(css.includes(".mc-writing-cursor"));
+  assert.ok(css.includes(".mc-caret-measure"));
+  assert.ok(css.includes("caret-color:transparent !important"));
 });
 test("восстановление пароля проходит через письмо Supabase и recovery token", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
@@ -477,7 +479,7 @@ test("uploaded day/night photos are rendered smoothly, not pixelated", () => {
   assert.match(tail, /transform: none !important/);
   assert.match(tail, /background-size: cover !important/);
   assert.match(tail, /transition: opacity 1\.15s ease !important/);
-  assert.ok(html.includes('css/style.css?v=172'));
+  assert.ok(html.includes('css/style.css?v=173'));
 });
 
 
@@ -574,13 +576,14 @@ test("underscore отображается и в форме регистраци�
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
-  assert.match(app, /document\\.querySelectorAll\\("#authBook \\.mc-input-shell input"\\)/);
-  assert.match(app, /input\\.type === "password"[\\s\\S]*?repeat\\(input\\.value\\.length\\)/);
+  assert.ok(app.includes('document.querySelectorAll("#authBook .mc-input-shell input")'));
+  assert.ok(app.includes('input.type === "password"'));
+  assert.ok(app.includes('"•".repeat(input.value.length)'));
   assert.match(app, /cursor\\.textContent = "_"/);
-  assert.match(css, /html body #auth #codeForm input#code/);
-  assert.match(css, /html body \\.mc-writing-cursor\\[hidden\\]/);
+  assert.ok(css.includes("html body #auth #codeForm input#code"));
+  assert.ok(css.includes("html body .mc-writing-cursor[hidden]"));
   assert.match(app, /Этот код уже использован, заменён новым или истёк/);
-  assert.match(app, /el\\("code"\\)\\.value = ""/);
+  assert.ok(app.includes('el("code").value = ""'));
   assert.match(html, /id="regForm"/);
   assert.match(html, /id="codeForm"/);
 });
