@@ -3,9 +3,81 @@
   "use strict";
   const cfg = root.cfg || {};
 
+  function storedSession() {
+    try { return JSON.parse(sessionStorage.getItem("scrlSession") || "null"); }
+    catch { return null; }
+  }
+
   function tokenFromSession() {
-    try { return JSON.parse(sessionStorage.getItem("scrlSession") || "null")?.token || ""; }
-    catch { return ""; }
+    return storedSession()?.token || "";
+  }
+
+  let refreshInFlight = null;
+
+  async function refreshAccessToken(expiredToken) {
+    const current = storedSession();
+    const refreshToken = current && (current.refreshToken || current.refresh_token);
+    if (!refreshToken) return "";
+    if (current.token && expiredToken && current.token !== expiredToken) return current.token;
+    if (refreshInFlight) return refreshInFlight;
+
+    refreshInFlight = (async () => {
+      let response;
+      try {
+        response = await fetch(baseUrl() + "/auth/v1/token?grant_type=refresh_token", {
+          method: "POST",
+          headers: {
+            apikey: cfg.key,
+            "Content-Type": "application/json",
+            Accept: "application/json"
+          },
+          body: JSON.stringify({ refresh_token: refreshToken })
+        });
+      } catch {
+        throw new Error("Не удалось обновить сессию. Проверь подключение и войди снова.");
+      }
+
+      const raw = await response.text();
+      let payload = {};
+      if (raw) {
+        try { payload = JSON.parse(raw); }
+        catch { payload = {}; }
+      }
+      if (!response.ok || !payload.access_token) {
+        throw new Error("Сессия истекла. Войди в аккаунт ScRl заново.");
+      }
+
+      const latest = storedSession();
+      if (!latest || latest.id !== current.id) {
+        throw new Error("Сессия изменилась. Войди в ScRl заново.");
+      }
+      if (latest.token === current.token) {
+        latest.token = payload.access_token;
+        latest.refreshToken = payload.refresh_token || refreshToken;
+        sessionStorage.setItem("scrlSession", JSON.stringify(latest));
+      } else if (latest.token) {
+        return latest.token;
+      }
+      return payload.access_token;
+    })();
+
+    try {
+      return await refreshInFlight;
+    } finally {
+      refreshInFlight = null;
+    }
+  }
+
+  async function authenticatedFetch(url, options, token) {
+    let response = await fetch(url, options);
+    if (response.status !== 401) return response;
+
+    const refreshedToken = await refreshAccessToken(token);
+    if (!refreshedToken) return response;
+
+    const retryHeaders = { ...(options.headers || {}), Authorization: "Bearer " + refreshedToken };
+    response = await fetch(url, { ...options, headers: retryHeaders });
+    return response;
   }
 
   function baseUrl() {
@@ -24,11 +96,13 @@
     };
     if (options.body !== undefined) headers["Content-Type"] = "application/json";
     if (options.prefer) headers.Prefer = options.prefer;
-    const response = await fetch(baseUrl() + path, {
+    const url = baseUrl() + path;
+    const requestOptions = {
       method: options.method || "GET",
       headers,
       body: options.body === undefined ? undefined : JSON.stringify(options.body)
-    });
+    };
+    const response = await authenticatedFetch(url, requestOptions, token);
     const raw = await response.text();
     let payload = null;
     if (raw) {
@@ -49,7 +123,8 @@
   async function edgeFunction(name, body, explicitToken = "") {
     const token = explicitToken || tokenFromSession();
     if (!token) throw new Error("Сессия закончилась. Войди в аккаунт ещё раз.");
-    const response = await fetch(baseUrl() + "/functions/v1/" + encodeURIComponent(name), {
+    const url = baseUrl() + "/functions/v1/" + encodeURIComponent(name);
+    const requestOptions = {
       method: "POST",
       headers: {
         apikey: cfg.key,
@@ -58,7 +133,8 @@
         Accept: "application/json"
       },
       body: JSON.stringify(body || {})
-    });
+    };
+    const response = await authenticatedFetch(url, requestOptions, token);
     const raw = await response.text();
     let payload = null;
     if (raw) {
@@ -100,7 +176,7 @@
 
   async function load(token, currentUserId, email) {
     const tables = [
-      ["profiles", "select=id,full_name,room,role,blocked,created_at&order=full_name.asc"],
+      ["profiles", "select=id,full_name,room,role,blocked,deleted_at,created_at&order=full_name.asc"],
       ["wallets", "select=user_id,scrl,vrub,hold_scrl,hold_vrub"],
       ["ledger", "select=id,user_id,currency,delta,note,created_at&order=created_at.desc&limit=1000"],
       ["posts", "select=*&order=created_at.desc&limit=1000"],
@@ -152,6 +228,7 @@
         holdScrl: Number(wallet.hold_scrl || 0),
         holdVrub: Number(wallet.hold_vrub || 0),
         blocked: Boolean(row.blocked),
+        deleted: Boolean(row.deleted_at),
         blockReason: ""
       };
     });
