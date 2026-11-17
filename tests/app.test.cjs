@@ -310,7 +310,7 @@ test("светлые поля привязаны напрямую к data-theme=
   assert.ok(css.includes('html[data-theme="light"] body textarea'));
   assert.ok(css.includes('border: 4px solid #111111 !important'));
   assert.ok(css.includes('background-color: #c4c4c4 !important'));
-  assert.ok(html.includes('css/style.css?v=167'));
+  assert.ok(html.includes('css/style.css?v=168'));
 });
 
 
@@ -509,7 +509,7 @@ test("signup opens the eight-digit code step immediately and uses the published 
   assert.doesNotMatch(html, /openRegistrationFromPage2|Перейти к регистрации/);
 });
 
-test("переключение входа и регистрации меняет одну страницу без разворота", () => {
+test("переключение входа и регистрации перелистывает страницу без изменения размеров книги", () => {
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   assert.match(css, /#auth \.auth-book\.is-spread #registrationPage/);
@@ -877,4 +877,19 @@ test("удаление аккаунта списывает остатки и у�
   assert.match(migration, /burned_scrl = burned_scrl \+ v_wallet\.scrl/);
   assert.match(migration, /'V-RUB', -v_wallet\.vrub/);
   assert.match(migration, /UPDATE public\.ledger[\s\S]*note = 'Операция удалённого участника'/);
+});
+
+
+test("перелистывание авторизации сохраняет габариты и использует новый домен ScRl", () => {
+  const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
+  const readme = fs.readFileSync(path.join(__dirname, "../README.md"), "utf8");
+  assert.match(html, /rel="canonical" href="https:\/\/www\.scrl\.site\//);
+  assert.match(html, /property="og:url" content="https:\/\/www\.scrl\.site\//);
+  assert.match(app, /: "https:\/\/www\.scrl\.site\/"\;/);
+  assert.match(readme, /https:\/\/www\.scrl\.site\//);
+  assert.match(css, /#auth \.auth-book\.is-spread,[\s\S]*?width: min\(100%,520px\) !important;[\s\S]*?height: min\(700px,calc\(100svh - 150px\)\) !important;/);
+  assert.match(css, /#auth \.auth-book\.is-spread #loginPage[\s\S]*?transform: rotateY\(-180deg\) !important/);
+  assert.match(css, /backface-visibility: hidden !important/);
 });

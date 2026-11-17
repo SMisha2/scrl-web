@@ -6660,3 +6660,74 @@ html body .currency-coin-icon {
     flex-basis:24px !important;
   }
 }
+
+
+/* ScRl auth: turn from page 1 to page 2 without resizing the book. */
+#auth .auth-book {
+  perspective: 1500px !important;
+  transform-style: preserve-3d !important;
+  transition: box-shadow .3s ease !important;
+}
+#auth .book-page {
+  transform-origin: left center !important;
+  backface-visibility: hidden !important;
+  transform-style: preserve-3d !important;
+  transition: transform .72s cubic-bezier(.2,.75,.16,1) !important;
+  will-change: transform;
+}
+#auth .auth-book:not(.is-spread) #loginPage {
+  z-index: 3 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transform: rotateY(0deg) !important;
+}
+#auth .auth-book:not(.is-spread) #registrationPage {
+  z-index: 2 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: none !important;
+  transform: rotateY(0deg) !important;
+}
+#auth .auth-book.is-spread #loginPage {
+  z-index: 3 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: none !important;
+  transform: rotateY(-180deg) !important;
+}
+#auth .auth-book.is-spread #registrationPage {
+  z-index: 2 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transform: rotateY(0deg) !important;
+}
+
+/* Keep the exact same responsive dimensions on both sides of the page turn. */
+#auth .auth-book.is-spread,
+#auth[data-device-mode="phone"] .auth-book.is-spread {
+  width: min(100%,520px) !important;
+  height: min(700px,calc(100svh - 150px)) !important;
+  min-height: min(480px,calc(100svh - 150px)) !important;
+}
+@media (max-width:760px) {
+  #auth .auth-book,
+  #auth .auth-book.is-spread,
+  #auth[data-device-mode="phone"] .auth-book.is-spread {
+    width: 100% !important;
+    height: min(720px,calc(100svh - 166px)) !important;
+    min-height: min(430px,calc(100svh - 166px)) !important;
+  }
+}
+@media (max-height:690px) {
+  #auth .auth-book,
+  #auth .auth-book.is-spread,
+  #auth[data-device-mode="phone"] .auth-book.is-spread {
+    height: calc(100svh - 148px) !important;
+    min-height: 380px !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #auth .book-page { transition: none !important; will-change: auto; }
+}
