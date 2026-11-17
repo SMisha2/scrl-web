@@ -533,19 +533,24 @@ test("переключение входа и регистрации перели
   assert.match(css, /#auth \.book-page::before[\s\S]*?display:none !important/);
 });
 
-test("курсор ввода совпадает с реальной позицией текста, повторный OTP очищает поле", () => {
+test("курсор ввода следует за реальной кареткой, повторный OTP очищает поле", () => {
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
-  assert.match(app, /const mirror = document\.createElement\("span"\)/);
-  assert.match(app, /marker\.getBoundingClientRect\(\)/);
-  assert.match(app, /mirror\.style\.textAlign = style\.textAlign/);
+  assert.match(app, /const canvas = document\.createElement\("canvas"\)/);
+  assert.match(app, /measure\.measureText\(value\)\.width/);
+  assert.match(app, /const inputRect = input\.getBoundingClientRect\(\)/);
+  assert.match(app, /const shellRect = shell\.getBoundingClientRect\(\)/);
+  assert.match(app, /style\.textAlign === "center"/);
+  assert.match(app, /const prefixWidth = widthOf\(prefix\)/);
+  assert.doesNotMatch(app, /const mirror = document\.createElement\("span"\)|marker\.getBoundingClientRect\(\)/);
   assert.doesNotMatch(app, /if \(input\.id === "code"\) return/);
   assert.match(app, /Этот код уже использован, заменён новым или истёк/);
   assert.match(app, /el\("code"\)\.value = ""/);
   assert.match(app, /button\.disabled = true/);
-  assert.match(css, /\.mc-caret-measure/);
+  assert.match(css, /\.mc-writing-cursor/);
   assert.match(css, /#auth #codeForm input#code[\s\S]*?text-overflow: clip !important/);
+  assert.match(css, /caret-color:\s*transparent\s*!important/);
   assert.doesNotMatch(html, /codeDeviceMode/);
   assert.doesNotMatch(app, /scrlAuthDeviceMode|setupAuthDeviceMode/);
 });
