@@ -341,7 +341,7 @@ test("светлые поля привязаны напрямую к data-theme=
   assert.ok(css.includes('html[data-theme="light"] body textarea'));
   assert.ok(css.includes('border: 4px solid #111111 !important'));
   assert.ok(css.includes('background-color: #c4c4c4 !important'));
-  assert.ok(html.includes('css/style.css?v=178'));
+  assert.ok(html.includes('css/style.css?v=179'));
 });
 
 
@@ -479,7 +479,7 @@ test("uploaded day/night photos are rendered smoothly, not pixelated", () => {
   assert.match(tail, /transform: none !important/);
   assert.match(tail, /background-size: cover !important/);
   assert.match(tail, /transition: opacity 1\.15s ease !important/);
-  assert.ok(html.includes('css/style.css?v=178'));
+  assert.ok(html.includes('css/style.css?v=179'));
 });
 
 
@@ -599,7 +599,7 @@ test("email confirmation accepts the eight-digit OTP configured in Supabase", ()
   assert.match(app, /\[0-9\]\{8\}/);
   assert.match(html, /id="code"[^>]*maxlength="8" pattern="\[0-9\]\{8\}"/);
   assert.match(html, /восьмизначный код/);
-  assert.ok(html.includes("js/app.js?v=185"));
+  assert.ok(html.includes("js/app.js?v=186"));
 });
 
 
@@ -1087,4 +1087,18 @@ test("desktop More popover uses fixed viewport positioning to escape nav overflo
   assert.match(app, /extraMenu\.style\.setProperty\("left"/);
   assert.match(app, /extraMenu\.style\.setProperty\("top"/);
   assert.match(app, /menu\.removeAttribute\("style"\)/);
+});
+
+
+test("toolbar uses a uniform grey achievement frame and the profile shortcut opens profile", () => {
+  const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  assert.match(html, /id="profileShortcut"[\s\S]*id="avatar"[\s\S]*id="userName"/);
+  assert.match(app, /profileShortcut\)\.addEventListener\("click", \(\) => setPage\("profile"\)\)/);
+  assert.match(css, /--scrl-achievement-fill:#c6c6c6/);
+  assert.match(css, /topbar \.main-nav \.nav-tab\.is-active/);
+  assert.match(css, /topbar \.topbar-profile/);
+  assert.match(css, /theme-btn\.theme-switch[\s\S]*border-radius:999px !important/);
+  assert.match(css, /auth-theme-btn[\s\S]*left:min\(calc\(50% \+ 286px\),calc\(100vw - 78px\)\) !important/);
 });
