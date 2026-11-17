@@ -341,7 +341,7 @@ test("светлые поля привязаны напрямую к data-theme=
   assert.ok(css.includes('html[data-theme="light"] body textarea'));
   assert.ok(css.includes('border: 4px solid #111111 !important'));
   assert.ok(css.includes('background-color: #c4c4c4 !important'));
-  assert.ok(html.includes('css/style.css?v=175'));
+  assert.ok(html.includes('css/style.css?v=176'));
 });
 
 
@@ -479,7 +479,7 @@ test("uploaded day/night photos are rendered smoothly, not pixelated", () => {
   assert.match(tail, /transform: none !important/);
   assert.match(tail, /background-size: cover !important/);
   assert.match(tail, /transition: opacity 1\.15s ease !important/);
-  assert.ok(html.includes('css/style.css?v=175'));
+  assert.ok(html.includes('css/style.css?v=176'));
 });
 
 
@@ -497,6 +497,11 @@ test("страницы входа и регистрации имеют свои 
   assert.match(css, /min-height:40px !important/);
   assert.doesNotMatch(html, />Готово<\/button>/);
   assert.doesNotMatch(app, /sign\.textContent = "Готово"/);
+  assert.match(html, /id="openRegistration"[\s\S]*?id="bookSign"/);
+  assert.doesNotMatch(html, /class="book-actions"/);
+  assert.match(app, /targetPage\.appendChild\(sign\)/);
+  assert.ok(css.includes("right: max(16px, calc((100vw - 550px) / 2 - 78px)) !important"));
+  assert.ok(css.includes("left: 50% !important"));
 });
 test("toolbar and bell notifications have one consistent control height", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
@@ -594,7 +599,7 @@ test("email confirmation accepts the eight-digit OTP configured in Supabase", ()
   assert.match(app, /\[0-9\]\{8\}/);
   assert.match(html, /id="code"[^>]*maxlength="8" pattern="\[0-9\]\{8\}"/);
   assert.match(html, /восьмизначный код/);
-  assert.ok(html.includes("js/app.js?v=180"));
+  assert.ok(html.includes("js/app.js?v=181"));
 });
 
 
