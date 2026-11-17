@@ -946,7 +946,7 @@ function profilePage() {
       ? '<label for="profileRole">Режим просмотра</label><select id="profileRole" name="role"><option value="admin"' + (user.role === "admin" ? " selected" : "") + '>Администратор</option><option value="student"' + (user.role === "student" ? " selected" : "") + '>Ученик</option><option value="teacher"' + (user.role === "teacher" ? " selected" : "") + '>Учитель</option><option value="parent"' + (user.role === "parent" ? " selected" : "") + '>Родитель (тест)</option></select><p class="small muted">Это только переключение интерфейса. Настоящая роль в базе остаётся «Администратор». Родитель — тестовый экран без данных учеников и без записи роли в базу. При новом входе режим сбрасывается.</p>'
       : '<p class="small muted">Роль: ' + roleName(user.role) + '. Изменить её может только администратор.</p>';
   const deleteSection = remoteReady && !sess()?.guest
-    ? '<section class="account-danger"><h2>Удаление аккаунта</h2><p>Каждый зарегистрированный участник — ученик, учитель или администратор — может удалить свой аккаунт. Действие необратимо: профиль будет обезличен, публикации и личные сообщения удалены, финансовая история сохранена без персональных данных. Остатки ScRl и V-RUB после удаления недоступны. Перед удалением заверши активные сделки, заявки на бирже, аукционы и освободи все резервы.</p><form id="deleteAccountForm" class="demo-form account-delete-form"><label for="deleteAccountConfirm">Введи слово УДАЛИТЬ для подтверждения</label><input id="deleteAccountConfirm" name="confirmation" maxlength="7" autocomplete="off" required><button class="button button-danger" type="submit">Удалить аккаунт окончательно</button></form></section>'
+    ? '<section class="account-danger"><h2>Удаление аккаунта</h2><p>Каждый зарегистрированный участник — ученик, учитель или администратор — может удалить свой аккаунт. Действие необратимо: профиль будет обезличен, публикации и личные сообщения удалены, финансовая история сохранена без персональных данных. Остатки ScRl и V-RUB будут списаны; ScRl исключаются из доступного оборота. Финансовая история останется обезличенной. Перед удалением заверши активные сделки, заявки на бирже, аукционы и освободи все резервы.</p><form id="deleteAccountForm" class="demo-form account-delete-form"><label for="deleteAccountConfirm">Введи слово УДАЛИТЬ для подтверждения</label><input id="deleteAccountConfirm" name="confirmation" maxlength="7" autocomplete="off" required><button class="button button-danger" type="submit">Удалить аккаунт окончательно</button></form></section>'
     : '<section class="account-danger"><h2>Удаление аккаунта</h2><p>Удаление доступно только после входа в зарегистрированный аккаунт. В демо-режиме действие отключено.</p></section>';
   return '<p class="eyebrow">АККАУНТ</p><h1>Профиль</h1><div class="demo-stats"><div class="demo-stat"><span>Отзывы</span><b>' + reviews.length + '</b></div><div class="demo-stat"><span>Средняя оценка</span><b>' + avg + '</b></div></div>' +
     '<form id="profileForm" class="demo-form"><h2>Мои данные</h2><label>ФИО</label><input name="name" maxlength="100" value="' + safe(user.name) + '" required><label>Email</label><input value="' + safe(user.mail || "Email скрыт для других участников") + '" disabled><label>Класс</label><input name="room" maxlength="12" value="' + safe(user.room || "") + '"' + (!isAdminAccount() ? ' readonly aria-readonly="true" title="Класс меняет администратор"' : "") + '>' +
@@ -1744,8 +1744,12 @@ function action(btn) {
     const u = getUser(id);
     if (u && u.id !== me().id && u.role !== "admin") {
       if (!u.blocked) {
-        const activeAuction = data.auctions.some(a => a.status === "active" && (a.owner === u.id || a.leader === u.id));
-        if (activeAuction) throw new Error("Сначала завершите активный аукцион участника.");
+        const activeDeal = data.deals.some(d =>
+          (d.buyer === u.id || d.seller === u.id) && ["work","ready","dispute"].includes(d.status)
+        );
+        if (activeDeal) throw new Error("Сначала заверши активные сделки и разреши споры участника.");
+        const activeAuction = data.auctions.some(a => ["active","settlementError"].includes(a.status) && (a.owner === u.id || a.leader === u.id));
+        if (activeAuction) throw new Error("Сначала завершите активные аукционы участника.");
         const badReserve = data.exchangeOrders.some(o => o.user === u.id && o.status === "active" &&
           (o.side === "scrlSell" ? u.holdScrl < o.amount : u.holdVrub < o.amount));
         if (badReserve) throw new Error("Сначала проверьте резерв заявок участника.");
