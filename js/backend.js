@@ -239,10 +239,19 @@
         ...moderationFallback, unavailable: true,
         error: error && error.message ? error.message : "Состояние модерации пока недоступно."
       }));
-    const [result, economy, moderation] = await Promise.all([
+    const safetyRequest = request("/rest/v1/rpc/scrl_get_my_safety_status", {
+      method: "POST", body: {}
+    }, token).catch(error => ({
+      birthDate: null, ageYears: null,
+      hasPersonalDataConsent: false, hasAiConsent: false,
+      parentExchangeStatus: "not_requested", canUseExchange: false,
+      needsOnboarding: true, loadError: error?.message || "Не удалось проверить согласия."
+    }));
+    const [result, economy, moderation, safety] = await Promise.all([
       Promise.all(tables.map(([name, query]) => table(name, query, token))),
       request("/rest/v1/rpc/scrl_economy_snapshot", { method: "POST", body: {} }, token),
-      moderationRequest
+      moderationRequest,
+      safetyRequest
     ]);
     const rows = Object.fromEntries(tables.map(([name], index) => [name, Array.isArray(result[index]) ? result[index] : []]));
     const wallets = new Map(rows.wallets.map(row => [row.user_id, row]));
@@ -263,6 +272,23 @@
         blockReason: ""
       };
     });
+    const safetyStatus = safety && typeof safety === "object"
+      ? safety
+      : {
+          birthDate: null, ageYears: null,
+          hasPersonalDataConsent: false, hasAiConsent: false,
+          parentExchangeStatus: "not_requested", canUseExchange: false,
+          needsOnboarding: true, loadError: "Статус согласий не получен."
+        };
+    const currentProfile = profiles.find(user => user.id === currentUserId);
+    const exchangeConsentRequests = currentProfile?.role === "admin"
+      ? await request("/rest/v1/rpc/scrl_admin_pending_exchange_consents", {
+          method: "POST", body: {}
+        }, token).catch(error => {
+          console.warn("ScRl parent-consent queue:", error?.message || error);
+          return [];
+        })
+      : [];
     const nameById = new Map(profiles.map(user => [user.id, user.name]));
     const messagesByDeal = new Map();
     rows.deal_messages.forEach(row => {
@@ -285,6 +311,8 @@
 
     const data = {
       users: profiles,
+      safety: safetyStatus,
+      exchangeConsentRequests: Array.isArray(exchangeConsentRequests) ? exchangeConsentRequests : [],
       moderation,
       posts: rows.posts.map(row => ({
         id: row.id, type: row.type, title: row.title, desc: row.description,
@@ -370,16 +398,45 @@
   const api = {
     load,
     rpc,
-    async saveProfile(id, name, room = null, token = "") {
+    async saveProfile(id, name, room = null, token = "", safety = null) {
       const fullName = String(name || "").trim();
       if (!fullName || fullName.length > 100) throw new Error("Укажи ФИО длиной от 1 до 100 символов.");
-      // Every name edit is checked before PATCH; the DB trigger rejects direct unmoderated edits.
+      if (safety) {
+        await request("/rest/v1/rpc/scrl_save_my_safety_data", {
+          method: "POST",
+          body: {
+            p_birth_date: String(safety.birthDate || ""),
+            p_personal_consent: safety.personalConsent === true,
+            p_ai_consent: safety.aiConsent === true,
+            p_personal_version: String(safety.personalVersion || "2026-11-17-v1"),
+            p_ai_version: String(safety.aiVersion || "2026-11-17-v1")
+          }
+        }, token);
+      }
+      // The edge function checks current consent before forwarding text to the external AI provider.
       await moderationCheck("profile", { full_name: fullName }, token);
       const body = { full_name: fullName };
       if (room !== null && room !== undefined) body.room = String(room).trim();
       return request("/rest/v1/profiles?id=eq." + encodeURIComponent(id), {
         method: "PATCH", body, prefer: "return=minimal"
       }, token);
+    },
+    saveSafetyData(safety) {
+      return rpc("scrl_save_my_safety_data", {
+        p_birth_date: String(safety.birthDate || ""),
+        p_personal_consent: safety.personalConsent === true,
+        p_ai_consent: safety.aiConsent === true,
+        p_personal_version: String(safety.personalVersion || "2026-11-17-v1"),
+        p_ai_version: String(safety.aiVersion || "2026-11-17-v1")
+      });
+    },
+    requestExchangeParentConsent(confirmed) {
+      return rpc("scrl_request_exchange_parent_consent", { p_parent_confirmed: confirmed === true });
+    },
+    reviewExchangeParentConsent(userId, decision) {
+      return rpc("scrl_admin_review_exchange_parent_consent", {
+        p_user_id: String(userId), p_decision: String(decision)
+      });
     },
     deleteAccount(confirmation) {
       return edgeFunction("scrl-account", { action: "delete_account", confirmation });
