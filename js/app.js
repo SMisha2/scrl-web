@@ -2945,54 +2945,32 @@ el("logout").addEventListener("click", () => {
   if (window.confirm("Выйти из аккаунта ScRl?")) leave();
 });
 
-if (el("moreBtn")) {
-  function closeExtraMenu() {
-    const menu = el("extraMenu");
-    const wrap = el("moreBtn")?.closest(".more-wrap");
-    if (!menu) return;
-    menu.hidden = true;
-    el("moreBtn")?.setAttribute("aria-expanded", "false");
-    if (wrap && menu.parentElement !== wrap) wrap.appendChild(menu);
-    menu.removeAttribute("style");
-  }
-  el("moreBtn").addEventListener("click", () => {
-    const menu = el("extraMenu");
-    const opening = menu.hidden;
-    const wrap = el("moreBtn").closest(".more-wrap");
-    if (!opening) {
-      closeExtraMenu();
-      closeNotificationPanel();
-      return;
-    }
-    menu.hidden = false;
-    el("moreBtn").setAttribute("aria-expanded", "true");
-    closeNotificationPanel();
-    const mobile = typeof window.matchMedia === "function"
-      ? window.matchMedia("(max-width: 760px)").matches
-      : Number(window.innerWidth || 0) <= 760;
-    if (mobile) {
-      document.body.appendChild(menu);
-      const anchor = el("moreBtn").getBoundingClientRect();
-      const width = Math.max(180, Math.min(280, Number(window.innerWidth || 320) - 16));
-      menu.style.position = "fixed";
-      menu.style.width = width + "px";
-      menu.style.maxHeight = "min(70dvh, calc(100dvh - 24px))";
-      const height = menu.getBoundingClientRect().height;
-      const left = Math.max(8, Math.min(anchor.right - width, Number(window.innerWidth || 320) - width - 8));
-      const top = Math.max(8, Math.min(anchor.bottom + 6, Number(window.innerHeight || 640) - Math.min(height, Number(window.innerHeight || 640) - 24) - 12));
-      menu.style.left = left + "px";
-      menu.style.right = "auto";
-      menu.style.top = top + "px";
-    } else if (wrap && menu.parentElement !== wrap) {
-      wrap.appendChild(menu);
-    }
+function closeExtraMenu() {
+  const menu = el("extraMenu");
+  const button = el("moreBtn");
+  if (menu) menu.hidden = true;
+  if (button) button.setAttribute("aria-expanded", "false");
+}
+
+if (el("moreBtn") && el("extraMenu")) {
+  const moreButton = el("moreBtn");
+  const extraMenu = el("extraMenu");
+
+  moreButton.addEventListener("click", event => {
+    event.preventDefault();
+    event.stopPropagation();
+    const opening = extraMenu.hidden;
+    extraMenu.hidden = !opening;
+    moreButton.setAttribute("aria-expanded", String(opening));
+    if (opening) closeNotificationPanel();
   });
-  el("extraMenu").addEventListener("click", event => {
-    const btn = event.target.closest("[data-page]");
-    if (btn) {
-      setPage(btn.dataset.page);
-      closeExtraMenu();
-    }
+
+  extraMenu.addEventListener("click", event => {
+    const button = event.target?.closest?.("button[data-page]");
+    if (!button || button.hidden) return;
+    event.stopPropagation();
+    setPage(button.dataset.page);
+    closeExtraMenu();
   });
 }
 if (el("notificationBell")) {
@@ -3030,7 +3008,7 @@ if (document.addEventListener) {
   document.addEventListener("click", event => {
     if (!event.target?.closest) return;
     if (!event.target.closest(".notification-wrap")) closeNotificationPanel();
-    if (!event.target.closest(".more-wrap") && !event.target.closest("#extraMenu")) closeExtraMenu();
+    if (!event.target.closest(".more-wrap")) closeExtraMenu();
   });
   document.addEventListener("keydown", event => {
     if (event.key === "Escape") {
