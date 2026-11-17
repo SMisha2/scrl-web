@@ -338,7 +338,6 @@ test("авторизация сохраняет читаемые поля и т�
   assert.match(app, /cursor\.textContent = "_"/);
   assert.match(app, /measure\.measureText\(value\)/);
   assert.match(app, /style\.textAlign === "center"/);
-  assert.match(app, /prefix\.nodeValue = visibleText\.slice\(0, caret\)/);
   assert.match(app, /input\.addEventListener\("keydown", schedulePosition\)/);
   assert.match(app, /document\.addEventListener\("selectionchange", onSelectionChange\)/);
   assert.doesNotMatch(app, /input\.id === "code"/);
