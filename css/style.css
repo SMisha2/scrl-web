@@ -7414,3 +7414,230 @@ html body #auth .book-page {
 }
 
 /* Do not move the More popover outside its navigation anchor on mobile. */
+
+
+/* Achievement-frame toolbar: identical grey Minecraft frame for every toolbar box. */
+:root { --scrl-achievement-fill:#c6c6c6; --scrl-achievement-edge:#111111; --scrl-achievement-highlight:#eeeeee; --scrl-achievement-shadow:#777777; }
+html body #app .topbar .main-nav .nav-tab,
+html body #app .topbar .main-nav .more-btn,
+html body #app .topbar .topbar-balance,
+html body #app .topbar .topbar-profile,
+html body #app .topbar .logout-button,
+html body #app .topbar .notification-bell {
+  box-sizing:border-box !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  height:38px !important;
+  min-height:38px !important;
+  border:3px solid var(--scrl-achievement-edge) !important;
+  border-radius:0 !important;
+  clip-path:none !important;
+  color:#202020 !important;
+  background:var(--scrl-achievement-fill) !important;
+  box-shadow:
+    inset 2px 2px 0 var(--scrl-achievement-highlight),
+    inset -2px -2px 0 var(--scrl-achievement-shadow),
+    3px 3px 0 #555555 !important;
+  transform:none !important;
+}
+
+/* Keep selected and unselected navigation tabs visually consistent. */
+html body #app .topbar .main-nav .nav-tab,
+html body #app .topbar .main-nav .nav-tab.is-active {
+  flex:0 0 auto !important;
+  margin:0 !important;
+  padding:0 10px !important;
+  font-size:12px !important;
+  line-height:1 !important;
+  font-weight:650 !important;
+  white-space:nowrap !important;
+  border-bottom:3px solid var(--scrl-achievement-edge) !important;
+}
+html body #app .topbar .main-nav .nav-tab:hover,
+html body #app .topbar .main-nav .more-btn:hover,
+html body #app .topbar .topbar-balance:hover,
+html body #app .topbar .topbar-profile:hover,
+html body #app .topbar .logout-button:hover,
+html body #app .topbar .notification-bell:hover {
+  filter:brightness(1.06) !important;
+}
+html body #app .topbar .main-nav .nav-tab:active,
+html body #app .topbar .main-nav .more-btn:active,
+html body #app .topbar .topbar-balance:active,
+html body #app .topbar .topbar-profile:active,
+html body #app .topbar .logout-button:active,
+html body #app .topbar .notification-bell:active {
+  transform:translateY(1px) !important;
+}
+
+/* Profile shortcut is its own control; logout remains a separate button. */
+html body #app .topbar .topbar-user {
+  display:flex !important;
+  align-items:center !important;
+  gap:6px !important;
+  height:38px !important;
+  min-height:38px !important;
+}
+html body #app .topbar .topbar-profile {
+  flex:0 1 auto !important;
+  min-width:38px !important;
+  max-width:190px !important;
+  gap:7px !important;
+  margin:0 !important;
+  padding:0 7px !important;
+  cursor:pointer !important;
+  font:inherit !important;
+  text-align:left !important;
+  white-space:nowrap !important;
+}
+html body #app .topbar .topbar-profile .user-avatar {
+  display:grid !important;
+  flex:0 0 28px !important;
+  width:28px !important;
+  min-width:28px !important;
+  height:28px !important;
+  margin:0 !important;
+  border:1px solid #333333 !important;
+  border-radius:0 !important;
+  color:#202020 !important;
+  background:#dddddd !important;
+  box-shadow:inset 1px 1px 0 #ffffff,inset -1px -1px 0 #888888 !important;
+  font-size:12px !important;
+}
+html body #app .topbar .topbar-profile .user-name {
+  display:block !important;
+  max-width:125px !important;
+  overflow:hidden !important;
+  color:#202020 !important;
+  font-size:11px !important;
+  font-weight:700 !important;
+  line-height:1.1 !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
+}
+html body #app .topbar .logout-button {
+  flex:0 0 88px !important;
+  width:88px !important;
+  min-width:88px !important;
+  max-width:88px !important;
+  padding:0 8px !important;
+  font-size:11px !important;
+  font-weight:700 !important;
+  line-height:1 !important;
+  white-space:nowrap !important;
+}
+html body #app .topbar .topbar-balance {
+  padding:0 9px !important;
+}
+html body #app .topbar .main-nav .more-btn {
+  min-width:66px !important;
+  padding:0 9px !important;
+  font-weight:700 !important;
+}
+
+/* Theme control remains a rounded slider, never a square toolbar tile. */
+html[data-theme="light"] body #app .topbar .theme-btn.theme-switch,
+html[data-theme="dark"] body #app .topbar .theme-btn.theme-switch {
+  display:inline-flex !important;
+  flex:0 0 auto !important;
+  width:68px !important;
+  min-width:68px !important;
+  height:38px !important;
+  min-height:38px !important;
+  margin:0 !important;
+  padding:0 !important;
+  border:2px solid #83977d !important;
+  border-radius:999px !important;
+  clip-path:none !important;
+  color:inherit !important;
+  background:#e8efe2 !important;
+  box-shadow:inset 0 1px 2px rgba(25,44,27,.2),0 2px 0 rgba(25,44,27,.17) !important;
+  overflow:hidden !important;
+}
+html[data-theme="light"] body #app .topbar .theme-btn.theme-switch .theme-switch-track {
+  background:#dce8d6 !important;
+}
+html[data-theme="dark"] body #app .topbar .theme-btn.theme-switch {
+  border-color:#375340 !important;
+  background:#0b110d !important;
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.7),0 2px 0 rgba(0,0,0,.35) !important;
+}
+html[data-theme="dark"] body #app .topbar .theme-btn.theme-switch .theme-switch-track {
+  background:#111d15 !important;
+}
+html body #app .topbar .theme-btn.theme-switch::before,
+html body #app .topbar .theme-btn.theme-switch::after {
+  content:none !important;
+  display:none !important;
+}
+
+/* Position the auth-page theme switch immediately to the right of the book/form. */
+@media (min-width:701px) {
+  html body #auth.auth-screen .auth-theme-btn {
+    position:fixed !important;
+    top:50% !important;
+    left:min(calc(50% + 286px),calc(100vw - 78px)) !important;
+    right:auto !important;
+    z-index:80 !important;
+    transform:translateY(-50%) !important;
+  }
+  html body #auth.auth-screen .auth-theme-btn:hover {
+    transform:translateY(calc(-50% - 1px)) !important;
+  }
+}
+
+/* Small screens keep a compact profile icon and the same toolbar box height. */
+@media (max-width:760px) {
+  html body #app .topbar .main-nav .nav-tab,
+  html body #app .topbar .main-nav .nav-tab.is-active,
+  html body #app .topbar .main-nav .more-btn,
+  html body #app .topbar .topbar-balance,
+  html body #app .topbar .topbar-profile,
+  html body #app .topbar .logout-button,
+  html body #app .topbar .notification-bell {
+    height:38px !important;
+    min-height:38px !important;
+  }
+  html body #app .topbar .topbar-profile {
+    width:38px !important;
+    min-width:38px !important;
+    max-width:38px !important;
+    padding:0 !important;
+    justify-content:center !important;
+  }
+  html body #app .topbar .topbar-profile .user-name {
+    display:none !important;
+  }
+  html body #app .topbar .topbar-profile .user-avatar {
+    display:grid !important;
+    width:26px !important;
+    min-width:26px !important;
+    height:26px !important;
+    flex-basis:26px !important;
+  }
+  html body #app .topbar .logout-button {
+    flex-basis:38px !important;
+    width:38px !important;
+    min-width:38px !important;
+    max-width:38px !important;
+    padding:0 !important;
+    font-size:0 !important;
+  }
+  html body #app .topbar .logout-button::after {
+    content:"↪";
+    font:16px/1 sans-serif !important;
+  }
+  html body #app .topbar .theme-btn.theme-switch {
+    width:58px !important;
+    min-width:58px !important;
+  }
+}
+@media (max-width:420px) {
+  html body #app .topbar .topbar-profile .user-avatar {
+    display:grid !important;
+  }
+  html body #app .topbar .topbar-balance {
+    padding:0 5px !important;
+  }
+}
