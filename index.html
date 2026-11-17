@@ -12,11 +12,11 @@
   <link rel="preload" href="assets/MinecraftRus.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/backgrounds/day.png" as="image" fetchpriority="high">
   <link rel="preload" href="assets/backgrounds/night.png" as="image" fetchpriority="low">
-  <link rel="stylesheet" href="css/style.css?v=170">
+  <link rel="stylesheet" href="css/style.css?v=171">
   <script src="js/config.js" defer></script>
   <script src="js/core.js" defer></script>
   <script src="js/backend.js?v=155" defer></script>
-  <script src="js/app.js?v=173" defer></script>
+  <script src="js/app.js?v=174" defer></script>
 </head>
 <body>
   <div id="worldScenery" class="world-scenery" aria-hidden="true">
@@ -34,8 +34,8 @@
             <span class="page-counter">Страница 1 / 2</span>
           </div>
           <div class="book-copy">
-            <h1 class="book-title">С Возвращением,</h1>
-            <p class="book-subtitle">войдите, чтоб начать пользоваться</p>
+            <h1 id="loginTitle" class="book-title">С Возвращением,</h1>
+            <p id="loginDesc" class="book-subtitle">войдите, чтоб начать пользоваться</p>
             <p class="auth-moderation-disclosure">При включённой ИИ-модерации Groq проверяет публикации и личные сообщения по сделкам. Текст передаётся внешнему сервису для проверки.</p>
           </div>
           <form id="loginForm" class="auth-form book-form">
@@ -44,6 +44,15 @@
             <label for="logPass">Пароль:</label>
             <span class="mc-input-shell"><input id="logPass" name="password" type="password" autocomplete="current-password" aria-label="Пароль" required minlength="8"></span>
             <p class="form-error" id="logErr" aria-live="polite"></p>
+            <button class="book-inline-link" id="forgotPassword" type="button">Забыли пароль?</button>
+          </form>
+          <form id="resetPasswordForm" class="auth-form book-form" hidden>
+            <p class="code-info">Открой ссылку восстановления из письма и задай новый пароль.</p>
+            <label for="resetPass">Новый пароль:</label>
+            <span class="mc-input-shell"><input id="resetPass" name="newPassword" type="password" autocomplete="new-password" minlength="8" required></span>
+            <label for="resetPassAgain">Повтори пароль:</label>
+            <span class="mc-input-shell"><input id="resetPassAgain" name="newPasswordAgain" type="password" autocomplete="new-password" minlength="8" required></span>
+            <p class="form-error" id="resetPasswordErr" aria-live="polite"></p>
           </form>
           <button class="book-page-link" id="openRegistration" type="button">Нет аккаунта? Зарегистрируйся</button>
         </section>
