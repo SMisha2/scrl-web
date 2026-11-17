@@ -1013,6 +1013,6 @@ test("workflow syntax-checks every browser JavaScript file and verifies both pub
   assert.ok(workflow.includes("node --check js/backend.js"));
   assert.ok(workflow.includes("node --check sw.js"));
   assert.ok(workflow.includes("Verify production domains"));
-  assert.ok(workflow.includes("https://scrl.site/"));
+  assert.ok(workflow.includes("https://www.scrl.site/"));
   assert.ok(workflow.includes('check_domain "www.scrl.site"'));
 });

@@ -19,8 +19,8 @@ ScRl — общая платформа школьной взаимопомощи
 
 ## Сервисы
 
-- Сайт (основной адрес): https://scrl.site/
-- Дополнительный адрес: https://www.scrl.site/ (должен перенаправлять на основной).
+- Сайт (канонический адрес): https://www.scrl.site/
+- Короткий адрес https://scrl.site/ автоматически перенаправляется на канонический.
 - Репозиторий: https://github.com/SMisha2/scrl-web
 - Supabase project: `scrl-production` (регион Frankfurt, project ref `bkmccvazgnfnjefrytki`).
 - Supabase API URL и publishable key находятся в `js/config.js`. Publishable key предназначен для браузера; секретный service-role key в проект не добавлялся.
@@ -67,7 +67,7 @@ ScRl — общая платформа школьной взаимопомощи
 
 1. В Supabase Dashboard открой **Edge Functions → Secrets**.
 2. Добавь `SCRL_AI_API_KEY` в Edge Function Secrets. По умолчанию используется OpenRouter с автоматическим выбором доступной бесплатной модели: `https://openrouter.ai/api/v1` и `openrouter/free`. При необходимости можно переопределить их через `SCRL_AI_API_URL` и `SCRL_AI_MODEL`.
-3. Включи `SCRL_AI_ENABLED=true` и `SCRL_AI_EXTERNAL_DATA_APPROVED=true` только после согласования внешней обработки агрегированных данных со школой и ответственным взрослым. При необходимости задай `SCRL_AI_ALLOWED_ORIGIN=https://scrl.site`.
+3. Включи `SCRL_AI_ENABLED=true` и `SCRL_AI_EXTERNAL_DATA_APPROVED=true` только после согласования внешней обработки агрегированных данных со школой и ответственным взрослым. При необходимости задай `SCRL_AI_ALLOWED_ORIGIN=https://www.scrl.site`.
 4. При отсутствии ключа или согласования приложение оставляет локальный отчёт. API-ключ хранится только в Edge Function Secrets и не попадает в HTML, JavaScript или GitHub.
 
 У бесплатных моделей OpenRouter есть ограничения по числу запросов и доступности; гарантированно безлимитного бесплатного API нет. Edge Function остаётся совместимой с другими провайдерами формата OpenAI Chat Completions.
