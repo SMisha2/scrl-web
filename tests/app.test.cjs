@@ -941,8 +941,8 @@ test("перелистывание авторизации сохраняет г�
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
   const readme = fs.readFileSync(path.join(__dirname, "../README.md"), "utf8");
-  assert.match(html, /rel="canonical" href="https:\/\/scrl\.site\//);
-  assert.match(html, /property="og:url" content="https:\/\/scrl\.site\//);
+  assert.match(html, /rel="canonical" href="https:\/\/www\.scrl\.site\//);
+  assert.match(html, /property="og:url" content="https:\/\/www\.scrl\.site\//);
   assert.match(app, /: "https:\/\/scrl\.site\/"\;/);
   assert.match(readme, /https:\/\/scrl\.site\//);
   assert.match(css, /#auth \.auth-book\.is-spread,[\s\S]*?width: min\(100%,520px\) !important;[\s\S]*?height: min\(700px,calc\(100svh - 150px\)\) !important;/);
