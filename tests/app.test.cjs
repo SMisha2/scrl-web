@@ -1174,7 +1174,7 @@ test("obfuscation-aware moderation combines fields and routes manual review to a
 
 test("administrator deletion accepts other admin accounts but validates the acting admin in SQL", () => {
   const account = fs.readFileSync(path.join(__dirname, "../supabase/functions/scrl-account/index.ts"), "utf8");
-  const migration = fs.readFileSync(path.join(__dirname, "../supabase/migrations/20261117030000_board_pricing_admin_delete.sql"), "utf8");
+  const migration = fs.readFileSync(path.join(__dirname, "../supabase/migrations/20261117023621_board_pricing_and_admin_account_permissions.sql"), "utf8");
   assert.match(account, /\["student", "teacher", "admin"\]/);
   assert.match(account, /userClient\.rpc\("scrl_delete_account"/);
   assert.match(account, /auth\.admin\.deleteUser\(targetId\)/);
