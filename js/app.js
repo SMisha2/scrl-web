@@ -1,8 +1,6 @@
 const el = id => document.getElementById(id);
 const cfg = window.cfg || {};
-const APP_REDIRECT_URL = window.location?.origin && window.location?.pathname
-  ? window.location.origin + window.location.pathname
-  : "https://www.scrl.site/";
+const APP_REDIRECT_URL = "https://www.scrl.site/";
 const backend = window.ScrlBackend;
 let remoteReady = false;
 let closingAuctions = false;
@@ -41,6 +39,8 @@ function msg(text) {
 
 function installMinecraftBookCursors() {
   if (window.__scrlTestMode || !document.body || !document.querySelectorAll) return;
+  if (window.CSS && typeof window.CSS.supports === "function" &&
+      window.CSS.supports("caret-shape", "underscore")) return;
 
   document.querySelectorAll("#authBook .mc-input-shell input").forEach(input => {
     const shell = input.parentElement;

@@ -341,7 +341,7 @@ test("светлые поля привязаны напрямую к data-theme=
   assert.ok(css.includes('html[data-theme="light"] body textarea'));
   assert.ok(css.includes('border: 4px solid #111111 !important'));
   assert.ok(css.includes('background-color: #c4c4c4 !important'));
-  assert.ok(html.includes('css/style.css?v=174'));
+  assert.ok(html.includes('css/style.css?v=175'));
 });
 
 
@@ -479,7 +479,7 @@ test("uploaded day/night photos are rendered smoothly, not pixelated", () => {
   assert.match(tail, /transform: none !important/);
   assert.match(tail, /background-size: cover !important/);
   assert.match(tail, /transition: opacity 1\.15s ease !important/);
-  assert.ok(html.includes('css/style.css?v=174'));
+  assert.ok(html.includes('css/style.css?v=175'));
 });
 
 
@@ -594,7 +594,7 @@ test("email confirmation accepts the eight-digit OTP configured in Supabase", ()
   assert.match(app, /\[0-9\]\{8\}/);
   assert.match(html, /id="code"[^>]*maxlength="8" pattern="\[0-9\]\{8\}"/);
   assert.match(html, /восьмизначный код/);
-  assert.ok(html.includes("js/app.js?v=179"));
+  assert.ok(html.includes("js/app.js?v=180"));
 });
 
 
@@ -943,7 +943,7 @@ test("перелистывание авторизации сохраняет г�
   const readme = fs.readFileSync(path.join(__dirname, "../README.md"), "utf8");
   assert.match(html, /rel="canonical" href="https:\/\/www\.scrl\.site\//);
   assert.match(html, /property="og:url" content="https:\/\/www\.scrl\.site\//);
-  assert.match(app, /: "https:\/\/www\.scrl\.site\/"\;/);
+  assert.ok(app.includes('const APP_REDIRECT_URL = "https://www.scrl.site/";'));
   assert.match(readme, /https:\/\/scrl\.site\//);
   assert.match(css, /#auth \.auth-book\.is-spread,[\s\S]*?width: min\(100%,520px\) !important;[\s\S]*?height: min\(700px,calc\(100svh - 150px\)\) !important;/);
   assert.match(css, /#auth \.auth-book\.is-spread #loginPage[\s\S]*?transform: rotateY\(-180deg\) !important/);
@@ -951,61 +951,78 @@ test("перелистывание авторизации сохраняет г�
 });
 
 
-test("Supabase Edge Functions allow the new ScRl domain and keep the legacy origin during migration", () => {
+test("Supabase Edge Functions default to canonical www and allow apex and legacy origins", () => {
   const root = path.join(__dirname, "../supabase/functions");
   const account = fs.readFileSync(path.join(root, "scrl-account/index.ts"), "utf8");
   const ai = fs.readFileSync(path.join(root, "scrl-ai/index.ts"), "utf8");
   const moderation = fs.readFileSync(path.join(root, "scrl-moderation/index.ts"), "utf8");
   for (const source of [account, ai, moderation]) {
-    assert.match(source, /DEFAULT_ORIGIN\s*=\s*"https:\/\/scrl\.site"/);
-    assert.match(source, /WWW_ORIGIN\s*=\s*"https:\/\/www\.scrl\.site"/);
+    assert.match(source, /DEFAULT_ORIGIN\s*=\s*"https:\/\/www\.scrl\.site"/);
+    assert.match(source, /WWW_ORIGIN\s*=\s*DEFAULT_ORIGIN/);
+    assert.match(source, /APEX_ORIGIN\s*=\s*"https:\/\/scrl\.site"/);
     assert.match(source, /LEGACY_ORIGIN\s*=\s*"https:\/\/smisha2\.github\.io"/);
-    assert.match(source, /ALLOWED_ORIGINS/);
+    assert.match(source, /new Set\(\[DEFAULT_ORIGIN, WWW_ORIGIN, APEX_ORIGIN, LEGACY_ORIGIN/);
   }
-  assert.match(ai, /HTTP-Referer": "https:\/\/scrl\.site\//);
+  assert.match(ai, /HTTP-Referer": "https:\/\/www\.scrl\.site\//);
 });
-
-
-test("вход показывает немедленное состояние загрузки и не ждёт декоративную анимацию", () => {
+test("вход сразу показывает проверку и подключение без декоративного ожидания", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
+  const loginStart = app.indexOf("const loginFormConfigs");
+  const loginEnd = app.indexOf("if (forgotPasswordButton)", loginStart);
+  const loginHandler = app.slice(loginStart, loginEnd);
+  const remoteStart = app.indexOf("async function enterRemote");
+  const remoteEnd = app.indexOf("function enter(name", remoteStart);
+  const remoteHandler = app.slice(remoteStart, remoteEnd);
+  assert.ok(loginStart >= 0 && loginEnd > loginStart);
+  assert.ok(loginHandler.indexOf('signButton.textContent = "Проверяем…"') >= 0);
+  assert.ok(loginHandler.indexOf('signButton.textContent = "Проверяем…"') < loginHandler.indexOf('await ask("token?grant_type=password"'));
+  assert.doesNotMatch(loginHandler, /setTimeout|setInterval/);
+  assert.ok(remoteHandler.indexOf('showAppLoading(name || "Участник")') < remoteHandler.indexOf('await backend.load(token, id, mail)'));
+  assert.doesNotMatch(remoteHandler, /setTimeout\s*\(/);
   assert.ok(html.includes('id="appLoading" class="app-loading" role="status" aria-live="polite" hidden'));
   assert.ok(html.includes('id="appLoadingText"'));
-  assert.ok(app.includes("function showAppLoading("));
-  assert.ok(app.includes('showAppLoading(name || "Участник")'));
-  assert.ok(app.includes("function revealApp(user)"));
-  assert.ok(app.includes('signButton.textContent = "Проверяем…"'));
-  assert.ok(app.includes("signButton.disabled = true;"));
-  assert.ok(!app.includes('setTimeout(() => app.classList.remove("is-entering", "is-ready"), 650)'));
   assert.ok(css.includes(".app-loading-card"));
   assert.ok(css.includes(".app-loading-spinner"));
 });
-
-test("тёмные текстовые блоки имеют собственную тёмно-зелёную подложку", () => {
+test("светлая и тёмная темы используют одинаковые текстовые подложки в своих цветах", () => {
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
+  assert.ok(css.includes('html[data-theme="light"] body #page p,'));
+  assert.ok(css.includes("background-color:#f7f9f1 !important"));
   assert.ok(css.includes('html[data-theme="dark"] body #page p,'));
   assert.ok(css.includes("background-color:#17231b !important"));
+  assert.ok(css.includes('html[data-theme="light"] body #auth .book-subtitle'));
   assert.ok(css.includes('html[data-theme="dark"] body #auth .book-subtitle,'));
+  assert.ok(css.includes("background-color:#f8f8ee !important"));
+  assert.ok(css.includes("border:1px solid #334a38 !important"));
 });
-
-test("вертикальная системная каретка скрыта для всех полей книги, чтобы не дублировать underscore", () => {
+test("курсор использует нативный underscore без вертикальной полосы в поддерживаемых браузерах", () => {
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
-  const finalCaretRule = css.lastIndexOf("html body #auth #authBook .mc-input-shell input");
-  assert.ok(finalCaretRule > css.lastIndexOf(".mc-writing-cursor"));
-  assert.ok(css.slice(finalCaretRule).includes("caret-color:transparent !important"));
-  assert.ok(css.slice(finalCaretRule).includes("html body #auth #authBook #codeForm input#code"));
+  const nativeStart = css.lastIndexOf("@supports (caret-shape: underscore)");
+  const fallbackRule = css.lastIndexOf("html body #auth #authBook .mc-input-shell input");
+  assert.ok(nativeStart > fallbackRule);
+  assert.ok(css.slice(nativeStart).includes("caret-shape:underscore !important"));
+  assert.ok(css.slice(nativeStart).includes("caret-color:#344b36 !important"));
+  assert.ok(css.slice(nativeStart).includes("caret-color:#edf4e9 !important"));
+  assert.ok(css.slice(nativeStart).includes(".mc-writing-cursor"));
+  assert.ok(css.slice(nativeStart).includes("display:none !important"));
+  assert.ok(css.includes("caret-color:transparent !important"));
+  assert.ok(app.includes('window.CSS.supports("caret-shape", "underscore")'));
+  assert.ok(app.includes('cursor.textContent = "_"'));
+  assert.ok(app.includes('document.querySelectorAll("#authBook .mc-input-shell input")'));
 });
-
 test("кнопка выхода имеет ширину под подпись на десктопе и мобильных экранах", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
   assert.ok(html.includes('id="logout" class="logout-button" type="button" aria-label="Выйти из аккаунта" title="Выйти из аккаунта">Выйти</button>'));
   assert.ok(css.includes("html body #app .topbar .logout-button"));
-  assert.ok(css.includes("flex:0 0 72px !important"));
-  assert.ok(css.includes("flex-basis:66px !important"));
-  assert.ok(css.includes("flex-basis:62px !important"));
+  assert.ok(css.includes("flex:0 0 88px !important"));
+  assert.ok(css.includes("flex-basis:78px !important"));
+  assert.ok(css.includes("flex-basis:74px !important"));
   assert.ok(css.includes("white-space:nowrap !important"));
+  assert.ok(css.includes("flex-basis:82px !important"));
 });
 
 test("workflow syntax-checks every browser JavaScript file and verifies both public domains", () => {

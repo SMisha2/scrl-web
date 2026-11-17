@@ -1,10 +1,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const DEFAULT_ORIGIN = "https://scrl.site";
-const WWW_ORIGIN = "https://www.scrl.site";
+const DEFAULT_ORIGIN = "https://www.scrl.site";
+const WWW_ORIGIN = DEFAULT_ORIGIN;
+const APEX_ORIGIN = "https://scrl.site";
 const LEGACY_ORIGIN = "https://smisha2.github.io";
 const CONFIGURED_ORIGIN = Deno.env.get("SCRL_AI_ALLOWED_ORIGIN") || "";
-const ALLOWED_ORIGINS = new Set([DEFAULT_ORIGIN, WWW_ORIGIN, LEGACY_ORIGIN, CONFIGURED_ORIGIN].filter(Boolean));
+const ALLOWED_ORIGINS = new Set([DEFAULT_ORIGIN, WWW_ORIGIN, APEX_ORIGIN, LEGACY_ORIGIN, CONFIGURED_ORIGIN].filter(Boolean));
 const ALLOWED_TASKS: Record<string, string> = {
   economy_report: "Подготовь краткий отчёт по экономике школьных учебных единиц.",
   moderation_overview: "Оцени общую нагрузку на модерацию и предложи безопасный порядок приоритизации.",
@@ -108,7 +109,7 @@ Deno.serve(async (request: Request) => {
       headers: {
         Authorization: "Bearer " + apiKey,
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://scrl.site/",
+        "HTTP-Referer": "https://www.scrl.site/",
         "X-Title": "ScRl Web"
       },
       body: JSON.stringify({

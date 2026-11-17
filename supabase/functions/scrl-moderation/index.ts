@@ -1,10 +1,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const DEFAULT_ORIGIN = "https://scrl.site";
-const WWW_ORIGIN = "https://www.scrl.site";
+const DEFAULT_ORIGIN = "https://www.scrl.site";
+const WWW_ORIGIN = DEFAULT_ORIGIN;
+const APEX_ORIGIN = "https://scrl.site";
 const LEGACY_ORIGIN = "https://smisha2.github.io";
 const CONFIGURED_ORIGIN = Deno.env.get("SCRL_MODERATION_ALLOWED_ORIGIN") || "";
-const ALLOWED_ORIGINS = new Set([DEFAULT_ORIGIN, WWW_ORIGIN, LEGACY_ORIGIN, CONFIGURED_ORIGIN].filter(Boolean));
+const ALLOWED_ORIGINS = new Set([DEFAULT_ORIGIN, WWW_ORIGIN, APEX_ORIGIN, LEGACY_ORIGIN, CONFIGURED_ORIGIN].filter(Boolean));
 const MODEL = "openai/gpt-oss-safeguard-20b";
 const ALLOWED_KINDS = new Set(["post","listing","auction","deal","message","review","profile","report","teacher_issue"]);
 const AUTO_BAN_CATEGORIES = new Set([

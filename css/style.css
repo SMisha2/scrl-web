@@ -7042,13 +7042,13 @@ html[data-theme="dark"] body #auth .ban-appeal-info {
 /* Keep the complete logout label inside a control wide enough for every breakpoint. */
 html body #app .topbar .logout-button {
   display:inline-flex !important;
-  flex:0 0 72px !important;
-  width:72px !important;
-  min-width:72px !important;
-  max-width:72px !important;
+  flex:0 0 88px !important;
+  width:88px !important;
+  min-width:88px !important;
+  max-width:88px !important;
   height:var(--scrl-toolbar-control) !important;
   min-height:var(--scrl-toolbar-control) !important;
-  padding:0 10px !important;
+  padding:0 12px !important;
   align-items:center !important;
   justify-content:center !important;
   box-sizing:border-box !important;
@@ -7063,20 +7063,20 @@ html body #app .topbar .logout-button {
 }
 @media (max-width:900px) {
   html body #app .topbar .logout-button {
-    flex-basis:68px !important; width:68px !important; min-width:68px !important; max-width:68px !important;
-    font-size:11px !important;
+    flex-basis:82px !important; width:82px !important; min-width:82px !important; max-width:82px !important;
+    padding:0 10px !important; font-size:11px !important;
   }
 }
 @media (max-width:620px) {
   html body #app .topbar .logout-button {
-    flex-basis:66px !important; width:66px !important; min-width:66px !important; max-width:66px !important;
-    padding:0 8px !important; font-size:10.5px !important;
+    flex-basis:78px !important; width:78px !important; min-width:78px !important; max-width:78px !important;
+    padding:0 9px !important; font-size:10.5px !important;
   }
 }
 @media (max-width:380px) {
   html body #app .topbar .logout-button {
-    flex-basis:62px !important; width:62px !important; min-width:62px !important; max-width:62px !important;
-    font-size:10px !important;
+    flex-basis:74px !important; width:74px !important; min-width:74px !important; max-width:74px !important;
+    padding:0 8px !important; font-size:10px !important;
   }
 }
 
@@ -7110,3 +7110,21 @@ html[data-theme="dark"] body #app .app-loading-spinner {
   border-color:#91ac89 !important; border-top-color:transparent !important;
 }
 @media (prefers-reduced-motion:reduce) { html body #app .app-loading-spinner { animation:none !important; } }
+
+
+/* Use a native underscore at the actual insertion point on browsers that support it. */
+@supports (caret-shape: underscore) {
+  html body #auth #authBook .mc-input-shell input,
+  html body #auth #authBook #codeForm input#code {
+    caret-color:#344b36 !important;
+    caret-shape:underscore !important;
+  }
+  html[data-theme="dark"] body #auth #authBook .mc-input-shell input,
+  html[data-theme="dark"] body #auth #authBook #codeForm input#code {
+    caret-color:#edf4e9 !important;
+  }
+  html body .mc-caret-measure,
+  html body .mc-writing-cursor {
+    display:none !important;
+  }
+}
