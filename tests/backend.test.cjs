@@ -210,6 +210,7 @@ test("an expired Edge Function session is refreshed and retried with the new JWT
       if (String(url).includes("/functions/v1/scrl-account")) {
         if (options.headers.Authorization === "Bearer expired-access") {
           return { ok: false, status: 401, async text() { return JSON.stringify({ message: "JWT expired" }); } };
+        }
         return { ok: true, status: 200, async text() { return JSON.stringify({ success: true }); } };
       }
       return { ok: true, status: 204, async text() { return ""; } };
