@@ -6735,3 +6735,26 @@ html body .currency-coin-icon {
 @media (prefers-reduced-motion: reduce) {
   #auth .book-page { transition: none !important; will-change: auto; }
 }
+
+
+/* Auth fields use one custom underscore caret; always suppress the native vertical bar. */
+html body #auth .mc-input-shell input,
+html body #auth #codeForm input#code {
+  caret-color: transparent !important;
+}
+html body .mc-input-shell.is-typing .mc-writing-cursor {
+  display: block !important;
+  position: absolute !important;
+  z-index: 8 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  text-align: left !important;
+  white-space: pre !important;
+  transform: none !important;
+  pointer-events: none !important;
+}
+html body .mc-input-shell.is-typing .mc-writing-cursor[hidden] {
+  display: none !important;
+}
