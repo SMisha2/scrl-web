@@ -92,3 +92,10 @@ test("биржа отклоняет неизвестное направлени�
   assert.throws(() => core.exchange("wrong", 10, 1, 0.01));
   assert.throws(() => core.exchange("scrlSell", 1.5, 1, 0.01));
 });
+
+
+test("exchange rejects a rounded counter amount below one kopeck", () => {
+  assert.throws(() => core.exchange("scrlSell", 1, 0.0001, 0.01), /0,01/);
+  assert.throws(() => core.exchange("vrubSell", 1, 0.0001, 0.01), /0,01/);
+  assert.equal(core.exchange("scrlSell", 1, 0.005, 0).buyerPays, 0.01);
+});

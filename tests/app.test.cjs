@@ -559,7 +559,7 @@ test("email confirmation accepts the eight-digit OTP configured in Supabase", ()
   assert.match(app, /\[0-9\]\{8\}/);
   assert.match(html, /id="code"[^>]*maxlength="8" pattern="\[0-9\]\{8\}"/);
   assert.match(html, /восьмизначный код/);
-  assert.ok(html.includes("js/app.js?v=162"));
+  assert.ok(html.includes("js/app.js?v=164"));
 });
 
 
@@ -606,4 +606,43 @@ test("автор видит метку скрытия на своей публи
   const page = api.boardPage();
   assert.match(page, /Скрыта модерацией/);
   assert.match(page, /<span class="muted small">\d+ записей/);
+});
+
+
+test("profile name edits remain AI-moderated before PATCH", () => {
+  const backend = fs.readFileSync(path.join(__dirname, "../js/backend.js"), "utf8");
+  const start = backend.indexOf("async saveProfile");
+  const end = backend.indexOf("async createPost", start);
+  assert.ok(start >= 0 && end > start);
+  const handler = backend.slice(start, end);
+  assert.ok(handler.indexOf('moderationCheck("profile"') < handler.indexOf('request("/rest/v1/profiles'));
+});
+
+test("account deletion requires typed confirmation and demo mode cannot invoke it", () => {
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  assert.match(app, /id === "deleteAccountForm"/);
+  assert.match(app, /confirmation !== "УДАЛИТЬ"/);
+  assert.match(app, /remoteReady && !sess\(\)\?\.guest/);
+  assert.match(html, /id="logout"[^>]*>Выйти<\/button>/);
+  assert.match(app, /window\.confirm\("Выйти из аккаунта ScRl\?"\)/);
+});
+
+test("tablet and phone breakpoints prevent horizontal overflow", () => {
+  const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
+  assert.match(css, /@media \(max-width:1100px\)[\s\S]*?grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/);
+  assert.match(css, /@media \(max-width:620px\)[\s\S]*?grid-template-columns:minmax\(0,1fr\)/);
+  assert.match(css, /overflow-x:clip/);
+  assert.match(css, /\.logout-button[\s\S]*?transform:none !important/);
+  assert.match(css, /\.account-danger/);
+});
+
+test("sign-in no longer waits for the dark book transition", () => {
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  const localStart = app.indexOf("function enterLocal");
+  const localEnd = app.indexOf("function showBanAppeal", localStart);
+  const remoteStart = app.indexOf("async function enterRemote");
+  const remoteEnd = app.indexOf("function enter(name", remoteStart);
+  assert.doesNotMatch(app.slice(localStart, localEnd), /setTimeout\(revealApp, 420\)/);
+  assert.doesNotMatch(app.slice(remoteStart, remoteEnd), /setTimeout\(revealApp, 420\)/);
 });

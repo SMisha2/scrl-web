@@ -121,20 +121,22 @@
       ["platform_settings", "select=*"]
     ];
 
-    const [result, economy] = await Promise.all([
-      Promise.all(tables.map(([name, query]) => table(name, query, token))),
-      request("/rest/v1/rpc/scrl_economy_snapshot", { method: "POST", body: {} }, token)
-    ]);
-    let moderation = {
+    const moderationFallback = {
       activeBan: null, appeals: [], cases: [], blocked: false, admin: false,
       adminCases: [], adminAppeals: [], unavailable: false
     };
-    try {
-      moderation = await edgeFunction("scrl-moderation", { action: "my_status" }, token) || moderation;
-    } catch (error) {
-      moderation.unavailable = true;
-      moderation.error = error && error.message ? error.message : "Состояние модерации пока недоступно.";
-    }
+    // Start moderation status in parallel with table reads and the economy snapshot.
+    const moderationRequest = edgeFunction("scrl-moderation", { action: "my_status" }, token)
+      .then(value => value || moderationFallback)
+      .catch(error => ({
+        ...moderationFallback, unavailable: true,
+        error: error && error.message ? error.message : "Состояние модерации пока недоступно."
+      }));
+    const [result, economy, moderation] = await Promise.all([
+      Promise.all(tables.map(([name, query]) => table(name, query, token))),
+      request("/rest/v1/rpc/scrl_economy_snapshot", { method: "POST", body: {} }, token),
+      moderationRequest
+    ]);
     const rows = Object.fromEntries(tables.map(([name], index) => [name, Array.isArray(result[index]) ? result[index] : []]));
     const wallets = new Map(rows.wallets.map(row => [row.user_id, row]));
     const profiles = rows.profiles.map(row => {
@@ -265,12 +267,18 @@
     load,
     rpc,
     async saveProfile(id, name, room = null, token = "") {
-      await moderationCheck("profile", { full_name: String(name || "").trim() }, token);
-      const body = { full_name: name };
-      if (room !== null && room !== undefined) body.room = room;
+      const fullName = String(name || "").trim();
+      if (!fullName || fullName.length > 100) throw new Error("Укажи ФИО длиной от 1 до 100 символов.");
+      // Every name edit is checked before PATCH; the DB trigger rejects direct unmoderated edits.
+      await moderationCheck("profile", { full_name: fullName }, token);
+      const body = { full_name: fullName };
+      if (room !== null && room !== undefined) body.room = String(room).trim();
       return request("/rest/v1/profiles?id=eq." + encodeURIComponent(id), {
         method: "PATCH", body, prefer: "return=minimal"
       }, token);
+    },
+    deleteAccount(confirmation) {
+      return edgeFunction("scrl-account", { action: "delete_account", confirmation });
     },
     async createPost(payload) {
       await moderationCheck("post", {

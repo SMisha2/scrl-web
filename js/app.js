@@ -457,14 +457,7 @@ function enterLocal(name, mail, token = "", guest = false, id = "") {
     }
   };
 
-  auth.hidden = false;
-  if (window.__scrlTestMode) {
-    revealApp();
-  } else {
-    auth.classList.add("is-closing");
-    auth.setAttribute("aria-hidden", "true");
-    setTimeout(revealApp, 420);
-  }
+  revealApp();
 }
 
 function showBanAppeal() {
@@ -548,10 +541,7 @@ async function enterRemote(name, mail, token, id) {
         setTimeout(() => app.classList.remove("is-entering", "is-ready"), 650);
       }
     };
-    auth.hidden = false;
-    auth.classList.add("is-closing");
-    auth.setAttribute("aria-hidden", "true");
-    setTimeout(revealApp, 420);
+    revealApp();
   } catch (error) {
     remoteReady = false;
     sessionStorage.removeItem("scrlSession");
@@ -618,11 +608,29 @@ async function saveProfile(id, name, token, room = null) {
   if (!res.ok) throw new Error("Профиль не сохранился. Попробуй ещё раз.");
 }
 
-async function refreshRemoteData() {
+let remoteRefreshInFlight = null;
+async function refreshRemoteData(options = {}) {
   const session = sess();
   if (!remoteReady || !session?.token) return data;
-  data = await backend.load(session.token, session.id, session.mail);
-  return data;
+  if (!remoteRefreshInFlight) {
+    const pending = backend.load(session.token, session.id, session.mail)
+      .then(nextData => {
+        const currentSession = sess();
+        if (remoteReady && currentSession?.id === session.id) data = nextData;
+        return data;
+      })
+      .finally(() => { if (remoteRefreshInFlight === pending) remoteRefreshInFlight = null; });
+    remoteRefreshInFlight = pending;
+  }
+  const pending = remoteRefreshInFlight;
+  if (options.background) {
+    pending.then(() => {
+      const currentSession = sess();
+      if (remoteReady && currentSession?.id === session.id && options.page && !app.hidden) setPage(options.page);
+    }).catch(error => console.warn("ScRl background refresh:", error?.message || error));
+    return data;
+  }
+  return pending;
 }
 
 function setupAuthDeviceMode() {
@@ -952,9 +960,13 @@ function profilePage() {
     : isAdminAccount()
       ? '<label for="profileRole">Режим просмотра</label><select id="profileRole" name="role"><option value="admin"' + (user.role === "admin" ? " selected" : "") + '>Администратор</option><option value="student"' + (user.role === "student" ? " selected" : "") + '>Ученик</option><option value="teacher"' + (user.role === "teacher" ? " selected" : "") + '>Учитель</option></select><p class="small muted">Это только переключение интерфейса. Настоящая роль в базе остаётся «Администратор». При новом входе режим сбрасывается.</p>'
       : '<p class="small muted">Роль: ' + roleName(user.role) + '. Изменить её может только администратор.</p>';
+  const deleteSection = remoteReady && !sess()?.guest
+    ? '<section class="account-danger"><h2>Удаление аккаунта</h2><p>Действие необратимо. Профиль будет обезличен; твои публикации и сообщения удалены, а финансовая история сохранена без личных данных. Остатки ScRl и V-RUB после удаления недоступны. Перед удалением заверши активные сделки, заявки на бирже, аукционы и освободи все резервы.</p><form id="deleteAccountForm" class="demo-form account-delete-form"><label for="deleteAccountConfirm">Введи слово УДАЛИТЬ для подтверждения</label><input id="deleteAccountConfirm" name="confirmation" maxlength="7" autocomplete="off" required><button class="button button-danger" type="submit">Удалить аккаунт окончательно</button></form></section>'
+    : '<section class="account-danger"><h2>Удаление аккаунта</h2><p>Удаление доступно только после входа в зарегистрированный аккаунт. В демо-режиме действие отключено.</p></section>';
   return '<p class="eyebrow">АККАУНТ</p><h1>Профиль</h1><div class="demo-stats"><div class="demo-stat"><span>Отзывы</span><b>' + reviews.length + '</b></div><div class="demo-stat"><span>Средняя оценка</span><b>' + avg + '</b></div></div>' +
     '<form id="profileForm" class="demo-form"><h2>Мои данные</h2><label>ФИО</label><input name="name" maxlength="100" value="' + safe(user.name) + '" required><label>Email</label><input value="' + safe(user.mail || "Email скрыт для других участников") + '" disabled><label>Класс</label><input name="room" maxlength="12" value="' + safe(user.room || "") + '"' + (user.role === "teacher" && !isAdminAccount() ? ' disabled title="Класс меняет администратор"' : "") + '>' +
     roleChoice + '<button class="button button-primary" type="submit">Сохранить</button></form>' +
+    deleteSection +
     '<h2>Мои отзывы</h2><div class="data-list">' + (reviews.map(r => '<div class="data-row"><span>' + safe(r.text || "Без текста") + '<small>' + r.rating + ' из 5 · ' + safe(userName(r.user)) + '</small></span></div>').join("") || '<p class="muted">Отзывов пока нет.</p>') + '</div>';
 }
 
@@ -1311,7 +1323,7 @@ function releaseDeal(deal, mode, share = 1) {
   if (remoteReady && !window.__scrlTestMode) return (async () => {
     if (me().role === "admin" && deal?.status === "dispute") await backend.resolveDispute(deal.id, mode, share);
     else await backend.dealAction(deal.id, mode, share);
-    await refreshRemoteData();
+    refreshRemoteData({ background: true, page: "orders" });
   })();
 
   if (!deal || !["dispute","ready","work"].includes(deal.status)) throw new Error("Эту сделку нельзя завершить.");
@@ -1340,8 +1352,8 @@ function releaseDeal(deal, mode, share = 1) {
 function placeExchangeOrder(side, amount, price) {
   if (remoteReady && !window.__scrlTestMode) return (async () => {
     await backend.placeExchangeOrder(side, Number(amount), Number(price));
-    await refreshRemoteData();
-    return data.exchangeOrders[0] || null;
+    refreshRemoteData({ background: true, page: "exchange" });
+    return null;
   })();
 
   const user = me();
@@ -1371,7 +1383,7 @@ function placeExchangeOrder(side, amount, price) {
 function buyExchangeOrder(id) {
   if (remoteReady && !window.__scrlTestMode) return (async () => {
     await backend.buyExchangeOrder(id);
-    await refreshRemoteData();
+    refreshRemoteData({ background: true, page: "exchange" });
   })();
 
   const order = data.exchangeOrders.find(x => x.id === id && x.status === "active");
@@ -1443,7 +1455,7 @@ function returnExchangeOrder(order) {
 function cancelExchangeOrder(id) {
   if (remoteReady && !window.__scrlTestMode) return (async () => {
     await backend.cancelExchangeOrder(id);
-    await refreshRemoteData();
+    refreshRemoteData({ background: true, page: "exchange" });
   })();
 
   const order = data.exchangeOrders.find(x => x.id === id && x.user === me().id && x.status === "active");
@@ -1494,7 +1506,7 @@ function report(kind, id, reasonCode, details) {
 function bid(id, amount) {
   if (remoteReady && !window.__scrlTestMode) return (async () => {
     await backend.placeBid(id, Number(amount));
-    await refreshRemoteData();
+    refreshRemoteData({ background: true, page: "auctions" });
   })();
 
   if (me().role !== "student") throw new Error("Ставки доступны ученикам.");
@@ -1580,7 +1592,7 @@ function closeExpiredAuctions() {
 function endAuction(id) {
   if (remoteReady && !window.__scrlTestMode) return (async () => {
     await backend.finishAuction(id);
-    await refreshRemoteData();
+    refreshRemoteData({ background: true, page: "auctions" });
   })();
 
   if (me().role !== "admin" && me().role !== "teacher") throw new Error("Нет доступа.");
@@ -2071,23 +2083,43 @@ async function submitRemote(form) {
         : "Аукцион опубликован.");
     return;
   }
+  if (form.id === "deleteAccountForm") {
+    const confirmation = String(fields.get("confirmation") || "").trim();
+    if (confirmation !== "УДАЛИТЬ") throw new Error("Введи слово УДАЛИТЬ без изменений.");
+    const button = form.querySelector('button[type="submit"]');
+    if (button) { button.disabled = true; button.textContent = "Удаляем аккаунт…"; }
+    try {
+      await backend.deleteAccount(confirmation);
+      sessionStorage.removeItem("scrlSession");
+      remoteReady = false;
+      leave();
+      if (el("logErr")) el("logErr").textContent = "Аккаунт удалён. Личные данные обезличены.";
+    } catch (error) {
+      if (button) { button.disabled = false; button.textContent = "Удалить аккаунт окончательно"; }
+      throw error;
+    }
+    return;
+  }
   if (form.id === "profileForm") {
     const name = String(fields.get("name") || "").trim();
     const roomField = fields.get("room");
     const room = roomField == null ? String(me().room || "") : String(roomField).trim();
     const selectedRole = String(fields.get("role") || "");
     if (!name) throw new Error("Имя не может быть пустым.");
+    if (name.length > 100) throw new Error("ФИО не должно быть длиннее 100 символов.");
     await backend.updateProfile(me().id, name, room);
-    await refreshRemoteData();
+    me().name = name;
+    me().room = room;
     const session = sess();
-    session.name = me().name;
+    session.name = name;
     sessionStorage.setItem("scrlSession", JSON.stringify(session));
     if (isAdminAccount() && selectedRole) setAdminPreviewRole(selectedRole);
-    el("userName").textContent = me().name;
-    el("avatar").textContent = me().name.charAt(0).toUpperCase();
+    el("userName").textContent = name;
+    el("avatar").textContent = name.charAt(0).toUpperCase();
     log("Обновлён профиль.");
     setPage("profile");
-    msg("Профиль сохранён.");
+    msg("Профиль сохранён после проверки.");
+    refreshRemoteData({ background: true, page: "profile" });
     return;
   }
   if (form.id === "staffForm") {
@@ -2482,7 +2514,9 @@ if (authBook && !window.__scrlTestMode) {
 
 document.querySelectorAll(".nav-tab").forEach(btn => btn.addEventListener("click", () => setPage(btn.dataset.page)));
 if (el("topbarBalance")) el("topbarBalance").addEventListener("click", () => setPage("wallet"));
-el("logout").addEventListener("click", leave);
+el("logout").addEventListener("click", () => {
+  if (window.confirm("Выйти из аккаунта ScRl?")) leave();
+});
 
 if (el("moreBtn")) {
   el("moreBtn").addEventListener("click", () => {

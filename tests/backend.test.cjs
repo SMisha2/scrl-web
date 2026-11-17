@@ -113,3 +113,19 @@ test("appeals use the signed-in JWT and do not depend on the Groq moderation key
   assert.equal(JSON.parse(calls[0].options.body).action, "submit_appeal");
   assert.equal(calls[0].options.headers.Authorization, "Bearer signed-user-jwt");
 });
+
+
+test("profile names are moderated and account deletion invokes the protected Edge Function", async () => {
+  const { api, calls } = loadBackend();
+  await api.saveProfile("profile-id", "Новое ФИО", "9А", "signed-user-jwt");
+  assert.match(calls[0].url, /functions\/v1\/scrl-moderation$/);
+  assert.equal(JSON.parse(calls[0].options.body).kind, "profile");
+  const patchIndex = calls.findIndex(call => call.url.includes("/rest/v1/profiles?"));
+  assert.ok(patchIndex > 0);
+  assert.deepEqual(JSON.parse(calls[patchIndex].options.body), { full_name: "Новое ФИО", room: "9А" });
+  calls.length = 0;
+  await api.deleteAccount("УДАЛИТЬ");
+  assert.match(calls[0].url, /functions\/v1\/scrl-account$/);
+  assert.equal(JSON.parse(calls[0].options.body).action, "delete_account");
+  assert.equal(JSON.parse(calls[0].options.body).confirmation, "УДАЛИТЬ");
+});

@@ -57,34 +57,29 @@
   }
 
   function exchange(side, amount, price, rate) {
-    const qty = Number(amount);
-    const unit = Number(price);
-    const feeRate = Number(rate);
-    if (!Number.isSafeInteger(qty) || qty < 1 || !Number.isFinite(unit) || unit < 0.0001 ||
+    const qty = Number(amount), unit = Number(price), feeRate = Number(rate);
+    if (!Number.isSafeInteger(qty) || qty < 1 || qty > 1000000 ||
+        !Number.isFinite(unit) || unit < 0.0001 || unit > 10000 ||
         !Number.isFinite(feeRate) || feeRate < 0 || feeRate > 1) {
       throw new Error("Некорректная заявка на обмен.");
     }
+    if (side !== "scrlSell" && side !== "vrubSell") throw new Error("Неизвестное направление обмена.");
+    const cost = round(qty * unit);
+    if (cost < 0.01) throw new Error("Сумма заявки после округления должна быть не меньше 0,01 единицы встречной валюты.");
     if (side === "scrlSell") {
-      const cost = round(qty * unit);
       const fee = round(qty * feeRate);
       return {
         buyerPays: cost, buyerPaysIn: "V-RUB",
         buyerGets: round(Math.max(0, qty - fee)), buyerGetsIn: "ScRl",
-        sellerGets: cost, sellerGetsIn: "V-RUB",
-        fee, feeIn: "ScRl"
+        sellerGets: cost, sellerGetsIn: "V-RUB", fee, feeIn: "ScRl"
       };
     }
-    if (side === "vrubSell") {
-      const cost = round(qty * unit);
-      const fee = round(cost * feeRate);
-      return {
-        buyerPays: cost, buyerPaysIn: "ScRl",
-        buyerGets: round(qty), buyerGetsIn: "V-RUB",
-        sellerGets: round(Math.max(0, cost - fee)), sellerGetsIn: "ScRl",
-        fee, feeIn: "ScRl"
-      };
-    }
-    throw new Error("Неизвестное направление обмена.");
+    const fee = round(cost * feeRate);
+    return {
+      buyerPays: cost, buyerPaysIn: "ScRl",
+      buyerGets: round(qty), buyerGetsIn: "V-RUB",
+      sellerGets: round(Math.max(0, cost - fee)), sellerGetsIn: "ScRl", fee, feeIn: "ScRl"
+    };
   }
 
   function settlement(amount, rate, mode, share = 1) {
