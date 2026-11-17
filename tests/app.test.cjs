@@ -528,7 +528,7 @@ test("курсор ввода совпадает с реальной позиц�
   assert.match(app, /const mirror = document\.createElement\("span"\)/);
   assert.match(app, /marker\.getBoundingClientRect\(\)/);
   assert.match(app, /mirror\.style\.textAlign = style\.textAlign/);
-  assert.match(app, /if \(input\.id === "code"\) return/);
+  assert.doesNotMatch(app, /if \(input\.id === "code"\) return/);
   assert.match(app, /Этот код уже использован, заменён новым или истёк/);
   assert.match(app, /el\("code"\)\.value = ""/);
   assert.match(app, /button\.disabled = true/);
