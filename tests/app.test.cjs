@@ -542,7 +542,7 @@ test("email confirmation accepts the eight-digit OTP configured in Supabase", ()
   assert.match(app, /\[0-9\]\{8\}/);
   assert.match(html, /id="code"[^>]*maxlength="8" pattern="\[0-9\]\{8\}"/);
   assert.match(html, /восьмизначный код/);
-  assert.ok(html.includes("js/app.js?v=168"));
+  assert.ok(html.includes("js/app.js?v=169"));
 });
 
 
@@ -787,4 +787,73 @@ test("mobile flex bases match the smaller logo and coin frames", () => {
   const tail = css.slice(css.lastIndexOf("Keep flex bases in sync"));
   assert.match(tail, /brand-logo-frame[\s\S]*?flex-basis:40px !important/);
   assert.match(tail, /currency-coin-frame[\s\S]*?flex-basis:24px !important/);
+});
+
+
+test("ученик не может редактировать класс в профиле, администратор может", () => {
+  const { api } = boot();
+  assert.match(api.profilePage(), /name="room"[^>]*readonly aria-readonly="true"/);
+  api.data.users.find(user => user.id === api.me().id).role = "admin";
+  const adminProfile = api.profilePage();
+  assert.match(adminProfile, /id="profileRole"/);
+  assert.doesNotMatch(adminProfile, /name="room"[^>]*readonly aria-readonly="true"/);
+  assert.match(api.adminPage(), /data-do="set-room"/);
+});
+
+test("недельный лимит начислений использует понедельник по часовому поясу Варшавы", () => {
+  const { api } = boot();
+  assert.equal(api.weekKey(new Date("2026-11-15T21:30:00.000Z")), "2026-11-09");
+  assert.equal(api.weekKey(new Date("2026-11-15T23:30:00.000Z")), "2026-11-16");
+});
+
+test("неудачная ставка не возвращает и не портит резерв предыдущего лидера", () => {
+  const { api } = boot();
+  const auction = api.data.auctions.find(item => item.id === "a1");
+  const bidder = api.me();
+  const previousLeader = api.getUser("u2");
+  auction.bid = 70;
+  auction.leader = previousLeader.id;
+  previousLeader.holdScrl = 70;
+  previousLeader.scrl = 12;
+  bidder.scrl = 2;
+  api.data.bids = api.data.bids.filter(bid => bid.auction !== auction.id);
+  const previousBid = { id: "previous-bid-test", auction: auction.id, user: previousLeader.id, amount: 70, status: "active", date: Date.now() };
+  api.data.bids.push(previousBid);
+
+  assert.throws(() => api.bid(auction.id, 100), /Недостаточно ScRl/);
+  assert.equal(previousLeader.holdScrl, 70);
+  assert.equal(previousLeader.scrl, 12);
+  assert.equal(previousBid.status, "active");
+  assert.equal(auction.leader, previousLeader.id);
+  assert.equal(auction.bid, 70);
+});
+
+test("повышение собственной ставки сначала освобождает предыдущий резерв", () => {
+  const { api } = boot();
+  const auction = api.data.auctions.find(item => item.id === "a1");
+  const bidder = api.me();
+  auction.bid = 70;
+  auction.leader = bidder.id;
+  bidder.holdScrl = 70;
+  bidder.scrl = 50;
+  api.data.bids = api.data.bids.filter(bid => bid.auction !== auction.id);
+  api.data.bids.push({ id: "own-old-bid", auction: auction.id, user: bidder.id, amount: 70, status: "active", date: Date.now() });
+
+  api.bid(auction.id, 90);
+  assert.equal(auction.bid, 90);
+  assert.equal(auction.leader, bidder.id);
+  assert.equal(bidder.holdScrl, 90);
+  assert.equal(bidder.scrl, 30);
+  assert.equal(api.data.bids.find(bid => bid.id === "own-old-bid").status, "raised");
+});
+
+test("профиль заблокированного или удалённого аккаунта нельзя менять в админке", () => {
+  const { api } = boot();
+  const admin = api.me();
+  admin.role = "admin";
+  const deleted = api.getUser("u2");
+  deleted.deleted = true;
+  const page = api.adminPage();
+  assert.match(page, /Удалённый профиль/);
+  assert.doesNotMatch(page, /data-do="set-room" data-id="u2"/);
 });
