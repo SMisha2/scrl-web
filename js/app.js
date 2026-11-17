@@ -39,176 +39,31 @@ function msg(text) {
   msg.timer = setTimeout(() => toast.classList.remove("is-visible"), 2600);
 }
 
-function installMinecraftBookCursors() {
-  if (window.__scrlTestMode || !document.querySelectorAll) return;
-
-  document.querySelectorAll("#authBook .mc-input-shell input").forEach(input => {
-    const shell = input.parentElement;
-    if (!shell || shell.querySelector(".mc-writing-cursor")) return;
-
-    const mirror = document.createElement("div");
-    mirror.className = "mc-caret-measure";
-    mirror.setAttribute("aria-hidden", "true");
-
-    const marker = document.createElement("span");
-    marker.className = "mc-caret-marker";
-    marker.setAttribute("aria-hidden", "true");
-
-    const cursor = document.createElement("span");
-    cursor.className = "mc-writing-cursor";
-    cursor.textContent = "_";
-    cursor.setAttribute("aria-hidden", "true");
-    cursor.hidden = true;
-
-    shell.appendChild(mirror);
-    shell.appendChild(cursor);
-
-    const copyTextLayout = style => {
-      mirror.style.position = "absolute";
-      mirror.style.display = "block";
-      mirror.style.boxSizing = "border-box";
-      mirror.style.border = "0";
-      mirror.style.margin = "0";
-      mirror.style.paddingTop = style.paddingTop;
-      mirror.style.paddingRight = style.paddingRight;
-      mirror.style.paddingBottom = style.paddingBottom;
-      mirror.style.paddingLeft = style.paddingLeft;
-      mirror.style.font = style.font;
-      mirror.style.fontFamily = style.fontFamily;
-      mirror.style.fontSize = style.fontSize;
-      mirror.style.fontWeight = style.fontWeight;
-      mirror.style.fontStyle = style.fontStyle;
-      mirror.style.fontVariant = style.fontVariant;
-      mirror.style.fontStretch = style.fontStretch;
-      mirror.style.fontKerning = style.fontKerning;
-      mirror.style.fontFeatureSettings = style.fontFeatureSettings;
-      mirror.style.fontVariationSettings = style.fontVariationSettings;
-      mirror.style.lineHeight = style.lineHeight;
-      mirror.style.letterSpacing = style.letterSpacing;
-      mirror.style.wordSpacing = style.wordSpacing;
-      mirror.style.textAlign = style.textAlign;
-      mirror.style.textIndent = style.textIndent;
-      mirror.style.textTransform = style.textTransform;
-      mirror.style.direction = style.direction;
-      mirror.style.unicodeBidi = style.unicodeBidi;
-      mirror.style.writingMode = style.writingMode;
-      mirror.style.textRendering = style.textRendering;
-      mirror.style.whiteSpace = "pre";
-      mirror.style.overflow = "hidden";
-    };
-
-    const positionCursor = () => {
-      if (document.activeElement !== input) {
-        cursor.hidden = true;
-        return;
-      }
-
-      const start = typeof input.selectionStart === "number" ? input.selectionStart : input.value.length;
-      const end = typeof input.selectionEnd === "number" ? input.selectionEnd : start;
-      if (start !== end) {
-        cursor.hidden = true;
-        return;
-      }
-
-      const style = window.getComputedStyle(input);
-      const inputRect = input.getBoundingClientRect();
-      const shellRect = shell.getBoundingClientRect();
-      copyTextLayout(style);
-
-      // Let the browser lay out the same text in a hidden copy of the input.
-      // This accounts for actual font shaping, spacing, padding and alignment.
-      const inputLeft = input.offsetParent === shell
-        ? input.offsetLeft + input.clientLeft
-        : (inputRect.left - shellRect.left) *
-          (shell.offsetWidth && shellRect.width ? shell.offsetWidth / shellRect.width : 1) +
-          shell.scrollLeft - shell.clientLeft + input.clientLeft;
-      const inputTop = input.offsetParent === shell
-        ? input.offsetTop + input.clientTop
-        : (inputRect.top - shellRect.top) *
-          (shell.offsetHeight && shellRect.height ? shell.offsetHeight / shellRect.height : 1) +
-          shell.scrollTop - shell.clientTop + input.clientTop;
-
-      mirror.style.left = inputLeft + "px";
-      mirror.style.top = inputTop + "px";
-      mirror.style.width = input.clientWidth + "px";
-      mirror.style.height = input.clientHeight + "px";
-      mirror.scrollLeft = input.scrollLeft;
-      mirror.scrollTop = input.scrollTop;
-
-      const visibleText = input.type === "password" ? "•".repeat(input.value.length) : input.value;
-      mirror.replaceChildren(
-        document.createTextNode(visibleText.slice(0, start)),
-        marker,
-        document.createTextNode(visibleText.slice(start))
-      );
-
-      // The mirror and underscore share the same positioned parent. Offsets
-      // therefore remain correct during 3D page flips and viewport resizing.
-      const markerRect = marker.getBoundingClientRect();
-      const scaleX = shellRect.width > 0 ? shell.offsetWidth / shellRect.width : 1;
-      const cursorX = (markerRect.left - shellRect.left) * scaleX;
-      cursor.style.left = cursorX + "px";
-
-      const paddingTop = Number.parseFloat(style.paddingTop) || 0;
-      const paddingBottom = Number.parseFloat(style.paddingBottom) || 0;
-      const contentHeight = Math.max(0, input.clientHeight - paddingTop - paddingBottom);
-      const fontSize = Number.parseFloat(style.fontSize) || 16;
-      const parsedLineHeight = Number.parseFloat(style.lineHeight);
-      const lineHeight = Number.isFinite(parsedLineHeight) ? parsedLineHeight : fontSize * 1.2;
-      cursor.style.top = (
-        inputTop + paddingTop + Math.max(0, (contentHeight - lineHeight) / 2)
-      ) + "px";
-      cursor.style.font = style.font;
-      cursor.style.lineHeight = lineHeight + "px";
-      cursor.style.letterSpacing = "0";
-      cursor.hidden = false;
-    };
-
-    let frame = 0;
-    const schedulePosition = () => {
-      if (typeof window.requestAnimationFrame === "function") {
-        if (frame) window.cancelAnimationFrame(frame);
-        frame = window.requestAnimationFrame(() => {
-          frame = 0;
-          positionCursor();
-        });
-      } else {
-        setTimeout(positionCursor, 0);
-      }
-    };
-    const onSelectionChange = () => {
-      if (document.activeElement === input) schedulePosition();
-    };
-
-    input.addEventListener("focus", () => {
-      shell.classList.add("is-typing");
-      schedulePosition();
-    });
-    input.addEventListener("blur", () => {
-      shell.classList.remove("is-typing");
-      cursor.hidden = true;
-    });
-    ["input", "keyup", "click", "select", "scroll", "change", "compositionend", "pointerup", "touchend"].forEach(name =>
-      input.addEventListener(name, schedulePosition)
-    );
-    input.addEventListener("keydown", schedulePosition);
-    shell.addEventListener("transitionend", schedulePosition);
-    document.addEventListener("selectionchange", onSelectionChange);
-    document.addEventListener("scroll", schedulePosition, true);
-    window.addEventListener("resize", schedulePosition);
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedulePosition);
-  });
-}
 function updateBookControls() {
   const book = el("authBook");
   if (!book) return;
 
   const isRegistration = book.classList.contains("is-spread");
   const isCode = !codeForm.hidden;
+  const isRecovery = Boolean(passwordRecoveryToken && !resetPasswordForm.hidden);
   const sign = el("bookSign");
   if (sign) {
-    sign.setAttribute("form", !isRegistration ? (passwordRecoveryToken && !resetPasswordForm.hidden ? "resetPasswordForm" : "loginForm") : isCode ? "codeForm" : "regForm");
-    sign.textContent = "Готово";
+    const formId = isRecovery
+      ? "resetPasswordForm"
+      : !isRegistration
+        ? "loginForm"
+        : isCode
+          ? "codeForm"
+          : "regForm";
+    const label = isRecovery
+      ? "Сохранить пароль"
+      : !isRegistration
+        ? "Войти"
+        : isCode
+          ? "Подтвердить"
+          : "Зарегистрироваться";
+    sign.setAttribute("form", formId);
+    sign.textContent = label;
   }
 
   const loginPage = el("loginPage");
@@ -405,9 +260,40 @@ function save() {
   }
 }
 
+function saveSession(value) {
+  const serialized = typeof value === "string" ? value : JSON.stringify(value);
+  let persisted = false;
+  try {
+    localStorage.setItem("scrlSession", serialized);
+    persisted = true;
+  } catch {}
+  try {
+    if (persisted) sessionStorage.removeItem("scrlSession");
+    else sessionStorage.setItem("scrlSession", serialized);
+  } catch {}
+}
+
+function clearSession() {
+  try { localStorage.removeItem("scrlSession"); } catch {}
+  try { sessionStorage.removeItem("scrlSession"); } catch {}
+}
+
 function sess() {
   try {
-    return JSON.parse(sessionStorage.getItem("scrlSession") || "null");
+    const saved = localStorage.getItem("scrlSession");
+    if (saved) return JSON.parse(saved);
+  } catch {}
+
+  // One-time migration from the old tab-only store, so current users stay signed in.
+  try {
+    const legacy = sessionStorage.getItem("scrlSession");
+    if (!legacy) return null;
+    const session = JSON.parse(legacy);
+    if (session) {
+      try { localStorage.setItem("scrlSession", legacy); } catch {}
+      try { sessionStorage.removeItem("scrlSession"); } catch {}
+    }
+    return session;
   } catch {
     return null;
   }
@@ -540,7 +426,7 @@ function enterLocal(name, mail, token = "", guest = false, id = "") {
     data.users.push(user);
   }
   if (user.blocked) {
-    sessionStorage.removeItem("scrlSession");
+    clearSession();
     el("logErr").textContent = "Этот аккаунт заблокирован. Обратись к администратору.";
     auth.hidden = false;
     auth.classList.remove("is-closing");
@@ -549,7 +435,7 @@ function enterLocal(name, mail, token = "", guest = false, id = "") {
   }
   user.name = name || user.name;
   user.mail = mail || user.mail;
-  sessionStorage.setItem("scrlSession", JSON.stringify({ id: userId, name: user.name, mail: user.mail, token, guest }));
+  saveSession(JSON.stringify({ id: userId, name: user.name, mail: user.mail, token, guest }));
   save();
 
   const revealApp = () => {
@@ -612,7 +498,7 @@ function showBanAppeal() {
 async function enterRemote(name, mail, token, id, refreshToken = "") {
   resetAdminPreviewRole();
   const session = { id, name: name || "Участник", mail: mail || "", token, refreshToken, guest: false };
-  sessionStorage.setItem("scrlSession", JSON.stringify(session));
+  saveSession(JSON.stringify(session));
   remoteReady = false;
   try {
     if (!backend) throw new Error("Не загружен модуль подключения к базе.");
@@ -635,12 +521,12 @@ async function enterRemote(name, mail, token, id, refreshToken = "") {
       session.refreshToken = latestSession.refreshToken || session.refreshToken;
     }
     session.name = user.name;
-    sessionStorage.setItem("scrlSession", JSON.stringify(session));
+    saveSession(JSON.stringify(session));
     if (user.blocked) {
       showBanAppeal();
       return;
     }
-    sessionStorage.setItem("scrlSession", JSON.stringify(session));
+    saveSession(JSON.stringify(session));
 
     const revealApp = () => {
       auth.hidden = true;
@@ -659,7 +545,7 @@ async function enterRemote(name, mail, token, id, refreshToken = "") {
     revealApp();
   } catch (error) {
     remoteReady = false;
-    sessionStorage.removeItem("scrlSession");
+    clearSession();
     auth.hidden = false;
     auth.classList.remove("is-closing");
     auth.removeAttribute("aria-hidden");
@@ -674,7 +560,7 @@ async function enterRemote(name, mail, token, id, refreshToken = "") {
 function enter(name, mail, token = "", guest = false, id = "", refreshToken = "") {
   if (window.__scrlTestMode) return enterLocal(name, mail, token, guest, id);
   if (guest || !token || !id) {
-    sessionStorage.removeItem("scrlSession");
+    clearSession();
     el("logErr").textContent = "Вход доступен только зарегистрированным пользователям.";
     auth.hidden = false;
     app.hidden = true;
@@ -686,7 +572,7 @@ function enter(name, mail, token = "", guest = false, id = "", refreshToken = ""
 function leave() {
   resetAdminPreviewRole();
   remoteReady = false;
-  sessionStorage.removeItem("scrlSession");
+  clearSession();
   app.hidden = true;
   if (document.body?.classList) document.body.classList.remove("app-active");
   auth.hidden = false;
@@ -2315,7 +2201,7 @@ async function submitRemote(form) {
     if (button) { button.disabled = true; button.textContent = "Удаляем аккаунт…"; }
     try {
       await backend.deleteAccount(confirmation);
-      sessionStorage.removeItem("scrlSession");
+      clearSession();
       remoteReady = false;
       leave();
       if (el("logErr")) el("logErr").textContent = "Аккаунт удалён. Личные данные обезличены.";
@@ -2337,7 +2223,7 @@ async function submitRemote(form) {
     me().room = room;
     const session = sess();
     session.name = name;
-    sessionStorage.setItem("scrlSession", JSON.stringify(session));
+    saveSession(JSON.stringify(session));
     if (isAdminAccount() && selectedRole) setAdminPreviewRole(selectedRole);
     el("userName").textContent = name;
     el("avatar").textContent = name.charAt(0).toUpperCase();
@@ -2481,7 +2367,7 @@ async function submit(form) {
     else if (isAdminAccount() && fields.get("role")) setAdminPreviewRole(fields.get("role"));
     if (!s?.guest && s?.token && cfg.url && cfg.key) await saveProfile(me().id, name, s.token, me().room);
     s.name = name;
-    sessionStorage.setItem("scrlSession", JSON.stringify(s));
+    saveSession(JSON.stringify(s));
     el("userName").textContent = name;
     el("avatar").textContent = name.charAt(0).toUpperCase();
     log("Обновлён профиль.");
@@ -2811,7 +2697,6 @@ if (authBook && !window.__scrlTestMode) {
     }
     updateBookControls();
   });
-  installMinecraftBookCursors();
 }
 startPasswordRecoveryFromUrl();
 

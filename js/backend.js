@@ -3,9 +3,35 @@
   "use strict";
   const cfg = root.cfg || {};
 
+  function saveStoredSession(session) {
+    const serialized = JSON.stringify(session);
+    let persisted = false;
+    try {
+      localStorage.setItem("scrlSession", serialized);
+      persisted = true;
+    } catch {}
+    try {
+      if (persisted) sessionStorage.removeItem("scrlSession");
+      else sessionStorage.setItem("scrlSession", serialized);
+    } catch {}
+  }
+
   function storedSession() {
-    try { return JSON.parse(sessionStorage.getItem("scrlSession") || "null"); }
-    catch { return null; }
+    try {
+      const saved = localStorage.getItem("scrlSession");
+      if (saved) return JSON.parse(saved);
+    } catch {}
+
+    // Migrate the previous sessionStorage entry after a refresh.
+    try {
+      const legacy = sessionStorage.getItem("scrlSession");
+      if (!legacy) return null;
+      const session = JSON.parse(legacy);
+      if (session) saveStoredSession(session);
+      return session;
+    } catch {
+      return null;
+    }
   }
 
   function tokenFromSession() {
@@ -54,7 +80,7 @@
       if (latest.token === current.token) {
         latest.token = payload.access_token;
         latest.refreshToken = payload.refresh_token || refreshToken;
-        sessionStorage.setItem("scrlSession", JSON.stringify(latest));
+        saveStoredSession(latest);
       } else if (latest.token) {
         return latest.token;
       }

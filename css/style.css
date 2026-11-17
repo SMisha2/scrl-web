@@ -4290,28 +4290,7 @@ html[data-world="cave"] .world-particles { display: none !important; opacity: 0 
 }
 .auth-book.is-spread ~ .book-quill { right:-86px !important; }
 .mc-input-shell { display:block !important; position:relative !important; width:100% !important; }
-.mc-input-shell input { padding-right:24px !important; caret-color:transparent !important; }
-.mc-writing-cursor {
-  position:absolute !important;
-  top:50% !important;
-  left:8px;
-  z-index:4;
-  display:none;
-  width:1ch;
-  text-align:center;
-  white-space:pre;
-  transform:translateY(-48%);
-  color:#3d2c1d !important;
-  font:inherit;
-  letter-spacing:0 !important;
-  line-height:1 !important;
-  pointer-events:none !important;
-  animation:minecraft-book-caret 1s steps(2,start) infinite !important;
-}
-.mc-input-shell.is-typing .mc-writing-cursor { display:block !important; }
-.mc-input-shell.is-typing .mc-writing-cursor[hidden] { display:none !important; }
-@keyframes minecraft-book-caret { 0%,49% { opacity:1; } 50%,100% { opacity:0; } }
-
+.mc-input-shell input { padding-right:8px !important; caret-color:#405640 !important; }
 @media(max-width:760px) {
   .auth-screen { padding:24px 8px !important; }
   .auth-stage { width:100% !important; gap:11px !important; }
@@ -4546,7 +4525,6 @@ html[data-theme="dark"] body .book-page .book-form input:focus {
 html[data-theme="dark"] body .book-page-link,
 html[data-theme="dark"] body .book-inline-link { color: #d0b991 !important; }
 html[data-theme="dark"] body .book-close { color: #f0e5d1 !important; }
-html[data-theme="dark"] body .mc-writing-cursor { color: #f0e5d1 !important; }
 
 
 /* ScRl visual hierarchy: gold completed frames for identity and headings, grey frames for choices. */
@@ -6217,31 +6195,6 @@ html[data-theme="dark"] body #auth .book-guide-item p { color:#e1e6d9 !important
 #auth .book-page--spread-left,
 #auth .book-page--spread-right { display:none !important; }
 
-/* The underscore caret follows the real browser text layout, not estimated glyph widths. */
-.mc-caret-measure {
-  position:absolute !important;
-  z-index:-1 !important;
-  display:block !important;
-  box-sizing:border-box !important;
-  overflow:hidden !important;
-  white-space:pre !important;
-  visibility:hidden !important;
-  pointer-events:none !important;
-  border:0 !important;
-  margin:0 !important;
-  color:transparent !important;
-}
-.mc-caret-marker {
-  display:inline-block !important;
-  width:0 !important;
-  min-width:0 !important;
-  height:1em !important;
-  margin:0 !important;
-  padding:0 !important;
-  border:0 !important;
-  vertical-align:baseline !important;
-}
-
 /* Phone/tablet header: keep the complete ЕЩЁ label and every action inside the viewport. */
 @media (max-width:1100px) {
   html body .topbar-inner {
@@ -6737,24 +6690,88 @@ html body .currency-coin-icon {
 }
 
 
-/* Auth fields use one custom underscore caret; always suppress the native vertical bar. */
+
+/* Native browser caret: no imitation cursor layered over the registration fields. */
 html body #auth .mc-input-shell input,
 html body #auth #codeForm input#code {
-  caret-color: transparent !important;
+  padding-right:8px !important;
+  caret-color:#405640 !important;
 }
-html body .mc-input-shell.is-typing .mc-writing-cursor {
-  display: block !important;
-  position: absolute !important;
-  z-index: 8 !important;
-  width: auto !important;
-  min-width: 0 !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  text-align: left !important;
-  white-space: pre !important;
-  transform: none !important;
-  pointer-events: none !important;
+html[data-theme="dark"] body #auth .mc-input-shell input,
+html[data-theme="dark"] body #auth #codeForm input#code {
+  caret-color:#eef4e9 !important;
 }
-html body .mc-input-shell.is-typing .mc-writing-cursor[hidden] {
-  display: none !important;
+
+/* Show the updated ScRl wordmark as one centered mark, without a second text label. */
+html body .brand {
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:0 !important;
+  padding:0 !important;
+  line-height:0 !important;
+}
+html body .brand-logo-frame {
+  display:grid !important;
+  width:48px !important;
+  height:48px !important;
+  min-width:48px !important;
+  flex:0 0 48px !important;
+  place-items:center !important;
+  overflow:visible !important;
+  border:0 !important;
+  border-radius:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;
+}
+html body .brand-logo {
+  position:static !important;
+  display:block !important;
+  width:100% !important;
+  height:100% !important;
+  object-fit:contain !important;
+  transform:none !important;
+  filter:none !important;
+  image-rendering:auto !important;
+}
+html[data-theme="dark"] body .brand-logo-frame {
+  border:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;
+}
+
+/* Slightly larger framed links on both sides of the registration book. */
+html body #auth button#forgotPassword,
+html body #auth button#returnToPage2 {
+  display:inline-flex !important;
+  align-items:center !important;
+  min-height:40px !important;
+  max-width:100% !important;
+  padding:9px 14px !important;
+  border:3px solid #8b9a83 !important;
+  border-radius:0 !important;
+  color:#344b36 !important;
+  background:#e7eee2 !important;
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,.8),inset -2px -2px 0 rgba(64,83,59,.14),2px 2px 0 rgba(48,65,46,.2) !important;
+  font-size:12px !important;
+  line-height:1.5 !important;
+  text-decoration:none !important;
+  white-space:normal !important;
+}
+html body #auth button#forgotPassword { margin-top:9px !important; }
+html body #auth button#returnToPage2 { margin-top:auto !important; }
+html[data-theme="dark"] body #auth button#forgotPassword,
+html[data-theme="dark"] body #auth button#returnToPage2 {
+  border-color:#3b5941 !important;
+  color:#edf4e9 !important;
+  background:#0b110d !important;
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,.06),inset -2px -2px 0 rgba(0,0,0,.32),2px 2px 0 rgba(0,0,0,.3) !important;
+}
+@media (max-width:620px) {
+  html body .brand-logo-frame {
+    width:42px !important;
+    height:42px !important;
+    min-width:42px !important;
+    flex-basis:42px !important;
+  }
 }

@@ -59,7 +59,7 @@ function boot() {
     fetch: async () => { throw new Error("Network is disabled in tests."); }
   };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8"), context);
-  return { api: window.scrlTest, els, sessionStorage };
+  return { api: window.scrlTest, els, sessionStorage, localStorage };
 }
 
 test("страницы приложения запускаются в гостевом режиме", () => {
@@ -71,6 +71,23 @@ test("страницы приложения запускаются в госте
   assert.match(api.exchangePage(), /Продать V-RUB/);
   assert.match(api.auctionsPage(), /Аукционы/);
   assert.equal(els.get("app").hidden, false);
+});
+
+test("вход сохраняется в localStorage после обновления, а явный выход очищает сессию", () => {
+  const { api, localStorage, sessionStorage } = boot();
+  const migrated = JSON.parse(localStorage.getItem("scrlSession") || "null");
+  assert.equal(migrated?.id, "u0");
+  assert.equal(migrated?.guest, true);
+  assert.equal(sessionStorage.getItem("scrlSession"), null);
+
+  api.enter("Тестовый ученик", "student@example.com", "access-token", false, "persist-test");
+  const saved = JSON.parse(localStorage.getItem("scrlSession") || "null");
+  assert.equal(saved?.id, "persist-test");
+  assert.equal(saved?.token, "access-token");
+
+  api.leave();
+  assert.equal(localStorage.getItem("scrlSession"), null);
+  assert.equal(sessionStorage.getItem("scrlSession"), null);
 });
 
 test("обе стороны биржи проводят расчёт и списывают резервы", () => {
@@ -310,7 +327,7 @@ test("светлые поля привязаны напрямую к data-theme=
   assert.ok(css.includes('html[data-theme="light"] body textarea'));
   assert.ok(css.includes('border: 4px solid #111111 !important'));
   assert.ok(css.includes('background-color: #c4c4c4 !important'));
-  assert.ok(html.includes('css/style.css?v=171'));
+  assert.ok(html.includes('css/style.css?v=172'));
 });
 
 
@@ -327,24 +344,17 @@ test("вход и регистрация занимают страницы 1 и 
   assert.match(css, /@media \(max-width:620px\)/);
 });
 
-test("авторизация сохраняет читаемые поля и точный подчёркивающий курсор", () => {
+test("авторизация использует нативный системный курсор во всех полях", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
   assert.equal((html.match(/С Возвращением,/g) || []).length, 1);
-  assert.equal((html.match(/войдите, чтоб начать пользоваться/g) || []).length, 1);
-  assert.match(html, /Нет аккаунта\? Зарегистрируйся/);
   assert.match(html, /class="mc-input-shell"/);
-  assert.match(app, /cursor\.textContent = "_"/);
-  assert.match(app, /const mirror = document\.createElement\("div"\)/);
-  assert.match(app, /mirror\.style\.textAlign = style\.textAlign/);
-  assert.match(app, /input\.addEventListener\("keydown", schedulePosition\)/);
-  assert.match(app, /document\.addEventListener\("selectionchange", onSelectionChange\)/);
-  assert.doesNotMatch(app, /input\.id === "code"/);
-  assert.match(css, /caret-color:\s*transparent\s*!important/);
-  assert.match(css, /\.mc-writing-cursor/);
+  assert.doesNotMatch(app, /installMinecraftBookCursors|mc-writing-cursor|cursor\.textContent\s*=\s*"_"/);
+  assert.match(css, /caret-color:#405640 !important/);
+  assert.match(css, /caret-color:#eef4e9 !important/);
+  assert.doesNotMatch(css, /mc-writing-cursor|mc-caret-measure|mc-caret-marker/);
 });
-
 test("восстановление пароля проходит через письмо Supabase и recovery token", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
@@ -440,25 +450,25 @@ test("uploaded day/night photos are rendered smoothly, not pixelated", () => {
   assert.match(tail, /transform: none !important/);
   assert.match(tail, /background-size: cover !important/);
   assert.match(tail, /transition: opacity 1\.15s ease !important/);
-  assert.ok(html.includes('css/style.css?v=171'));
+  assert.ok(html.includes('css/style.css?v=172'));
 });
 
 
-test("рамки, уведомления и главная кнопка авторизации оформлены по новой схеме", () => {
+test("страницы входа и регистрации имеют свои кнопки и увеличенные рамки ссылок", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
-  assert.match(html, /id="bookSign"[^>]*>Готово<\/button>/);
-  assert.match(app, /sign\.textContent = "Готово"/);
-  assert.match(css, /--gold-frame-fill: #b48712/);
-  assert.match(css, /--choice-frame-fill: #c4c4c4/);
-  assert.match(css, /--gold-frame-fill: #76550d/);
-  assert.match(css, /top:18px !important/);
-  assert.match(css, /right:18px !important/);
-  assert.doesNotMatch(app, /openRegistrationFromPage2/);
+  assert.match(html, /id="bookSign"[^>]*>Войти<\/button>/);
+  assert.match(app, /isRecovery\s*\?\s*"Сохранить пароль"/);
+  assert.match(app, /:\s*!isRegistration\s*\n\s*\?\s*"Войти"/);
+  assert.match(app, /isCode\s*\n\s*\?\s*"Подтвердить"/);
+  assert.match(app, /"Зарегистрироваться"/);
+  assert.match(css, /button#forgotPassword/);
+  assert.match(css, /button#returnToPage2/);
+  assert.match(css, /min-height:40px !important/);
+  assert.doesNotMatch(html, />Готово<\/button>/);
+  assert.doesNotMatch(app, /sign\.textContent = "Готово"/);
 });
-
-
 test("toolbar and bell notifications have one consistent control height", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
@@ -533,29 +543,17 @@ test("переключение входа и регистрации перели
   assert.match(css, /#auth \.book-page::before[\s\S]*?display:none !important/);
 });
 
-test("курсор ввода следует за реальной кареткой, повторный OTP очищает поле", () => {
+test("регистрационная форма не создаёт собственный underscore поверх курсора браузера", () => {
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
-  assert.match(app, /const mirror = document\.createElement\("div"\)/);
-  assert.match(app, /const marker = document\.createElement\("span"\)/);
-  assert.match(app, /mirror\.replaceChildren/);
-  assert.match(app, /const markerRect = marker\.getBoundingClientRect\(\)/);
-  assert.match(app, /const scaleX = shellRect\.width > 0/);
-  assert.match(app, /markerRect\.left - shellRect\.left/);
-  assert.match(app, /mirror\.style\.textAlign = style\.textAlign/);
-  assert.match(app, /mirror\.scrollLeft = input\.scrollLeft/);
-  assert.doesNotMatch(app, /measure\.measureText|const canvas = document\.createElement\("canvas"\)/);
-  assert.doesNotMatch(app, /if \(input\.id === "code"\) return/);
+  assert.doesNotMatch(app, /installMinecraftBookCursors|mc-writing-cursor|mc-caret-measure|cursor\.textContent\s*=\s*"_"/);
+  assert.doesNotMatch(css, /mc-writing-cursor|mc-caret-measure|mc-caret-marker|caret-color:\s*transparent/);
+  assert.match(css, /#auth #codeForm input#code/);
   assert.match(app, /Этот код уже использован, заменён новым или истёк/);
   assert.match(app, /el\("code"\)\.value = ""/);
   assert.match(app, /button\.disabled = true/);
-  assert.match(css, /\.mc-writing-cursor/);
-  assert.match(css, /\.mc-caret-measure/);
-  assert.match(css, /#auth #codeForm input#code[\s\S]*?text-overflow: clip !important/);
-  assert.match(css, /caret-color:\s*transparent\s*!important/);
-  assert.doesNotMatch(html, /codeDeviceMode/);
-  assert.doesNotMatch(app, /scrlAuthDeviceMode|setupAuthDeviceMode/);
+  assert.match(html, /id="regForm"/);
 });
 test("email confirmation accepts the eight-digit OTP configured in Supabase", () => {
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
@@ -564,7 +562,7 @@ test("email confirmation accepts the eight-digit OTP configured in Supabase", ()
   assert.match(app, /\[0-9\]\{8\}/);
   assert.match(html, /id="code"[^>]*maxlength="8" pattern="\[0-9\]\{8\}"/);
   assert.match(html, /восьмизначный код/);
-  assert.ok(html.includes("js/app.js?v=176"));
+  assert.ok(html.includes("js/app.js?v=177"));
 });
 
 
@@ -656,20 +654,24 @@ test("sign-in no longer waits for the dark book transition", () => {
 });
 
 
-test("логотип и монета ScRl подключены из добавленных пользовательских ресурсов", () => {
+test("логотип ScRl использует исправленное изображение без дублирующей надписи", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   assert.match(html, /assets\/crb,blb\.png/);
   assert.match(html, /class="brand-logo"/);
+  assert.doesNotMatch(html, /<span>ScRl<\/span>/);
+  assert.match(css, /html body \.brand-logo[\s\S]*?transform:none !important/);
+  assert.match(css, /object-fit:contain !important/);
   assert.match(html, /assets\/coinn\.png/);
   assert.match(app, /currency-coin-icon--inline/);
 });
 
 
-function promoteBootUserToAdmin(api, sessionStorage) {
+function promoteBootUserToAdmin(api, localStorage) {
   const user = api.data.users.find(item => item.id === "u0");
   user.role = "admin";
-  sessionStorage.setItem("scrlSession", JSON.stringify({
+  localStorage.setItem("scrlSession", JSON.stringify({
     id: "u0", name: user.name, mail: user.mail || "", token: "unit-test", guest: false
   }));
   assert.equal(api.isAdminAccount(), true);
@@ -704,8 +706,8 @@ test("учитель открывает свой кабинет и пульс, �
 });
 
 test("администратор открывает кабинеты учителя, администратора, финансов и AI-помощника", () => {
-  const { api, els, sessionStorage } = boot();
-  promoteBootUserToAdmin(api, sessionStorage);
+  const { api, els, localStorage } = boot();
+  promoteBootUserToAdmin(api, localStorage);
   api.setPage("staff");
   assert.match(els.get("page").innerHTML, /Кабинет учителя/);
   api.setPage("pulse");
@@ -719,8 +721,8 @@ test("администратор открывает кабинеты учите�
 });
 
 test("роль родителя доступна только как временный предпросмотр администратора", () => {
-  const { api, els, sessionStorage } = boot();
-  promoteBootUserToAdmin(api, sessionStorage);
+  const { api, els, localStorage } = boot();
+  promoteBootUserToAdmin(api, localStorage);
   const storedUser = api.data.users.find(item => item.id === "u0");
   api.setAdminPreviewRole("parent");
   assert.equal(api.me().role, "parent");
