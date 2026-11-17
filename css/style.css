@@ -6565,3 +6565,83 @@ html[data-theme="light"] body #auth .book-guide-item p {
   html body .brand-logo-frame { width:40px; height:40px; flex-basis:40px; }
   html body .currency-coin-frame { width:24px; height:24px; flex-basis:24px; }
 }
+
+
+/* Readable metadata and consistent vertical alignment for identity/currency. */
+html body #page .small,
+html body #page .muted,
+html body #page .section-hint,
+html body #page .demo-note,
+html body #page .data-row small,
+html body #page .demo-stat span,
+html body #page .demo-stat small,
+html body #page .card-top .small,
+html body #page .activity-item small,
+html body #page .chat-line small,
+html body #page .moderation-state {
+  font-size:14px !important;
+  line-height:1.6 !important;
+}
+html body #page .eyebrow { font-size:13px !important; line-height:1.5 !important; }
+html body #page label,
+html body #page .demo-form label,
+html body #page .account-delete-form label { font-size:14px !important; line-height:1.5 !important; }
+html body .brand {
+  display:inline-flex !important;
+  align-items:center !important;
+  line-height:1 !important;
+}
+html body .brand-logo-frame {
+  display:grid !important;
+  flex:0 0 44px !important;
+  align-self:center !important;
+  place-items:center !important;
+  vertical-align:middle !important;
+}
+html body .topbar-balance,
+html body .balance-group {
+  display:inline-flex !important;
+  align-items:center !important;
+}
+html body .currency-coin-frame {
+  display:inline-grid !important;
+  flex:0 0 27px !important;
+  align-self:center !important;
+  place-items:center !important;
+  margin-top:0 !important;
+  margin-bottom:0 !important;
+  vertical-align:middle !important;
+}
+html body .currency-coin-icon {
+  display:block !important;
+  width:100% !important;
+  height:100% !important;
+  object-fit:contain !important;
+}
+#auth .auth-moderation-disclosure,
+#auth .code-help,
+#auth .ban-appeal-status,
+#auth .book-page .code-info,
+#auth .book-page .ban-appeal-info {
+  font-size:12px !important;
+  line-height:1.55 !important;
+}
+@media (max-width:760px) {
+  html body #page .small,
+  html body #page .muted,
+  html body #page .section-hint,
+  html body #page .demo-note,
+  html body #page .data-row small,
+  html body #page .demo-stat span,
+  html body #page .demo-stat small,
+  html body #page .card-top .small,
+  html body #page .activity-item small,
+  html body #page .chat-line small,
+  html body #page .moderation-state {
+    font-size:13px !important;
+    line-height:1.55 !important;
+  }
+  #auth .auth-moderation-disclosure,
+  #auth .code-help,
+  #auth .ban-appeal-status { font-size:11px !important; }
+}
