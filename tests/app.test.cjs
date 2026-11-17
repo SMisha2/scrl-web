@@ -310,7 +310,7 @@ test("светлые поля привязаны напрямую к data-theme=
   assert.ok(css.includes('html[data-theme="light"] body textarea'));
   assert.ok(css.includes('border: 4px solid #111111 !important'));
   assert.ok(css.includes('background-color: #c4c4c4 !important'));
-  assert.ok(html.includes('css/style.css?v=165'));
+  assert.ok(html.includes('css/style.css?v=166'));
 });
 
 
@@ -542,7 +542,7 @@ test("email confirmation accepts the eight-digit OTP configured in Supabase", ()
   assert.match(app, /\[0-9\]\{8\}/);
   assert.match(html, /id="code"[^>]*maxlength="8" pattern="\[0-9\]\{8\}"/);
   assert.match(html, /восьмизначный код/);
-  assert.ok(html.includes("js/app.js?v=166"));
+  assert.ok(html.includes("js/app.js?v=167"));
 });
 
 
@@ -734,4 +734,46 @@ test("логотип и монета показываются в контрас�
   assert.match(css, /\.brand-logo-frame[\s\S]*?overflow:hidden/);
   assert.match(css, /\.currency-coin-frame[\s\S]*?border-radius:50%/);
   assert.match(css, /html\[data-theme="light"\] body #page \.muted[\s\S]*?color:#596b61/);
+});
+
+
+test("удаление своей публикации работает в демо и доступно для публикаций на проверке", () => {
+  const { api } = boot();
+  const own = {
+    id: "own-post-delete-test", user: api.me().id, type: "need", title: "Удалить",
+    desc: "Тестовая запись", category: "Другое", price: 0, status: "review", date: Date.now()
+  };
+  api.data.posts.unshift(own);
+  assert.match(api.boardPage(), /data-do="remove-post"[^>]*>Удалить<\/button>/);
+  api.action({ dataset: { do: "remove-post", id: own.id } });
+  assert.equal(api.data.posts.some(post => post.id === own.id), false);
+});
+
+test("удаление поста не обходит защиту активных сделок", () => {
+  const { api } = boot();
+  const own = {
+    id: "own-post-with-deal", user: api.me().id, type: "need", title: "В работе",
+    desc: "Не удалять при активной сделке", category: "Другое", price: 0, status: "active", date: Date.now()
+  };
+  api.data.posts.unshift(own);
+  api.data.deals.unshift({ id: "active-post-deal", buyer: "u1", seller: "u0", source: "board", sourceId: own.id, status: "work" });
+  assert.throws(() => api.action({ dataset: { do: "remove-post", id: own.id } }), /активную сделку/);
+  assert.equal(api.data.posts.some(post => post.id === own.id), true);
+});
+
+test("фоновая сцена кэшируется service worker для повторных посещений", () => {
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  const worker = fs.readFileSync(path.join(__dirname, "../sw.js"), "utf8");
+  assert.match(app, /navigator\.serviceWorker\.register\(new URL\("\.\/sw\.js", document\.baseURI\)/);
+  assert.match(worker, /scrl-world-backgrounds-v2/);
+  assert.match(worker, /night\.png/);
+  assert.match(worker, /day\.png/);
+  assert.match(worker, /cache\.match\(request, \{ ignoreSearch: true \}\)/);
+});
+
+test("small metadata text and logo/coin alignment overrides are present", () => {
+  const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
+  assert.match(css, /#page \.small[\s\S]*?font-size:14px !important/);
+  assert.match(css, /\.brand-logo-frame[\s\S]*?place-items:center !important/);
+  assert.match(css, /\.currency-coin-frame[\s\S]*?align-self:center !important/);
 });
