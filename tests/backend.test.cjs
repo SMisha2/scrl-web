@@ -4,13 +4,16 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 
-function loadBackend() {
+function loadBackend(config = {}) {
   const calls = [];
   const window = { cfg: { url: "https://scrl-test.supabase.co", key: "sb_publishable_test" } };
+  const stored = new Map([["scrlSession", JSON.stringify(config.session || { token: "signed-user-jwt" })]]);
   const sessionStorage = {
-    getItem(key) { return key === "scrlSession" ? JSON.stringify({ token: "signed-user-jwt" }) : null; }
+    getItem(key) { return stored.has(key) ? stored.get(key) : null; },
+    setItem(key, value) { stored.set(key, String(value)); },
+    removeItem(key) { stored.delete(key); }
   };
-  const fetch = async (url, options) => {
+  const fetch = config.fetch || (async (url, options) => {
     calls.push({ url, options });
     if (String(url).includes("/functions/v1/scrl-moderation")) {
       return {
@@ -19,7 +22,7 @@ function loadBackend() {
       };
     }
     return { ok: true, status: 204, async text() { return ""; } };
-  };
+  });
   vm.runInNewContext(
     fs.readFileSync(path.join(__dirname, "../js/backend.js"), "utf8"),
     { window, sessionStorage, fetch, JSON, String, Number, Map, Date, encodeURIComponent }
@@ -139,5 +142,68 @@ test("own post deletion uses the authenticated account Edge Function", async () 
   assert.deepEqual(JSON.parse(calls[0].options.body), {
     action: "delete_post",
     post_id: "6d2d7e2a-9e94-4e0d-91f2-8bb84be070ad"
+  });
+});
+
+
+test("an expired REST session is refreshed and the failed request is retried", async () => {
+  const { api, calls, sessionStorage } = loadBackend({
+    session: { id: "user-1", token: "expired-access", refreshToken: "refresh-old" },
+    fetch: async (url, options) => {
+      calls.push({ url, options });
+      if (String(url).includes("/auth/v1/token?grant_type=refresh_token")) {
+        return {
+          ok: true, status: 200,
+          async text() { return JSON.stringify({ access_token: "fresh-access", refresh_token: "refresh-new" }); }
+        };
+      }
+      if (String(url).includes("/rpc/scrl_mark_notifications_read")) {
+        if (options.headers.Authorization === "Bearer expired-access") {
+          return { ok: false, status: 401, async text() { return JSON.stringify({ message: "JWT expired" }); } };
+        }
+        return { ok: true, status: 204, async text() { return ""; } };
+      }
+      return { ok: true, status: 204, async text() { return ""; } };
+    }
+  });
+
+  await api.markNotificationsRead();
+  assert.equal(calls.length, 3);
+  assert.match(calls[0].url, /rpc\/scrl_mark_notifications_read$/);
+  assert.match(calls[1].url, /auth\/v1\/token\?grant_type=refresh_token$/);
+  assert.match(calls[2].url, /rpc\/scrl_mark_notifications_read$/);
+  assert.equal(calls[2].options.headers.Authorization, "Bearer fresh-access");
+  assert.deepEqual(JSON.parse(sessionStorage.getItem("scrlSession")), {
+    id: "user-1", token: "fresh-access", refreshToken: "refresh-new"
+  });
+});
+
+test("an expired Edge Function session is refreshed and retried with the new JWT", async () => {
+  const { api, calls, sessionStorage } = loadBackend({
+    session: { id: "user-2", token: "expired-access", refreshToken: "refresh-old" },
+    fetch: async (url, options) => {
+      calls.push({ url, options });
+      if (String(url).includes("/auth/v1/token?grant_type=refresh_token")) {
+        return {
+          ok: true, status: 200,
+          async text() { return JSON.stringify({ access_token: "fresh-edge-access", refresh_token: "refresh-edge-new" }); }
+        };
+      }
+      if (String(url).includes("/functions/v1/scrl-account")) {
+        if (options.headers.Authorization === "Bearer expired-access") {
+          return { ok: false, status: 401, async text() { return JSON.stringify({ message: "JWT expired" }); } };
+        }
+        return { ok: true, status: 200, async text() { return JSON.stringify({ success: true }); } };
+      }
+      return { ok: true, status: 204, async text() { return ""; } };
+    }
+  });
+
+  await api.deletePost("post-1");
+  assert.equal(calls.length, 3);
+  assert.match(calls[1].url, /auth\/v1\/token\?grant_type=refresh_token$/);
+  assert.equal(calls[2].options.headers.Authorization, "Bearer fresh-edge-access");
+  assert.deepEqual(JSON.parse(sessionStorage.getItem("scrlSession")), {
+    id: "user-2", token: "fresh-edge-access", refreshToken: "refresh-edge-new"
   });
 });
