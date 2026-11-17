@@ -207,7 +207,11 @@ function updateBookControls() {
   const isRegistration = book.classList.contains("is-spread");
   const isCode = !codeForm.hidden;
   const isRecovery = Boolean(passwordRecoveryToken && !resetPasswordForm.hidden);
+  const loginPage = el("loginPage");
+  const registrationPage = el("registrationPage");
   const sign = el("bookSign");
+  const targetPage = isRegistration ? registrationPage : loginPage;
+
   if (sign) {
     const formId = isRecovery
       ? "resetPasswordForm"
@@ -225,10 +229,11 @@ function updateBookControls() {
           : "Зарегистрироваться";
     sign.setAttribute("form", formId);
     sign.textContent = label;
+
+    // Keep the primary action inside the active book page, not below the book.
+    if (targetPage && sign.parentElement !== targetPage) targetPage.appendChild(sign);
   }
 
-  const loginPage = el("loginPage");
-  const registrationPage = el("registrationPage");
   if (loginPage) {
     loginPage.inert = isRegistration;
     loginPage.setAttribute("aria-hidden", String(isRegistration));
