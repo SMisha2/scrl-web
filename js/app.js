@@ -24,6 +24,7 @@ if (!window.__scrlTestMode && typeof navigator !== "undefined" &&
   navigator.serviceWorker.register(serviceWorkerUrl)
     .catch(error => console.warn("ScRl: не удалось зарегистрировать кэш фона.", error));
 }
+const CONSENT_POLICY_VERSION = "2026-11-17-v1";
 const key = "scrlDemo3";
 let pending = null;
 let filter = { term: "", type: "all" };
@@ -798,8 +799,8 @@ async function ask(path, body) {
   return result;
 }
 
-async function saveProfile(id, name, token, room = null) {
-  if (backend) return backend.saveProfile(id, name, room, token);
+async function saveProfile(id, name, token, room = null, safety = null) {
+  if (backend) return backend.saveProfile(id, name, room, token, safety);
   const url = String(cfg.url || "").replace(/\/$/, "");
   const profile = { id, full_name: name };
   if (room !== null && room !== undefined) profile.room = room;
@@ -902,8 +903,32 @@ function setCodePage() {
   el("code").focus();
 }
 
+function privacyPage() {
+  const status = data.safety || {};
+  const birthDate = String(status.birthDate || "");
+  const today = new Date().toISOString().slice(0, 10);
+  const personalChecked = status.hasPersonalDataConsent === true ? " checked" : "";
+  const aiChecked = status.hasAiConsent === true ? " checked" : "";
+  const loadWarning = status.loadError
+    ? '<p class="form-error">Не удалось загрузить текущий статус согласий: ' + safe(status.loadError) + '</p>'
+    : "";
+  return '<p class="eyebrow">КОНФИДЕНЦИАЛЬНОСТЬ</p><h1>Данные и согласия</h1>' +
+    '<section class="match-box consent-panel"><h2>Какие данные обрабатываются</h2>' +
+    '<p>ScRl использует ФИО, электронную почту, дату рождения, класс, публикации, сообщения, отзывы и сведения об операциях для создания аккаунта, работы сервиса, безопасности, поддержки и разбора споров.</p>' +
+    '<p>Дата рождения и журнал согласий хранятся отдельно от общего профиля и не показываются другим ученикам.</p>' +
+    '<details><summary>Подробнее об ИИ-модерации</summary><p>Для автоматической проверки текстов публикаций, услуг, аукционов, сообщений, отзывов, имени профиля и жалоб соответствующий текст может передаваться Groq — внешнему поставщику ИИ. Не отправляй в тексты пароли, адреса, телефоны и другие лишние личные сведения.</p><p>ИИ может ошибаться. Спорные случаи отправляются администратору на ручную проверку; решения можно обжаловать.</p></details>' +
+    '<p class="small muted">Согласия сохраняются с датой и версией текста. Для изменения уже сохранённой даты рождения обратись к администратору.</p></section>' +
+    loadWarning +
+    '<form id="privacyConsentForm" class="demo-form consent-form">' +
+    '<label for="privacyBirthDate">Дата рождения</label><input id="privacyBirthDate" name="birthDate" type="date" max="' + today + '" value="' + safe(birthDate) + '"' + (birthDate ? ' readonly aria-readonly="true"' : "") + ' required>' +
+    '<label class="consent-check"><input type="checkbox" name="personalConsent" value="yes"' + personalChecked + ' required><span>Согласен(на) на обработку персональных данных для работы ScRl, безопасности, поддержки и рассмотрения споров.</span></label>' +
+    '<label class="consent-check"><input type="checkbox" name="aiConsent" value="yes"' + aiChecked + ' required><span>Отдельно соглашаюсь на автоматическую проверку пользовательских текстов средствами ИИ с возможной передачей текста внешнему поставщику Groq.</span></label>' +
+    '<button class="button button-primary" type="submit">Сохранить согласия</button></form>';
+}
+
 const pages = {
   home: homePage,
+  privacy: privacyPage,
   wallet: walletPage,
   finance: financePage,
   assistant: assistantPage,
@@ -1043,6 +1068,26 @@ function currentRate() {
 }
 
 function exchangePage() {
+  const safety = data.safety || {};
+  if (safety.canUseExchange !== true) {
+    const age = Number(safety.ageYears);
+    const status = String(safety.parentExchangeStatus || "not_requested");
+    let explanation = "";
+    let requestForm = "";
+    if (Number.isFinite(age) && age < 14) {
+      explanation = "Биржа доступна с 14 лет. Когда тебе исполнится 14, можно будет запросить допуск.";
+    } else if (Number.isFinite(age) && age >= 14 && age < 18 && status === "pending") {
+      explanation = "Заявка отправлена. Биржа откроется после того, как администратор лично проверит согласие родителя или законного представителя.";
+    } else if (Number.isFinite(age) && age >= 14 && age < 18) {
+      explanation = status === "rejected"
+        ? "Администратор не подтвердил согласие. Уточни причину и отправь новую заявку после повторной проверки с родителем."
+        : "Для пользователей 14–17 лет нужен допуск администратора после проверки согласия родителя или законного представителя.";
+      requestForm = '<form id="parentExchangeConsentForm" data-form="parent-exchange-request" class="demo-form consent-panel"><label class="consent-check"><input type="checkbox" name="parentConfirmed" value="yes" required><span>Подтверждаю, что мой родитель или законный представитель уже дал согласие на участие в бирже и его можно проверить.</span></label><button class="button button-primary" type="submit">Отправить на проверку администратору</button></form>';
+    } else {
+      explanation = "Сначала заполни дату рождения и прими согласия на странице конфиденциальности.";
+    }
+    return '<p class="eyebrow">ОГРАНИЧЕНИЕ ДОСТУПА</p><h1>Биржа</h1><section class="match-box consent-panel"><h2>Допуск к бирже</h2><p>' + safe(explanation) + '</p><p class="small muted">Для возраста 14–17 лет администратор должен самостоятельно удостовериться в согласии родителя или законного представителя. Не загружай сюда паспорта и другие документы.</p></section>' + requestForm;
+  }
   refreshFee();
   const scrlOffers = data.exchangeOrders.filter(o => o.status === "active" && o.side === "scrlSell" && !getUser(o.user)?.blocked);
   const vrubOffers = data.exchangeOrders.filter(o => o.status === "active" && o.side === "vrubSell" && !getUser(o.user)?.blocked);
@@ -1178,6 +1223,7 @@ function profilePage() {
     ? '<section class="account-danger"><h2>Удаление аккаунта</h2><p>Каждый зарегистрированный участник — ученик, учитель или администратор — может удалить свой аккаунт. Действие необратимо: профиль будет обезличен, публикации и личные сообщения удалены, финансовая история сохранена без персональных данных. Остатки ScRl и V-RUB будут списаны; ScRl исключаются из доступного оборота. Финансовая история останется обезличенной. Перед удалением заверши активные сделки, заявки на бирже, аукционы и освободи все резервы.</p><form id="deleteAccountForm" class="demo-form account-delete-form"><label for="deleteAccountConfirm">Введи слово УДАЛИТЬ для подтверждения</label><input id="deleteAccountConfirm" name="confirmation" maxlength="7" autocomplete="off" required><button class="button button-danger" type="submit">Удалить аккаунт окончательно</button></form></section>'
     : '<section class="account-danger"><h2>Удаление аккаунта</h2><p>Удаление доступно только после входа в зарегистрированный аккаунт. В демо-режиме действие отключено.</p></section>';
   return '<p class="eyebrow">АККАУНТ</p><h1>Профиль</h1><div class="demo-stats"><div class="demo-stat"><span>Отзывы</span><b>' + reviews.length + '</b></div><div class="demo-stat"><span>Средняя оценка</span><b>' + avg + '</b></div></div>' +
+    link("privacy", "Конфиденциальность и согласия") +
     '<form id="profileForm" class="demo-form"><h2>Мои данные</h2><label>ФИО</label><input name="name" maxlength="100" value="' + safe(user.name) + '" required><label>Email</label><input value="' + safe(user.mail || "Email скрыт для других участников") + '" disabled><label>Класс</label><input name="room" maxlength="12" value="' + safe(user.room || "") + '"' + (!isAdminAccount() ? ' readonly aria-readonly="true" title="Класс меняет администратор"' : "") + '>' +
     (!isAdminAccount() ? '<p class="small muted">Класс меняет администратор.</p>' : '') +
     roleChoice + '<button class="button button-primary" type="submit">Сохранить</button></form>' +
@@ -1376,6 +1422,13 @@ function adminPage() {
     '</small></span><button class="text-button admin-danger-action" data-do="admin-delete-publication" data-kind="' + item.kind +
     '" data-id="' + safe(item.id) + '">Удалить</button></article>'
   ).join("");
+  const exchangeConsentRows = (data.exchangeConsentRequests || []).map(item =>
+    '<article class="data-row"><span><b>' + safe(item.full_name || "Участник") + '</b><small>' +
+    safe(item.room || "Класс не указан") + ' · ' + Number(item.age_years || 0) + ' лет · заявка ' +
+    new Date(item.requested_at).toLocaleString("ru-RU") + '</small></span>' +
+    '<span class="actions"><button class="text-button" data-do="review-parent-exchange-consent" data-decision="approve" data-id="' + safe(item.user_id) + '">Подтвердить</button>' +
+    '<button class="text-button" data-do="review-parent-exchange-consent" data-decision="reject" data-id="' + safe(item.user_id) + '">Отклонить</button></span></article>'
+  ).join("");
   const aiCases = (data.moderation?.adminCases || []).map(item =>
     '<article class="data-row"><span><b>' + safe(item.user) + ' · ' + safe(item.kind) + ' · ' + safe(item.decision) + '</b><small>' +
     safe((item.categories || []).join(", ")) + ' · уверенность ' + Math.round(Number(item.confidence || 0) * 100) + '% · ' +
@@ -1410,6 +1463,7 @@ function adminPage() {
     '<div class="demo-links admin-shortcuts">' + link("pulse", "Пульс лицея") + link("finance", "Платежи") + link("assistant", "AI Moderator") + '</div>' +
     '<div class="demo-stats admin-overview"><div class="demo-stat"><span>Участники</span><b>' + data.users.length + '</b></div><div class="demo-stat"><span>Открытые жалобы и споры</span><b>' + reports.length + '</b></div><div class="demo-stat"><span>На проверке ИИ</span><b>' + (data.moderation?.adminCases || []).length + '</b></div><div class="demo-stat"><span>Апелляции</span><b>' + (data.moderation?.adminAppeals || []).length + '</b></div></div>' +
     '<section class="match-box admin-guidance"><h2>Что требует внимания</h2>' + hints.map(x => '<div class="data-row">' + safe(x) + '</div>').join("") + '<button class="button button-secondary" data-do="scan">Перепроверить публикации</button></section>' +
+    '<details class="admin-section admin-section--parent-consents" open><summary><span>Согласия родителей для биржи</span><small>' + (data.exchangeConsentRequests || []).length + ' ожидают проверки</small></summary><div class="admin-section-body"><p class="muted small">Подтверждай заявку только после самостоятельной проверки согласия родителя или законного представителя через прямой или официальный канал. Нажатие кнопки фиксирует твою проверку в журнале действий.</p><div class="data-list">' + (exchangeConsentRows || '<p class="muted">Ожидающих заявок нет.</p>') + '</div></div></details>' +
     '<details class="admin-section admin-section--members" open><summary><span>Участники</span><small>' + people.length + ' · поиск, роли и доступ</small></summary><div class="admin-section-body">' +
     '<form id="adminFilter" class="filter-row"><input name="term" value="' + safe(adminFilter.term) + '" placeholder="Поиск по имени или классу"><select name="role"><option value="all"' + (adminFilter.role === "all" ? " selected" : "") + '>Все роли</option><option value="student"' + (adminFilter.role === "student" ? " selected" : "") + '>Ученики</option><option value="teacher"' + (adminFilter.role === "teacher" ? " selected" : "") + '>Учителя</option><option value="admin"' + (adminFilter.role === "admin" ? " selected" : "") + '>Администраторы</option></select><select name="locked"><option value="all"' + (adminFilter.locked === "all" ? " selected" : "") + '>Любой статус</option><option value="yes"' + (adminFilter.locked === "yes" ? " selected" : "") + '>Заблокированные</option><option value="no"' + (adminFilter.locked === "no" ? " selected" : "") + '>Активные</option></select><button class="button button-secondary" type="submit">Найти</button></form>' +
     '<div class="data-list admin-users-list">' + (users || '<p class="muted">Никого не найдено.</p>') + '</div></div></details>' +
@@ -1528,6 +1582,11 @@ function setPage(name) {
   if (page === "pulse" && role !== "teacher" && role !== "admin") page = "home";
   if (page === "finance" && role !== "admin") page = "home";
   if (page === "assistant" && role !== "admin") page = "home";
+  if (remoteReady && page !== "privacy" &&
+      (!data.safety || data.safety.needsOnboarding === true ||
+       data.safety.hasPersonalDataConsent !== true || data.safety.hasAiConsent !== true)) {
+    page = "privacy";
+  }
   document.querySelectorAll(".nav-tab").forEach(btn => {
     const active = btn.dataset.page === page;
     btn.classList.toggle("is-active", active);
@@ -2229,6 +2288,22 @@ async function actionRemote(btn) {
     msg("Аукцион завершён.");
     return;
   }
+  if (type === "review-parent-exchange-consent") {
+    if (me().role !== "admin") throw new Error("Только администратор может проверять родительское согласие.");
+    const decision = String(btn.dataset.decision || "");
+    if (!["approve", "reject"].includes(decision)) throw new Error("Некорректное решение.");
+    const target = (data.exchangeConsentRequests || []).find(item => String(item.user_id) === String(id));
+    if (!target) throw new Error("Заявка уже обработана или не найдена.");
+    const question = decision === "approve"
+      ? "Подтверждаешь, что лично удостоверился в согласии родителя или законного представителя " + (target.full_name || "участника") + "?"
+      : "Отклонить заявку на доступ к бирже для " + (target.full_name || "участника") + "?";
+    if (!confirm(question)) return;
+    await backend.reviewExchangeParentConsent(id, decision);
+    await refreshRemoteData();
+    setPage("admin");
+    msg(decision === "approve" ? "Родительское согласие подтверждено. Доступ к бирже открыт." : "Заявка отклонена.");
+    return;
+  }
   if (type === "buyoffer") {
     await buyExchangeOrder(id);
     setPage("exchange");
@@ -2375,6 +2450,30 @@ async function submitRemote(form) {
   if (me()?.blocked) throw new Error("Аккаунт заблокирован.");
   const fields = new FormData(form);
 
+  if (form.id === "privacyConsentForm") {
+    const birthDate = String(fields.get("birthDate") || "").trim();
+    const personalConsent = ["yes", "on"].includes(String(fields.get("personalConsent") || ""));
+    const aiConsent = ["yes", "on"].includes(String(fields.get("aiConsent") || ""));
+    if (!birthDate || birthDate > new Date().toISOString().slice(0, 10)) throw new Error("Проверь дату рождения.");
+    if (!personalConsent || !aiConsent) throw new Error("Нужно принять оба отдельных согласия.");
+    await backend.saveSafetyData({
+      birthDate, personalConsent, aiConsent,
+      personalVersion: CONSENT_POLICY_VERSION, aiVersion: CONSENT_POLICY_VERSION
+    });
+    await refreshRemoteData();
+    setPage("home");
+    msg("Согласия сохранены.");
+    return;
+  }
+  if (form.dataset.form === "parent-exchange-request") {
+    const confirmed = ["yes", "on"].includes(String(fields.get("parentConfirmed") || ""));
+    if (!confirmed) throw new Error("Подтверди согласие родителя или законного представителя.");
+    await backend.requestExchangeParentConsent(true);
+    await refreshRemoteData();
+    setPage("exchange");
+    msg("Заявка отправлена администратору.");
+    return;
+  }
   if (form.dataset.form === "assistant") {
     askAssistant(String(fields.get("message") || ""));
     setPage("assistant");
@@ -2877,12 +2976,19 @@ reg.addEventListener("submit", async event => {
   const mail = el("regMail").value.trim().toLowerCase();
   const pass = el("regPass").value;
   const again = el("regAgain").value;
+  const birthDate = String(el("regBirth")?.value || "").trim();
+  const personalConsent = Boolean(el("regPersonalConsent")?.checked);
+  const aiConsent = Boolean(el("regAiConsent")?.checked);
   if (!last || !first) return el("regErr").textContent = "Напиши фамилию и имя.";
   if (!mail) return el("regErr").textContent = "Введи электронную почту.";
+  if (!birthDate) return el("regErr").textContent = "Укажи дату рождения.";
+  if (birthDate > new Date().toISOString().slice(0, 10)) return el("regErr").textContent = "Дата рождения не может быть в будущем.";
+  if (!personalConsent) return el("regErr").textContent = "Нужно отдельно подтвердить обработку персональных данных.";
+  if (!aiConsent) return el("regErr").textContent = "Нужно отдельно подтвердить использование ИИ-модерации.";
   if (pass.length < 8) return el("regErr").textContent = "Пароль должен быть не короче 8 символов.";
   if (pass !== again) return el("regErr").textContent = "Пароли не совпадают.";
   const name = [last, first, pat].filter(Boolean).join(" ");
-  pending = { name, mail };
+  pending = { name, mail, birthDate, personalConsent, aiConsent };
   try {
     await ask("signup?redirect_to=" + encodeURIComponent(APP_REDIRECT_URL), { email: mail, password: pass });
     setCodePage();
@@ -2901,23 +3007,30 @@ codeForm.addEventListener("submit", async event => {
   if (!pending?.mail) return el("codeErr").textContent = "Начни регистрацию заново.";
 
   try {
-    const mail = pending.mail;
+    const registration = { ...pending };
+    const mail = registration.mail;
     const result = await ask("verify", { email: mail, token, type: "email" });
     if (!result.user?.id || !result.access_token) {
       throw new Error("Не удалось подтвердить почту. Проверь код или запроси новый.");
     }
-    const name = pending.name || result.user?.email || mail;
+    const name = registration.name || result.user?.email || mail;
     pending = null;
     codeForm.reset();
     reg.reset();
     el("logMail").value = mail;
     setMode("login");
     try {
-      await saveProfile(result.user.id, name, result.access_token);
-      msg("Почта подтверждена. Теперь войди по email и паролю.");
+      await saveProfile(result.user.id, name, result.access_token, null, {
+        birthDate: registration.birthDate,
+        personalConsent: registration.personalConsent === true,
+        aiConsent: registration.aiConsent === true,
+        personalVersion: CONSENT_POLICY_VERSION,
+        aiVersion: CONSENT_POLICY_VERSION
+      });
+      msg("Почта подтверждена, согласия сохранены. Теперь войди по email и паролю.");
     } catch (profileError) {
-      msg("Почта подтверждена. Имя можно сохранить после настройки ИИ-модерации.");
-      console.warn("ScRl profile moderation:", profileError);
+      msg("Почта подтверждена, но профиль не удалось полностью сохранить. Попробуй войти и повторить сохранение.");
+      console.warn("ScRl profile/consent save:", profileError);
     }
   } catch (err) {
     const message = String(err?.message || "");
