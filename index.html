@@ -16,7 +16,7 @@
   <script src="js/config.js" defer></script>
   <script src="js/core.js" defer></script>
   <script src="js/backend.js?v=162" defer></script>
-  <script src="js/app.js?v=194" defer></script>
+  <script src="js/app.js?v=195" defer></script>
 </head>
 <body>
   <div id="worldScenery" class="world-scenery" aria-hidden="true">
@@ -109,13 +109,13 @@
                 </label>
                 <label class="auth-consent-check" for="regAiConsent">
                   <input id="regAiConsent" name="aiConsent" type="checkbox" required>
-                  <span>Отдельно соглашаюсь на ИИ-модерацию моих публикаций, сообщений, отзывов и данных профиля.</span>
+                  <span>Отдельно соглашаюсь на ИИ-модерацию публикаций, услуг, аукционов, сообщений, отзывов, жалоб, профиля и других материалов ScRl с возможной передачей соответствующих текстов Groq.</span>
                 </label>
               </div>
               <details class="auth-consent-details">
                 <summary>Подробнее о данных и ИИ</summary>
                 <p>Обрабатываются ФИО, e-mail, дата рождения, класс, публикации, сообщения, отзывы и сведения об операциях. Дата рождения и журнал согласий хранятся отдельно от общего профиля.</p>
-                <p>Для автоматической проверки текст может передаваться Groq — внешнему поставщику ИИ. Спорные случаи могут просматриваться администрацией. ИИ может ошибаться; решения можно обжаловать. Не отправляй в тексты пароли, адреса и телефоны.</p>
+                <p>Для автоматической проверки текст может передаваться Groq — внешнему поставщику ИИ. Аккаунт и база данных работают через Supabase. Спорные случаи могут просматриваться администрацией. ИИ может ошибаться; решения можно обжаловать. Не отправляй в тексты пароли, адреса и телефоны.</p>
               </details>
               <p class="form-error" id="regErr" aria-live="polite"></p>
             </form>
