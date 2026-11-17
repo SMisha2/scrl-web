@@ -885,10 +885,10 @@ test("перелистывание авторизации сохраняет г�
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
   const readme = fs.readFileSync(path.join(__dirname, "../README.md"), "utf8");
-  assert.match(html, /rel="canonical" href="https:\/\/www\.scrl\.site\//);
-  assert.match(html, /property="og:url" content="https:\/\/www\.scrl\.site\//);
-  assert.match(app, /: "https:\/\/www\.scrl\.site\/"\;/);
-  assert.match(readme, /https:\/\/www\.scrl\.site\//);
+  assert.match(html, /rel="canonical" href="https:\/\/scrl\.site\//);
+  assert.match(html, /property="og:url" content="https:\/\/scrl\.site\//);
+  assert.match(app, /: "https:\/\/scrl\.site\/"\;/);
+  assert.match(readme, /https:\/\/scrl\.site\//);
   assert.match(css, /#auth \.auth-book\.is-spread,[\s\S]*?width: min\(100%,520px\) !important;[\s\S]*?height: min\(700px,calc\(100svh - 150px\)\) !important;/);
   assert.match(css, /#auth \.auth-book\.is-spread #loginPage[\s\S]*?transform: rotateY\(-180deg\) !important/);
   assert.match(css, /backface-visibility: hidden !important/);
@@ -901,9 +901,10 @@ test("Supabase Edge Functions allow the new ScRl domain and keep the legacy orig
   const ai = fs.readFileSync(path.join(root, "scrl-ai/index.ts"), "utf8");
   const moderation = fs.readFileSync(path.join(root, "scrl-moderation/index.ts"), "utf8");
   for (const source of [account, ai, moderation]) {
-    assert.match(source, /DEFAULT_ORIGIN\s*=\s*"https:\/\/www\.scrl\.site"/);
+    assert.match(source, /DEFAULT_ORIGIN\s*=\s*"https:\/\/scrl\.site"/);
+    assert.match(source, /WWW_ORIGIN\s*=\s*"https:\/\/www\.scrl\.site"/);
     assert.match(source, /LEGACY_ORIGIN\s*=\s*"https:\/\/smisha2\.github\.io"/);
     assert.match(source, /ALLOWED_ORIGINS/);
   }
-  assert.match(ai, /HTTP-Referer": "https:\/\/www\.scrl\.site\//);
+  assert.match(ai, /HTTP-Referer": "https:\/\/scrl\.site\//);
 });

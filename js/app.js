@@ -2,7 +2,7 @@ const el = id => document.getElementById(id);
 const cfg = window.cfg || {};
 const APP_REDIRECT_URL = window.location?.origin && window.location?.pathname
   ? window.location.origin + window.location.pathname
-  : "https://www.scrl.site/";
+  : "https://scrl.site/";
 const backend = window.ScrlBackend;
 let remoteReady = false;
 let closingAuctions = false;
