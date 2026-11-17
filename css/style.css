@@ -8011,3 +8011,101 @@ html[data-theme="light"] body ::selection {
   background: #e9edf1 !important;
 }
 
+
+
+/* Privacy and consent forms: clear, readable consent controls. */
+#auth .auth-form .auth-consent-list {
+  display:grid !important;
+  gap:9px !important;
+  margin:10px 0 4px !important;
+  padding:10px 12px !important;
+  border:1px solid #e2e6ea !important;
+  border-radius:7px !important;
+  background:#ffffff !important;
+}
+#auth .auth-form .auth-consent-check,
+#page .consent-check {
+  display:flex !important;
+  align-items:flex-start !important;
+  gap:9px !important;
+  margin:0 !important;
+  padding:5px 0 !important;
+  color:#555c64 !important;
+  background:#ffffff !important;
+  font-size:12px !important;
+  line-height:1.5 !important;
+  white-space:normal !important;
+}
+#auth .auth-form .auth-consent-check input,
+#page .consent-check input {
+  flex:0 0 16px !important;
+  width:16px !important;
+  min-width:16px !important;
+  height:16px !important;
+  margin:2px 0 0 !important;
+  padding:0 !important;
+}
+#auth .auth-form .auth-consent-check span,
+#page .consent-check span {
+  display:block !important;
+  min-width:0 !important;
+  color:#555c64 !important;
+  background:#ffffff !important;
+}
+#auth .auth-consent-details {
+  margin:5px 0 8px !important;
+  padding:8px 10px !important;
+  border:1px solid #e5e8ec !important;
+  border-radius:6px !important;
+  color:#626a73 !important;
+  background:#ffffff !important;
+  font-size:11px !important;
+  line-height:1.5 !important;
+}
+#auth .auth-consent-details summary,
+#page .consent-panel details summary {
+  cursor:pointer !important;
+  color:#555c64 !important;
+  background:#ffffff !important;
+}
+#auth .auth-consent-details p {
+  margin:7px 0 !important;
+  color:#626a73 !important;
+  background:#ffffff !important;
+}
+#page .consent-panel {
+  padding:16px !important;
+  border:1px solid #e5e8ec !important;
+  border-radius:8px !important;
+  color:#555c64 !important;
+  background:#ffffff !important;
+}
+#page .consent-panel p,
+#page .consent-panel details,
+#page .consent-panel summary {
+  color:#626a73 !important;
+  background:#ffffff !important;
+}
+#page .consent-panel details {
+  margin:10px 0 !important;
+  padding:10px 12px !important;
+  border:1px solid #e5e8ec !important;
+  border-radius:6px !important;
+}
+#page .consent-form {
+  display:grid !important;
+  gap:10px !important;
+}
+#page .consent-form .consent-check {
+  padding:10px 12px !important;
+  border:1px solid #e5e8ec !important;
+  border-radius:6px !important;
+}
+#page .admin-section--parent-consents {
+  border-color:#e5e8ec !important;
+}
+@media (max-width:560px) {
+  #auth .auth-form .auth-consent-check { font-size:10px !important; }
+  #auth .auth-consent-details { font-size:10px !important; }
+  #page .consent-panel { padding:12px !important; }
+}
