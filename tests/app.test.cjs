@@ -858,3 +858,23 @@ test("профиль заблокированного или удалённог�
   assert.match(page, /Удалённый профиль/);
   assert.doesNotMatch(page, /data-do="set-room" data-id="u2"/);
 });
+
+
+test("администратор не может блокировать участника с незавершённой сделкой", () => {
+  const { api } = boot();
+  api.enter("Администратор", "admin@example.test", "", false, "u0");
+  api.data.users.find(user => user.id === "u0").role = "admin";
+  const target = api.getUser("u2");
+  api.data.deals.unshift({ id: "block-active-deal", buyer: target.id, seller: "u1", status: "work" });
+  assert.throws(() => api.action({ dataset: { do: "block", id: target.id } }), /активные сделки/);
+  assert.equal(target.blocked, false);
+});
+
+test("удаление аккаунта списывает остатки и уменьшает активную денежную массу", () => {
+  const fs = require("node:fs");
+  const migration = fs.readFileSync(path.join(__dirname, "../supabase/migrations/20261116121500_remove_deleted_wallet_balances_from_supply.sql"), "utf8");
+  assert.match(migration, /SET scrl = 0,\s*vrub = 0,\s*hold_scrl = 0,\s*hold_vrub = 0/);
+  assert.match(migration, /burned_scrl = burned_scrl \+ v_wallet\.scrl/);
+  assert.match(migration, /'V-RUB', -v_wallet\.vrub/);
+  assert.match(migration, /UPDATE public\.ledger[\s\S]*note = 'Операция удалённого участника'/);
+});
