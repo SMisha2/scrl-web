@@ -4297,6 +4297,9 @@ html[data-world="cave"] .world-particles { display: none !important; opacity: 0 
   left:8px;
   z-index:4;
   display:none;
+  width:1ch;
+  text-align:center;
+  white-space:pre;
   transform:translateY(-48%);
   color:#3d2c1d !important;
   font:inherit;
