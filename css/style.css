@@ -4309,6 +4309,7 @@ html[data-world="cave"] .world-particles { display: none !important; opacity: 0 
   animation:minecraft-book-caret 1s steps(2,start) infinite !important;
 }
 .mc-input-shell.is-typing .mc-writing-cursor { display:block !important; }
+.mc-input-shell.is-typing .mc-writing-cursor[hidden] { display:none !important; }
 @keyframes minecraft-book-caret { 0%,49% { opacity:1; } 50%,100% { opacity:0; } }
 
 @media(max-width:760px) {
