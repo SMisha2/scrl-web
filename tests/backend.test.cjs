@@ -8,6 +8,12 @@ function loadBackend(config = {}) {
   const calls = [];
   const window = { cfg: { url: "https://scrl-test.supabase.co", key: "sb_publishable_test" } };
   const stored = new Map([["scrlSession", JSON.stringify(config.session || { token: "signed-user-jwt" })]]);
+  const local = new Map();
+  const localStorage = {
+    getItem(key) { return local.has(key) ? local.get(key) : null; },
+    setItem(key, value) { local.set(key, String(value)); },
+    removeItem(key) { local.delete(key); }
+  };
   const sessionStorage = {
     getItem(key) { return stored.has(key) ? stored.get(key) : null; },
     setItem(key, value) { stored.set(key, String(value)); },
@@ -15,7 +21,7 @@ function loadBackend(config = {}) {
   };
   const fetch = async (url, options) => {
     calls.push({ url, options });
-    if (config.fetch) return config.fetch(url, options);
+    if (config.fetch) return config.fetch(url, options, { localStorage, sessionStorage });
     if (String(url).includes("/functions/v1/scrl-moderation")) {
       return {
         ok: true, status: 200,
@@ -26,9 +32,9 @@ function loadBackend(config = {}) {
   };
   vm.runInNewContext(
     fs.readFileSync(path.join(__dirname, "../js/backend.js"), "utf8"),
-    { window, sessionStorage, fetch, JSON, String, Number, Map, Date, encodeURIComponent }
+    { window, localStorage, sessionStorage, fetch, JSON, String, Number, Map, Date, encodeURIComponent }
   );
-  return { api: window.ScrlBackend, calls, sessionStorage };
+  return { api: window.ScrlBackend, calls, localStorage, sessionStorage };
 }
 
 test("profile login update does not erase the saved class", async () => {
@@ -148,7 +154,7 @@ test("own post deletion uses the authenticated account Edge Function", async () 
 
 
 test("an expired REST session is refreshed and the failed request is retried", async () => {
-  const { api, calls, sessionStorage } = loadBackend({
+  const { api, calls, localStorage, sessionStorage } = loadBackend({
     session: { id: "user-1", token: "expired-access", refreshToken: "refresh-old" },
     fetch: async (url, options) => {
       if (String(url).includes("/auth/v1/token?grant_type=refresh_token")) {
@@ -173,13 +179,14 @@ test("an expired REST session is refreshed and the failed request is retried", a
   assert.match(calls[1].url, /auth\/v1\/token\?grant_type=refresh_token$/);
   assert.match(calls[2].url, /rpc\/scrl_mark_notifications_read$/);
   assert.equal(calls[2].options.headers.Authorization, "Bearer fresh-access");
-  assert.deepEqual(JSON.parse(sessionStorage.getItem("scrlSession")), {
+  assert.deepEqual(JSON.parse(localStorage.getItem("scrlSession")), {
     id: "user-1", token: "fresh-access", refreshToken: "refresh-new"
   });
+  assert.equal(sessionStorage.getItem("scrlSession"), null);
 });
 
 test("an expired Edge Function session is refreshed and retried with the new JWT", async () => {
-  const { api, calls, sessionStorage } = loadBackend({
+  const { api, calls, localStorage, sessionStorage } = loadBackend({
     session: { id: "user-2", token: "expired-access", refreshToken: "refresh-old" },
     fetch: async (url, options) => {
       if (String(url).includes("/auth/v1/token?grant_type=refresh_token")) {
@@ -202,7 +209,37 @@ test("an expired Edge Function session is refreshed and retried with the new JWT
   assert.equal(calls.length, 3);
   assert.match(calls[1].url, /auth\/v1\/token\?grant_type=refresh_token$/);
   assert.equal(calls[2].options.headers.Authorization, "Bearer fresh-edge-access");
-  assert.deepEqual(JSON.parse(sessionStorage.getItem("scrlSession")), {
+  assert.deepEqual(JSON.parse(localStorage.getItem("scrlSession")), {
     id: "user-2", token: "fresh-edge-access", refreshToken: "refresh-edge-new"
+  });
+  assert.equal(sessionStorage.getItem("scrlSession"), null);
+});
+
+
+test("a refresh-token race in another tab keeps the newer shared session", async () => {
+  const { api, calls, localStorage } = loadBackend({
+    session: { id: "user-3", token: "expired-access", refreshToken: "refresh-old" },
+    fetch: async (url, options, storage) => {
+      if (String(url).includes("/auth/v1/token?grant_type=refresh_token")) {
+        storage.localStorage.setItem("scrlSession", JSON.stringify({
+          id: "user-3", token: "fresh-from-other-tab", refreshToken: "refresh-rotated"
+        }));
+        return { ok: false, status: 400, async text() { return JSON.stringify({ message: "refresh token already used" }); } };
+      }
+      if (String(url).includes("/rpc/scrl_mark_notifications_read")) {
+        if (options.headers.Authorization === "Bearer expired-access") {
+          return { ok: false, status: 401, async text() { return JSON.stringify({ message: "JWT expired" }); } };
+        }
+        return { ok: true, status: 204, async text() { return ""; } };
+      }
+      return { ok: true, status: 204, async text() { return ""; } };
+    }
+  });
+
+  await api.markNotificationsRead();
+  assert.equal(calls.length, 3);
+  assert.equal(calls[2].options.headers.Authorization, "Bearer fresh-from-other-tab");
+  assert.deepEqual(JSON.parse(localStorage.getItem("scrlSession")), {
+    id: "user-3", token: "fresh-from-other-tab", refreshToken: "refresh-rotated"
   });
 });

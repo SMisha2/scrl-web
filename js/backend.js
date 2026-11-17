@@ -70,6 +70,12 @@
         catch { payload = {}; }
       }
       if (!response.ok || !payload.access_token) {
+        // Another tab may already have rotated the shared refresh token.
+        // Re-read localStorage before invalidating this tab's still-valid session.
+        const latest = storedSession();
+        if (latest && latest.id === current.id && latest.token && latest.token !== current.token) {
+          return latest.token;
+        }
         throw new Error("Сессия истекла. Войди в аккаунт ScRl заново.");
       }
 

@@ -341,7 +341,7 @@ test("светлые поля привязаны напрямую к data-theme=
   assert.ok(css.includes('html[data-theme="light"] body textarea'));
   assert.ok(css.includes('border: 4px solid #111111 !important'));
   assert.ok(css.includes('background-color: #c4c4c4 !important'));
-  assert.ok(html.includes('css/style.css?v=173'));
+  assert.ok(html.includes('css/style.css?v=174'));
 });
 
 
@@ -479,7 +479,7 @@ test("uploaded day/night photos are rendered smoothly, not pixelated", () => {
   assert.match(tail, /transform: none !important/);
   assert.match(tail, /background-size: cover !important/);
   assert.match(tail, /transition: opacity 1\.15s ease !important/);
-  assert.ok(html.includes('css/style.css?v=173'));
+  assert.ok(html.includes('css/style.css?v=174'));
 });
 
 
@@ -594,7 +594,7 @@ test("email confirmation accepts the eight-digit OTP configured in Supabase", ()
   assert.match(app, /\[0-9\]\{8\}/);
   assert.match(html, /id="code"[^>]*maxlength="8" pattern="\[0-9\]\{8\}"/);
   assert.match(html, /восьмизначный код/);
-  assert.ok(html.includes("js/app.js?v=178"));
+  assert.ok(html.includes("js/app.js?v=179"));
 });
 
 
@@ -963,4 +963,56 @@ test("Supabase Edge Functions allow the new ScRl domain and keep the legacy orig
     assert.match(source, /ALLOWED_ORIGINS/);
   }
   assert.match(ai, /HTTP-Referer": "https:\/\/scrl\.site\//);
+});
+
+
+test("вход показывает немедленное состояние загрузки и не ждёт декоративную анимацию", () => {
+  const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
+  assert.ok(html.includes('id="appLoading" class="app-loading" role="status" aria-live="polite" hidden'));
+  assert.ok(html.includes('id="appLoadingText"'));
+  assert.ok(app.includes("function showAppLoading("));
+  assert.ok(app.includes('showAppLoading(name || "Участник")'));
+  assert.ok(app.includes("function revealApp(user)"));
+  assert.ok(app.includes('signButton.textContent = "Проверяем…"'));
+  assert.ok(app.includes("signButton.disabled = true;"));
+  assert.ok(!app.includes('setTimeout(() => app.classList.remove("is-entering", "is-ready"), 650)'));
+  assert.ok(css.includes(".app-loading-card"));
+  assert.ok(css.includes(".app-loading-spinner"));
+});
+
+test("тёмные текстовые блоки имеют собственную тёмно-зелёную подложку", () => {
+  const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
+  assert.ok(css.includes('html[data-theme="dark"] body #page p,'));
+  assert.ok(css.includes("background-color:#17231b !important"));
+  assert.ok(css.includes('html[data-theme="dark"] body #auth .book-subtitle,'));
+});
+
+test("вертикальная системная каретка скрыта для всех полей книги, чтобы не дублировать underscore", () => {
+  const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
+  const finalCaretRule = css.lastIndexOf("html body #auth #authBook .mc-input-shell input");
+  assert.ok(finalCaretRule > css.lastIndexOf(".mc-writing-cursor"));
+  assert.ok(css.slice(finalCaretRule).includes("caret-color: transparent !important"));
+  assert.ok(css.slice(finalCaretRule).includes("html body #auth #authBook #codeForm input#code"));
+});
+
+test("кнопка выхода имеет ширину под подпись на десктопе и мобильных экранах", () => {
+  const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
+  assert.ok(html.includes('id="logout" class="logout-button" type="button" aria-label="Выйти из аккаунта" title="Выйти из аккаунта">Выйти</button>'));
+  assert.ok(css.includes("html body #app .topbar .logout-button"));
+  assert.ok(css.includes("flex:0 0 72px !important"));
+  assert.ok(css.includes("flex-basis:66px !important"));
+  assert.ok(css.includes("flex-basis:62px !important"));
+  assert.ok(css.includes("white-space:nowrap !important"));
+});
+
+test("workflow syntax-checks every browser JavaScript file and verifies both public domains", () => {
+  const workflow = fs.readFileSync(path.join(__dirname, "../.github/workflows/deploy-pages.yml"), "utf8");
+  assert.ok(workflow.includes("node --check js/backend.js"));
+  assert.ok(workflow.includes("node --check sw.js"));
+  assert.ok(workflow.includes("Verify production domains"));
+  assert.ok(workflow.includes("https://scrl.site/"));
+  assert.ok(workflow.includes("https://www.scrl.site/"));
 });

@@ -19,7 +19,8 @@ ScRl — общая платформа школьной взаимопомощи
 
 ## Сервисы
 
-- Сайт: https://scrl.site/
+- Сайт (основной адрес): https://scrl.site/
+- Дополнительный адрес: https://www.scrl.site/ (должен перенаправлять на основной).
 - Репозиторий: https://github.com/SMisha2/scrl-web
 - Supabase project: `scrl-production` (регион Frankfurt, project ref `bkmccvazgnfnjefrytki`).
 - Supabase API URL и publishable key находятся в `js/config.js`. Publishable key предназначен для браузера; секретный service-role key в проект не добавлялся.
@@ -79,7 +80,7 @@ ScRl — общая платформа школьной взаимопомощи
 - `js/backend.js` — клиент общей базы и REST/RPC-вызовы.
 - `js/core.js` — чистые расчёты экономики.
 - `js/config.js` — URL и публичный ключ Supabase.
-- `supabase/schema.sql` — совместимость со старой схемой профиля; production-схема уже создана миграциями в Supabase.
+- `supabase/schema.sql` — совместимость со старой схемой профиля; production-схема уже создана миграциями в Supabase. Исторические базовые миграции `20261116005525`–`20261116010448` управляются в production-проекте Supabase и не представлены отдельными файлами здесь, поэтому этот репозиторий не предназначен для `supabase db reset` на пустом проекте.
 - `tests/` — автоматические проверки.
 - `.github/workflows/deploy-pages.yml` — проверка синтаксиса, тесты и публикация GitHub Pages.
 

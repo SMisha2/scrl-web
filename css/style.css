@@ -6991,3 +6991,122 @@ html[data-theme="dark"] body .mc-writing-cursor { color:#edf4e9 !important; }
   0%,49% { opacity:1; }
   50%,100% { opacity:0; }
 }
+
+
+/* Last-match override: native vertical caret is hidden so only the measured underscore remains. */
+html body #auth #authBook .mc-input-shell input,
+html body #auth #authBook #codeForm input#code { caret-color:transparent !important; }
+
+/* Dark-theme copy uses the same light text-panel treatment as light theme, in forest tones. */
+html[data-theme="dark"] body #page p,
+html[data-theme="dark"] body #page li,
+html[data-theme="dark"] body #page label,
+html[data-theme="dark"] body #page small,
+html[data-theme="dark"] body #page .muted,
+html[data-theme="dark"] body #page .small,
+html[data-theme="dark"] body #page .section-hint,
+html[data-theme="dark"] body #page .demo-note,
+html[data-theme="dark"] body #page .data-row small,
+html[data-theme="dark"] body #page .demo-stat span,
+html[data-theme="dark"] body #page .demo-stat small,
+html[data-theme="dark"] body #page .activity-item small,
+html[data-theme="dark"] body #page .card-top .small,
+html[data-theme="dark"] body #page .chat-line small,
+html[data-theme="dark"] body #page .moderation-status-line,
+html[data-theme="dark"] body #page .notification-empty {
+  color:#dce8d9 !important;
+  background-color:#17231b !important;
+  border:1px solid #334a38 !important;
+  border-radius:4px !important;
+  padding:3px 6px !important;
+  box-decoration-break:clone;
+}
+html[data-theme="dark"] body #page .demo-note,
+html[data-theme="dark"] body #page .section-hint {
+  color:#e0eadc !important;
+  background-color:#1d2c21 !important;
+  border-color:#405a43 !important;
+}
+html[data-theme="dark"] body #auth .book-subtitle,
+html[data-theme="dark"] body #auth .auth-moderation-disclosure,
+html[data-theme="dark"] body #auth .code-help,
+html[data-theme="dark"] body #auth .code-info,
+html[data-theme="dark"] body #auth .ban-appeal-info {
+  color:#dce8d9 !important;
+  background-color:#17231b !important;
+  border:1px solid #344b39 !important;
+  border-radius:4px !important;
+  padding:3px 6px !important;
+}
+
+/* Keep the complete logout label inside a control wide enough for every breakpoint. */
+html body #app .topbar .logout-button {
+  display:inline-flex !important;
+  flex:0 0 72px !important;
+  width:72px !important;
+  min-width:72px !important;
+  max-width:72px !important;
+  height:var(--scrl-toolbar-control) !important;
+  min-height:var(--scrl-toolbar-control) !important;
+  padding:0 10px !important;
+  align-items:center !important;
+  justify-content:center !important;
+  box-sizing:border-box !important;
+  transform:none !important;
+  font-size:12px !important;
+  font-weight:700 !important;
+  line-height:1 !important;
+  letter-spacing:0 !important;
+  text-align:center !important;
+  white-space:nowrap !important;
+  overflow:visible !important;
+}
+@media (max-width:900px) {
+  html body #app .topbar .logout-button {
+    flex-basis:68px !important; width:68px !important; min-width:68px !important; max-width:68px !important;
+    font-size:11px !important;
+  }
+}
+@media (max-width:620px) {
+  html body #app .topbar .logout-button {
+    flex-basis:66px !important; width:66px !important; min-width:66px !important; max-width:66px !important;
+    padding:0 8px !important; font-size:10.5px !important;
+  }
+}
+@media (max-width:380px) {
+  html body #app .topbar .logout-button {
+    flex-basis:62px !important; width:62px !important; min-width:62px !important; max-width:62px !important;
+    font-size:10px !important;
+  }
+}
+
+/* Immediate state feedback for sign-in; data loading stays visible rather than appearing frozen. */
+html body #app .app-loading[hidden] { display:none !important; }
+html body #app .app-loading {
+  position:fixed !important; inset:0 !important; z-index:200 !important;
+  display:grid !important; place-items:center !important; padding:20px !important;
+  background:rgba(231,236,225,.78) !important; backdrop-filter:blur(8px) saturate(.9) !important;
+}
+html body #app .app-loading-card {
+  display:flex !important; align-items:center !important; justify-content:center !important; gap:13px !important;
+  max-width:min(100%,360px) !important; padding:17px 22px !important;
+  border:3px solid #405a43 !important; border-radius:0 !important;
+  color:#263b2a !important; background:#f4f7ed !important;
+  box-shadow:inset 2px 2px 0 #fff,inset -2px -2px 0 #c7d4c1,4px 4px 0 rgba(20,37,22,.24) !important;
+  font-size:13px !important; font-weight:700 !important; line-height:1.5 !important;
+}
+html body #app .app-loading-spinner {
+  display:block !important; flex:0 0 22px !important; width:22px !important; height:22px !important;
+  border:3px solid #789373 !important; border-top-color:transparent !important;
+  border-radius:50% !important; animation:scrl-app-loading-spin .72s linear infinite !important;
+}
+@keyframes scrl-app-loading-spin { to { transform:rotate(360deg); } }
+html[data-theme="dark"] body #app .app-loading { background:rgba(7,13,9,.76) !important; }
+html[data-theme="dark"] body #app .app-loading-card {
+  border-color:#3f5944 !important; color:#e0eadc !important; background:#17231b !important;
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,.06),inset -2px -2px 0 rgba(0,0,0,.35),4px 4px 0 rgba(0,0,0,.4) !important;
+}
+html[data-theme="dark"] body #app .app-loading-spinner {
+  border-color:#91ac89 !important; border-top-color:transparent !important;
+}
+@media (prefers-reduced-motion:reduce) { html body #app .app-loading-spinner { animation:none !important; } }

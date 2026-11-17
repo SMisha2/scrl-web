@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Check JavaScript
-        run: node --check js/config.js && node --check js/core.js && node --check js/app.js
+        run: node --check js/config.js && node --check js/core.js && node --check js/backend.js && node --check js/app.js && node --check sw.js
 
       - name: Run core tests
         run: node --test tests/*.test.cjs
@@ -41,3 +41,24 @@ jobs:
       - name: Publish website
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Verify production domains
+        shell: bash
+        run: |
+          set -euo pipefail
+          check_domain() {
+            local host="$1"
+            local output=""
+            for attempt in {1..12}; do
+              output="$(curl --silent --show-error --location --max-time 15 --output /dev/null --write-out '%{http_code} %{url_effective}' "https://$host/" 2>/dev/null || true)"
+              if [[ "$output" == "200 https://scrl.site/" ]]; then
+                echo "$host -> $output"
+                return 0
+              fi
+              echo "Attempt $attempt/12: $host -> $output" >&2
+              sleep 5
+            done
+            echo "::error::$host must resolve over HTTPS and finish at https://scrl.site/ with HTTP 200." >&2
+            return 1
+          }
+          check_domain "scrl.site"
+          check_domain "www.scrl.site"

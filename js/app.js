@@ -169,7 +169,7 @@ function installMinecraftBookCursors() {
 
     let frame = 0;
     const scheduleCursor = () => {
-      if (frame) window.cancelAnimationFrame(frame);
+      if (frame && typeof window.cancelAnimationFrame === "function") window.cancelAnimationFrame(frame);
       if (typeof window.requestAnimationFrame === "function") {
         frame = window.requestAnimationFrame(() => {
           frame = 0;
@@ -578,6 +578,43 @@ function notify(id, text) {
   updateNotificationBell();
 }
 
+function showAppLoading(name = "Участник") {
+  const displayName = String(name || "Участник");
+  auth.hidden = true;
+  auth.classList.remove("is-closing");
+  auth.removeAttribute("aria-hidden");
+  app.hidden = false;
+  app.setAttribute("aria-busy", "true");
+  if (document.body?.classList) document.body.classList.add("app-active");
+  const userName = el("userName");
+  const avatar = el("avatar");
+  const loading = el("appLoading");
+  const loadingText = el("appLoadingText");
+  if (userName) userName.textContent = displayName;
+  if (avatar) avatar.textContent = displayName.charAt(0).toUpperCase();
+  if (loadingText) loadingText.textContent = "Подключаемся к ScRl…";
+  if (loading) loading.hidden = false;
+}
+
+function hideAppLoading() {
+  const loading = el("appLoading");
+  if (loading) loading.hidden = true;
+  if (app) app.removeAttribute("aria-busy");
+}
+
+function revealApp(user) {
+  hideAppLoading();
+  auth.hidden = true;
+  auth.classList.remove("is-closing");
+  auth.removeAttribute("aria-hidden");
+  app.hidden = false;
+  if (document.body?.classList) document.body.classList.add("app-active");
+  if (el("userName")) el("userName").textContent = user.name;
+  if (el("avatar")) el("avatar").textContent = user.name.charAt(0).toUpperCase();
+  app.classList.remove("is-entering", "is-ready");
+  setPage("home");
+}
+
 function enterLocal(name, mail, token = "", guest = false, id = "") {
   const userId = guest ? "u0" : (id || "local" + uid());
   let user = getUser(userId);
@@ -598,26 +635,10 @@ function enterLocal(name, mail, token = "", guest = false, id = "") {
   user.mail = mail || user.mail;
   saveSession(JSON.stringify({ id: userId, name: user.name, mail: user.mail, token, guest }));
   save();
-
-  const revealApp = () => {
-    auth.hidden = true;
-    auth.classList.remove("is-closing");
-    auth.removeAttribute("aria-hidden");
-    app.hidden = false;
-    if (document.body?.classList) document.body.classList.add("app-active");
-    el("userName").textContent = user.name;
-    el("avatar").textContent = user.name.charAt(0).toUpperCase();
-    setPage("home");
-    if (!window.__scrlTestMode) {
-      app.classList.add("is-entering", "is-ready");
-      setTimeout(() => app.classList.remove("is-entering", "is-ready"), 650);
-    }
-  };
-
-  revealApp();
+  revealApp(user);
 }
-
 function showBanAppeal() {
+  hideAppLoading();
   auth.hidden = false;
   app.hidden = true;
   auth.classList.remove("is-closing");
@@ -661,11 +682,11 @@ async function enterRemote(name, mail, token, id, refreshToken = "") {
   const session = { id, name: name || "Участник", mail: mail || "", token, refreshToken, guest: false };
   saveSession(JSON.stringify(session));
   remoteReady = false;
+  showAppLoading(name || "Участник");
   try {
     if (!backend) throw new Error("Не загружен модуль подключения к базе.");
     data = await backend.load(token, id, mail);
     remoteReady = true;
-
     if (!data.users.some(user => user.role === "admin")) {
       const claimed = await backend.claimInitialAdminForEmail();
       if (claimed === true) {
@@ -673,7 +694,6 @@ async function enterRemote(name, mail, token, id, refreshToken = "") {
         msg("Подтверждённая почта назначена первым администратором ScRl.");
       }
     }
-
     const user = getUser(id);
     if (!user) throw new Error("Профиль не найден в общей базе. Повтори вход.");
     const latestSession = sess();
@@ -687,24 +707,9 @@ async function enterRemote(name, mail, token, id, refreshToken = "") {
       showBanAppeal();
       return;
     }
-    saveSession(JSON.stringify(session));
-
-    const revealApp = () => {
-      auth.hidden = true;
-      auth.classList.remove("is-closing");
-      auth.removeAttribute("aria-hidden");
-      app.hidden = false;
-      if (document.body?.classList) document.body.classList.add("app-active");
-      el("userName").textContent = user.name;
-      el("avatar").textContent = user.name.charAt(0).toUpperCase();
-      setPage("home");
-      if (!window.__scrlTestMode) {
-        app.classList.add("is-entering", "is-ready");
-        setTimeout(() => app.classList.remove("is-entering", "is-ready"), 650);
-      }
-    };
-    revealApp();
+    revealApp(user);
   } catch (error) {
+    hideAppLoading();
     remoteReady = false;
     clearSession();
     auth.hidden = false;
@@ -717,7 +722,6 @@ async function enterRemote(name, mail, token, id, refreshToken = "") {
     console.error("ScRl backend login:", error);
   }
 }
-
 function enter(name, mail, token = "", guest = false, id = "", refreshToken = "") {
   if (window.__scrlTestMode) return enterLocal(name, mail, token, guest, id);
   if (guest || !token || !id) {
@@ -2565,7 +2569,7 @@ function paintWorldTheme(theme) {
     document.body.dataset.theme = normalized;
     document.body.dataset.world = world;
   }
-  localStorage.setItem("scrlTheme", normalized);
+  try { localStorage.setItem("scrlTheme", normalized); } catch {}
 
   [el("themeBtn"), el("authThemeBtn")].forEach(button => {
     if (!button) return;
@@ -2580,7 +2584,8 @@ function paintWorldTheme(theme) {
 }
 
 function applyTheme() {
-  const savedTheme = localStorage.getItem("scrlTheme");
+  let savedTheme = "";
+  try { savedTheme = localStorage.getItem("scrlTheme") || ""; } catch {}
   const normalized = savedTheme === "dark" ? "dark" : "light";
   paintWorldTheme(normalized);
 }
@@ -2609,7 +2614,12 @@ loginFormConfigs.forEach(config => {
     const mailField = el(config.mailId);
     const passField = el(config.passId);
     const errorField = el(config.errorId);
+    const signButton = el("bookSign");
     if (errorField) errorField.textContent = "";
+    if (signButton) {
+      signButton.disabled = true;
+      signButton.textContent = "Проверяем…";
+    }
     try {
       const email = mailField.value.trim().toLowerCase();
       const result = await ask("token?grant_type=password", {
@@ -2626,6 +2636,11 @@ loginFormConfigs.forEach(config => {
         if (errorField) errorField.textContent = "Не удалось войти. Проверь email и пароль. Если аккаунт ещё не создан, сначала зарегистрируйся.";
       } else if (errorField) {
         errorField.textContent = message;
+      }
+    } finally {
+      if (signButton) {
+        signButton.disabled = false;
+        updateBookControls();
       }
     }
   });
