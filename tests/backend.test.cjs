@@ -129,3 +129,15 @@ test("profile names are moderated and account deletion invokes the protected Edg
   assert.equal(JSON.parse(calls[0].options.body).action, "delete_account");
   assert.equal(JSON.parse(calls[0].options.body).confirmation, "УДАЛИТЬ");
 });
+
+
+test("own post deletion uses the authenticated account Edge Function", async () => {
+  const { api, calls } = loadBackend();
+  await api.deletePost("6d2d7e2a-9e94-4e0d-91f2-8bb84be070ad");
+  assert.match(calls[0].url, /functions\/v1\/scrl-account$/);
+  assert.equal(calls[0].options.headers.Authorization, "Bearer signed-user-jwt");
+  assert.deepEqual(JSON.parse(calls[0].options.body), {
+    action: "delete_post",
+    post_id: "6d2d7e2a-9e94-4e0d-91f2-8bb84be070ad"
+  });
+});
