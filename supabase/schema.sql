@@ -1,0 +1,14 @@
+-- Legacy bootstrap schema (profiles-only).
+-- The production ScRl schema is already deployed in the Supabase project
+-- bkmccvazgnfnjefrytki by the following managed migrations:
+--   20261116005525 create_secure_scrl_application_backend
+--   20261116005602 tighten_policies_and_server_side_publication_actions
+--   20261116005639 add_self_activity_and_admin_review_operations
+--   20261116010237 align_dynamic_fees_and_teacher_class_access
+--   20261116010348 index_application_foreign_keys
+--   20261116010432 secure_first_admin_bootstrap
+--   20261116010448 add_private_global_economy_snapshot
+--
+-- Do not run this legacy file against production: use the migration history
+-- in Supabase as the source of truth. This file is retained so older setup
+-- instructions don't silently recreate a weaker profiles-only schema.
