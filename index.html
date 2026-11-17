@@ -12,11 +12,11 @@
   <link rel="preload" href="assets/MinecraftRus.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/backgrounds/day.png" as="image" fetchpriority="high">
   <link rel="preload" href="assets/backgrounds/night.png" as="image" fetchpriority="low">
-  <link rel="stylesheet" href="css/style.css?v=176">
+  <link rel="stylesheet" href="css/style.css?v=177">
   <script src="js/config.js" defer></script>
   <script src="js/core.js" defer></script>
-  <script src="js/backend.js?v=158" defer></script>
-  <script src="js/app.js?v=181" defer></script>
+  <script src="js/backend.js?v=159" defer></script>
+  <script src="js/app.js?v=182" defer></script>
 </head>
 <body>
   <div id="worldScenery" class="world-scenery" aria-hidden="true">
@@ -128,8 +128,6 @@
           <button class="nav-tab" type="button" data-page="exchange">Биржа</button>
           <button class="nav-tab" type="button" data-page="auctions">Аукционы</button>
           <button class="nav-tab" type="button" data-page="activity">Активность</button>
-        </nav>
-        <div class="topbar-actions">
           <div class="more-wrap">
             <button id="moreBtn" class="more-btn" type="button" aria-expanded="false" aria-controls="extraMenu">ЕЩЁ <span aria-hidden="true">▾</span></button>
             <div id="extraMenu" class="more-menu" hidden>
@@ -145,13 +143,14 @@
               <button type="button" data-page="parent" data-role="parent" hidden>Кабинет родителя (тест)</button>
             </div>
           </div>
+        </nav>
+        <div class="topbar-actions">
           <button id="topbarBalance" class="topbar-balance" type="button" title="Открыть кошелёк" aria-label="Открыть кошелёк">
             <span class="balance-group balance-group--scrl"><span class="currency-coin-frame" aria-hidden="true"><img class="currency-coin-icon" src="assets/coinn.png" alt=""></span><small>ScRl</small><strong id="topbarScrlBalance">0</strong></span>
             <span class="balance-divider" aria-hidden="true">·</span>
             <span class="balance-group balance-group--vrub"><small>V-RUB</small><strong id="topbarVrubBalance">0</strong></span>
           </button>
           <div class="topbar-user">
-            <button id="themeBtn" class="theme-btn theme-switch" type="button" role="switch" aria-checked="false" aria-label="Тёмная тема" title="Переключить на тёмную тему"><span class="theme-switch-track" aria-hidden="true"><span class="theme-switch-icon theme-switch-icon--light">☀</span><span class="theme-switch-icon theme-switch-icon--dark">☾</span><span class="theme-switch-thumb"></span></span></button>
             <span id="avatar" class="user-avatar">Г</span>
             <span id="userName" class="user-name">Гость</span>
             <button id="logout" class="logout-button" type="button" aria-label="Выйти из аккаунта" title="Выйти из аккаунта">Выйти</button>
@@ -177,6 +176,7 @@
               </footer>
             </section>
           </div>
+          <button id="themeBtn" class="theme-btn theme-switch" type="button" role="switch" aria-checked="false" aria-label="Тёмная тема" title="Переключить на тёмную тему"><span class="theme-switch-track" aria-hidden="true"><span class="theme-switch-icon theme-switch-icon--light">☀</span><span class="theme-switch-icon theme-switch-icon--dark">☾</span><span class="theme-switch-thumb"></span></span></button>
         </div>
       </div>
     </header>

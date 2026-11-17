@@ -341,7 +341,7 @@ test("светлые поля привязаны напрямую к data-theme=
   assert.ok(css.includes('html[data-theme="light"] body textarea'));
   assert.ok(css.includes('border: 4px solid #111111 !important'));
   assert.ok(css.includes('background-color: #c4c4c4 !important'));
-  assert.ok(html.includes('css/style.css?v=176'));
+  assert.ok(html.includes('css/style.css?v=177'));
 });
 
 
@@ -479,7 +479,7 @@ test("uploaded day/night photos are rendered smoothly, not pixelated", () => {
   assert.match(tail, /transform: none !important/);
   assert.match(tail, /background-size: cover !important/);
   assert.match(tail, /transition: opacity 1\.15s ease !important/);
-  assert.ok(html.includes('css/style.css?v=176'));
+  assert.ok(html.includes('css/style.css?v=177'));
 });
 
 
@@ -599,7 +599,7 @@ test("email confirmation accepts the eight-digit OTP configured in Supabase", ()
   assert.match(app, /\[0-9\]\{8\}/);
   assert.match(html, /id="code"[^>]*maxlength="8" pattern="\[0-9\]\{8\}"/);
   assert.match(html, /восьмизначный код/);
-  assert.ok(html.includes("js/app.js?v=181"));
+  assert.ok(html.includes("js/app.js?v=182"));
 });
 
 
@@ -755,6 +755,23 @@ test("администратор открывает кабинеты учите�
   assert.match(els.get("page").innerHTML, /Платежи/);
   api.setPage("assistant");
   assert.match(els.get("page").innerHTML, /AI Moderator/);
+});
+
+
+test("админ-панель сохраняет инструменты в компактных разделах и отделяет удаление от блокировки", () => {
+  const { api, localStorage } = boot();
+  promoteBootUserToAdmin(api, localStorage);
+  const page = api.adminPage();
+  assert.match(page, /<details class="admin-section admin-section--members" open>/);
+  assert.match(page, /Экономика ScRl/);
+  assert.match(page, /ИИ-модерация/);
+  assert.match(page, /Жалобы и споры/);
+  assert.match(page, /Журнал действий/);
+  assert.match(page, /data-do="block"/);
+  assert.match(page, /data-do="removeuser"/);
+  assert.match(page, /data-do="deleteuser"/);
+  assert.match(page, /data-do="promote"/);
+  assert.match(page, /data-do="set-room"/);
 });
 
 test("роль родителя доступна только как временный предпросмотр администратора", () => {

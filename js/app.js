@@ -1310,10 +1310,23 @@ function adminPage() {
     (adminFilter.locked === "all" || (adminFilter.locked === "yes" ? u.blocked : !u.blocked)) &&
     [u.name, u.mail, u.room].join(" ").toLowerCase().includes(search)
   );
-  const users = people.map(u => '<div class="data-row"><span><b>' + safe(u.name) + '</b><small>' + safe(u.mail || "Email скрыт в общем списке") + ' · ' + safe(u.room || "Без класса") + ' · ' + roleName(u.role) + (u.deleted ? ' · Удалён' : u.blocked ? ' · Заблокирован' : '') + '</small></span>' +
-    '<span class="actions">' + (u.role !== "admin" && !u.deleted ? '<button class="text-button" data-do="block" data-id="' + u.id + '">' + (u.blocked ? "Разблокировать" : "Заблокировать") + '</button><button class="text-button" data-do="promote" data-id="' + u.id + '">' + (u.role === "teacher" ? "Сделать учеником" : "Назначить учителем") + '</button><button class="text-button" data-do="set-room" data-id="' + u.id + '">Класс</button>' : '<span class="small muted">' + (u.deleted ? "Удалённый профиль" : "Администратор") + '</span>') +
-    (u.id !== user.id && u.role !== "admin" && !u.deleted && !u.name.includes("Удалённый") ? '<button class="text-button" data-do="removeuser" data-id="' + u.id + '">Обезличить</button>' : '') + '</span></div>'
-  ).join("");
+  const users = people.map(u => {
+    const canManage = u.id !== user.id && u.role !== "admin" && !u.deleted && !String(u.name || "").includes("Удалённый");
+    const controls = canManage
+      ? '<button class="text-button" data-do="block" data-id="' + safe(u.id) + '">' + (u.blocked ? "Разблокировать" : "Заблокировать") + '</button>' +
+        '<button class="text-button" data-do="promote" data-id="' + safe(u.id) + '">' + (u.role === "teacher" ? "Сделать учеником" : "Назначить учителем") + '</button>' +
+        '<button class="text-button" data-do="set-room" data-id="' + safe(u.id) + '">Изменить класс</button>' +
+        '<button class="text-button" data-do="removeuser" data-id="' + safe(u.id) + '">Обезличить</button>' +
+        '<button class="text-button admin-danger-action" data-do="deleteuser" data-id="' + safe(u.id) + '">Удалить аккаунт</button>'
+      : '<span class="small muted">' + (u.deleted ? "Удалённый профиль" : u.id === user.id ? "Текущий аккаунт" : "Аккаунт администратора защищён") + '</span>';
+    return '<article class="data-row admin-user-row"><div class="admin-user-main"><b>' + safe(u.name) + '</b><small>' +
+      safe(u.mail || "Email скрыт в общем списке") + ' · ' + safe(u.room || "Без класса") + ' · ' + roleName(u.role) +
+      (u.deleted ? ' · Удалён' : u.blocked ? ' · Заблокирован' : '') + '</small></div>' +
+      (canManage
+        ? '<details class="admin-user-actions"><summary>Управление</summary><div class="admin-user-action-list">' + controls + '</div></details>'
+        : '<span class="admin-user-protected">' + controls + '</span>') +
+      '</article>';
+  }).join("");
   const queue = reports.map(r => {
     if (r.kind === "deal") return '<div class="data-row"><span><b>' + safe(r.reason) + '</b><small>Спор · ' + new Date(r.date).toLocaleString("ru-RU") + '</small></span><span class="actions"><button class="text-button" data-do="refunddeal" data-id="' + r.id + '">Вернуть</button><button class="text-button" data-do="paydeal" data-id="' + r.id + '">Выплатить</button><button class="text-button" data-do="splitdeal" data-id="' + r.id + '">50/50</button></span></div>';
     return '<div class="data-row"><span><b>' + safe(r.reason) + '</b><small>' + safe(r.reasonCode || r.kind) + ' · ' + safe(r.details || "") + ' · ' + new Date(r.date).toLocaleString("ru-RU") + '</small></span>' +
@@ -1349,19 +1362,24 @@ function adminPage() {
   if (reports.length) hints.push("Проверь " + reports.length + " жалоб и споров.");
   if (missing.length) hints.push("Нет предложений в категориях: " + missing.join(", ") + ".");
   if (!reports.length && !missing.length) hints.push("Открытых проблем по демо-данным нет.");
-  return '<p class="eyebrow">УПРАВЛЕНИЕ</p><h1>Администрирование</h1><div class="demo-links">' + link("pulse", "Пульс лицея") + link("finance", "Платежи") + link("assistant", "AI Moderator") + '</div>' +
-    '<div class="demo-stats"><div class="demo-stat"><span>Участники</span><b>' + data.users.length + '</b></div><div class="demo-stat"><span>Открытые жалобы и споры</span><b>' + reports.length + '</b></div></div>' +
-    '<section class="match-box"><h2>Подсказки модератора</h2><p class="muted small">Локальная сводка по данным сайта, без внешней ИИ-модели.</p>' + hints.map(x => '<div class="data-row">' + safe(x) + '</div>').join("") + '<button class="button button-secondary" data-do="scan">Перепроверить публикации</button></section>' +
-    '<h2>Экономика ScRl</h2><div class="demo-stats"><div class="demo-stat"><span>ScRl в обороте и резерве</span><b>' + money(cover.tokens) + '</b></div><div class="demo-stat"><span>V-RUB всего</span><b>' + money(cover.vrub) + '</b></div><div class="demo-stat"><span>Обеспеченный лимит</span><b>' + money(cover.limit) + '</b></div><div class="demo-stat"><span>Покрытие</span><b>' + money(cover.ratio * 100) + '%</b></div></div>' +
+  return '<p class="eyebrow">УПРАВЛЕНИЕ</p><h1>Администрирование</h1>' +
+    '<div class="demo-links admin-shortcuts">' + link("pulse", "Пульс лицея") + link("finance", "Платежи") + link("assistant", "AI Moderator") + '</div>' +
+    '<div class="demo-stats admin-overview"><div class="demo-stat"><span>Участники</span><b>' + data.users.length + '</b></div><div class="demo-stat"><span>Открытые жалобы и споры</span><b>' + reports.length + '</b></div><div class="demo-stat"><span>На проверке ИИ</span><b>' + (data.moderation?.adminCases || []).length + '</b></div><div class="demo-stat"><span>Апелляции</span><b>' + (data.moderation?.adminAppeals || []).length + '</b></div></div>' +
+    '<section class="match-box admin-guidance"><h2>Что требует внимания</h2>' + hints.map(x => '<div class="data-row">' + safe(x) + '</div>').join("") + '<button class="button button-secondary" data-do="scan">Перепроверить публикации</button></section>' +
+    '<details class="admin-section admin-section--members" open><summary><span>Участники</span><small>' + people.length + ' · поиск, роли и доступ</small></summary><div class="admin-section-body">' +
+    '<form id="adminFilter" class="filter-row"><input name="term" value="' + safe(adminFilter.term) + '" placeholder="Поиск по имени или классу"><select name="role"><option value="all"' + (adminFilter.role === "all" ? " selected" : "") + '>Все роли</option><option value="student"' + (adminFilter.role === "student" ? " selected" : "") + '>Ученики</option><option value="teacher"' + (adminFilter.role === "teacher" ? " selected" : "") + '>Учителя</option><option value="admin"' + (adminFilter.role === "admin" ? " selected" : "") + '>Администраторы</option></select><select name="locked"><option value="all"' + (adminFilter.locked === "all" ? " selected" : "") + '>Любой статус</option><option value="yes"' + (adminFilter.locked === "yes" ? " selected" : "") + '>Заблокированные</option><option value="no"' + (adminFilter.locked === "no" ? " selected" : "") + '>Активные</option></select><button class="button button-secondary" type="submit">Найти</button></form>' +
+    '<div class="data-list admin-users-list">' + (users || '<p class="muted">Никого не найдено.</p>') + '</div></div></details>' +
+    '<details class="admin-section"><summary><span>Экономика ScRl</span><small>балансы, покрытие и курс</small></summary><div class="admin-section-body">' +
+    '<div class="demo-stats"><div class="demo-stat"><span>ScRl в обороте и резерве</span><b>' + money(cover.tokens) + '</b></div><div class="demo-stat"><span>V-RUB всего</span><b>' + money(cover.vrub) + '</b></div><div class="demo-stat"><span>Обеспеченный лимит</span><b>' + money(cover.limit) + '</b></div><div class="demo-stat"><span>Покрытие</span><b>' + money(cover.ratio * 100) + '%</b></div></div>' +
     '<p class="muted small">Текущий курс: ' + rateMoney(currentRate()) + ' V-RUB за ScRl · комиссия по покрытию: ' + money(data.fee * 100) + '% · сожжено: ' + money(data.burned) + ' ScRl.</p>' +
-    '<div class="rate-bars">' + chart + '</div><form id="economyForm" class="demo-form"><h2>Целевой курс</h2><label>V-RUB за 1 ScRl</label><input name="rate" type="number" min="0.001" max="1" step="0.001" value="' + data.rate + '" required><button class="button button-primary" type="submit">Сохранить курс</button></form>' +
-    '<h2>Участники · ' + people.length + '</h2><form id="adminFilter" class="filter-row"><input name="term" value="' + safe(adminFilter.term) + '" placeholder="Поиск: ФИО, email или класс"><select name="role"><option value="all"' + (adminFilter.role === "all" ? " selected" : "") + '>Все роли</option><option value="student"' + (adminFilter.role === "student" ? " selected" : "") + '>Ученики</option><option value="teacher"' + (adminFilter.role === "teacher" ? " selected" : "") + '>Учителя</option><option value="admin"' + (adminFilter.role === "admin" ? " selected" : "") + '>Администраторы</option></select><select name="locked"><option value="all"' + (adminFilter.locked === "all" ? " selected" : "") + '>Все статусы</option><option value="yes"' + (adminFilter.locked === "yes" ? " selected" : "") + '>Заблокированные</option><option value="no"' + (adminFilter.locked === "no" ? " selected" : "") + '>Активные</option></select><button class="button button-secondary" type="submit">Фильтр</button></form><div class="data-list">' + (users || '<p class="muted">Никого не найдено.</p>') + '</div>' +
-    '<section class="match-box moderation-admin"><h2>ИИ-модерация</h2><p class="moderation-status-line"><b>Статус:</b> ' + safe(aiStatusText) + '</p><p class="muted small">На проверку попадают публикации, услуги, аукционы, сделки, личные сообщения, отзывы, имена профилей, жалобы и основания начислений. Критическая блокировка применяется только при высокой уверенности; остальные случаи остаются в очереди.</p>' +
+    '<div class="rate-bars">' + chart + '</div><form id="economyForm" class="demo-form"><h2>Целевой курс</h2><label>V-RUB за 1 ScRl</label><input name="rate" type="number" min="0.001" max="1" step="0.001" value="' + data.rate + '" required><button class="button button-primary" type="submit">Сохранить курс</button></form></div></details>' +
+    '<details class="admin-section moderation-admin"><summary><span>ИИ-модерация</span><small>' + (data.moderation?.adminCases || []).length + ' дел · ' + (data.moderation?.adminAppeals || []).length + ' апелляций</small></summary><div class="admin-section-body">' +
+    '<p class="moderation-status-line"><b>Статус:</b> ' + safe(aiStatusText) + '</p><p class="muted small">На проверку попадают публикации, услуги, аукционы, сделки, личные сообщения, отзывы, имена профилей, жалобы и основания начислений. Критические блокировки применяются только при высокой уверенности; остальные случаи остаются в очереди.</p>' +
     '<h3>Дела на проверке · ' + (data.moderation?.adminCases || []).length + '</h3><div class="data-list">' + (aiCases || '<p class="muted">Открытых AI-дел нет.</p>') + '</div>' +
-    '<h3>Апелляции · ' + (data.moderation?.adminAppeals || []).length + '</h3><div class="data-list">' + (aiAppeals || '<p class="muted">Ожидающих апелляций нет.</p>') + '</div></section>' +
-    '<h2>Проверка публикаций и споров</h2><div class="data-list">' + (queue || '<p class="muted">Очередь пуста.</p>') + '</div>' +
-    '<h2>Журнал действий</h2><div class="data-list">' + data.audit.slice(0,20).map(a => '<div class="data-row"><span>' + safe(a.text) + '<small>' + new Date(a.date).toLocaleString("ru-RU") + '</small></span><b>' + safe(userName(a.user)) + '</b></div>').join("") + '</div>' +
-    '<p class="small muted demo-note">Изменение ролей, блокировки, модерация и финансовые решения проверяются на сервере. Контактные email других участников не раскрываются.</p>';
+    '<h3>Апелляции · ' + (data.moderation?.adminAppeals || []).length + '</h3><div class="data-list">' + (aiAppeals || '<p class="muted">Ожидающих апелляций нет.</p>') + '</div></div></details>' +
+    '<details class="admin-section"><summary><span>Жалобы и споры</span><small>' + reports.length + ' открыто</small></summary><div class="admin-section-body"><div class="data-list">' + (queue || '<p class="muted">Очередь пуста.</p>') + '</div></div></details>' +
+    '<details class="admin-section"><summary><span>Журнал действий</span><small>последние 20 записей</small></summary><div class="admin-section-body"><div class="data-list">' + data.audit.slice(0,20).map(a => '<div class="data-row"><span>' + safe(a.text) + '<small>' + new Date(a.date).toLocaleString("ru-RU") + '</small></span><b>' + safe(userName(a.user)) + '</b></div>').join("") + '</div></div></details>' +
+    '<p class="small muted demo-note">Назначение ролей, блокировка, удаление, модерация и финансовые решения проверяются сервером. Удаление сохраняет только обезличенную финансовую историю.</p>';
 }
 
 
@@ -2009,6 +2027,44 @@ function action(btn) {
       save();
       setPage("admin");
     }
+  }
+  if (type === "deleteuser") {
+    if (me().role !== "admin") throw new Error("Нет доступа.");
+    const u = getUser(id);
+    if (!u || u.deleted || u.id === me().id || u.role === "admin") throw new Error("Этот аккаунт нельзя удалить.");
+    const activeDeal = data.deals.some(d => (d.buyer === id || d.seller === id) && ["work","ready","dispute"].includes(d.status));
+    const activeOrder = data.exchangeOrders.some(o => o.user === id && o.status === "active");
+    const activeAuction = data.auctions.some(x => ["active","settlementError"].includes(x.status) && (x.owner === id || x.leader === id));
+    if (activeDeal || activeOrder || activeAuction || Number(u.holdScrl || 0) > 0 || Number(u.holdVrub || 0) > 0) {
+      throw new Error("Сначала заверши сделки, заявки, аукционы и освободи резервы участника.");
+    }
+    if (typeof confirm === "function" && !confirm("Окончательно удалить аккаунт " + u.name + "? Вход будет удалён, а финансовая история сохранится обезличенной.")) return;
+    const scrlBalance = Number(u.scrl || 0);
+    const vrubBalance = Number(u.vrub || 0);
+    if (scrlBalance > 0) {
+      data.ledger.unshift({ id: uid(), user: id, currency: "ScRl", delta: -scrlBalance, note: "Остаток ScRl списан при удалении аккаунта", date: Date.now() });
+      data.burned = core.round(Number(data.burned || 0) + scrlBalance);
+    }
+    if (vrubBalance > 0) data.ledger.unshift({ id: uid(), user: id, currency: "V-RUB", delta: -vrubBalance, note: "Остаток V-RUB списан при удалении аккаунта", date: Date.now() });
+    u.scrl = 0; u.vrub = 0; u.holdScrl = 0; u.holdVrub = 0;
+    u.name = "Удалённый участник"; u.mail = ""; u.room = ""; u.role = "student";
+    u.blocked = true; u.deleted = true; u.blockReason = "Аккаунт удалён администратором";
+    data.posts.filter(x => x.user === id).forEach(x => x.status = "hidden");
+    data.listings.filter(x => x.user === id).forEach(x => x.status = "hidden");
+    data.audit.unshift({ id: uid(), user: me().id, text: "Удалён аккаунт участника; история обезличена", date: Date.now() });
+    save(); setPage("admin"); msg("Аккаунт удалён, история обезличена.");
+    return;
+  }
+  if (type === "deleteuser") {
+    if (me().role !== "admin") throw new Error("Нет доступа.");
+    const target = getUser(id);
+    if (!target || target.deleted || target.id === me().id || target.role === "admin") throw new Error("Этот аккаунт нельзя удалить.");
+    if (!confirm("Окончательно удалить аккаунт " + target.name + "? Он потеряет возможность входа. Личные данные будут удалены или обезличены, финансовый журнал сохранится без идентифицирующих заметок.")) return;
+    await backend.adminDeleteUser(id);
+    await refreshRemoteData();
+    setPage("admin");
+    msg("Аккаунт удалён. Финансовая история обезличена.");
+    return;
   }
   if (type === "removeuser") {
     if (me().role !== "admin") throw new Error("Нет доступа.");
@@ -2890,18 +2946,52 @@ el("logout").addEventListener("click", () => {
 });
 
 if (el("moreBtn")) {
+  function closeExtraMenu() {
+    const menu = el("extraMenu");
+    const wrap = el("moreBtn")?.closest(".more-wrap");
+    if (!menu) return;
+    menu.hidden = true;
+    el("moreBtn")?.setAttribute("aria-expanded", "false");
+    if (wrap && menu.parentElement !== wrap) wrap.appendChild(menu);
+    menu.removeAttribute("style");
+  }
   el("moreBtn").addEventListener("click", () => {
     const menu = el("extraMenu");
-    menu.hidden = !menu.hidden;
-    el("moreBtn").setAttribute("aria-expanded", String(!menu.hidden));
+    const opening = menu.hidden;
+    const wrap = el("moreBtn").closest(".more-wrap");
+    if (!opening) {
+      closeExtraMenu();
+      closeNotificationPanel();
+      return;
+    }
+    menu.hidden = false;
+    el("moreBtn").setAttribute("aria-expanded", "true");
     closeNotificationPanel();
+    const mobile = typeof window.matchMedia === "function"
+      ? window.matchMedia("(max-width: 760px)").matches
+      : Number(window.innerWidth || 0) <= 760;
+    if (mobile) {
+      document.body.appendChild(menu);
+      const anchor = el("moreBtn").getBoundingClientRect();
+      const width = Math.max(180, Math.min(280, Number(window.innerWidth || 320) - 16));
+      menu.style.position = "fixed";
+      menu.style.width = width + "px";
+      menu.style.maxHeight = "min(70dvh, calc(100dvh - 24px))";
+      const height = menu.getBoundingClientRect().height;
+      const left = Math.max(8, Math.min(anchor.right - width, Number(window.innerWidth || 320) - width - 8));
+      const top = Math.max(8, Math.min(anchor.bottom + 6, Number(window.innerHeight || 640) - Math.min(height, Number(window.innerHeight || 640) - 24) - 12));
+      menu.style.left = left + "px";
+      menu.style.right = "auto";
+      menu.style.top = top + "px";
+    } else if (wrap && menu.parentElement !== wrap) {
+      wrap.appendChild(menu);
+    }
   });
   el("extraMenu").addEventListener("click", event => {
     const btn = event.target.closest("[data-page]");
     if (btn) {
       setPage(btn.dataset.page);
-      el("extraMenu").hidden = true;
-      el("moreBtn").setAttribute("aria-expanded", "false");
+      closeExtraMenu();
     }
   });
 }
@@ -2912,8 +3002,7 @@ if (el("notificationBell")) {
     const opening = panel.hidden;
     panel.hidden = !opening;
     el("notificationBell").setAttribute("aria-expanded", String(opening));
-    el("extraMenu").hidden = true;
-    el("moreBtn").setAttribute("aria-expanded", "false");
+    closeExtraMenu();
     if (opening) updateNotificationBell();
   });
 }
@@ -2939,11 +3028,22 @@ if (el("notificationPanel")) {
 }
 if (document.addEventListener) {
   document.addEventListener("click", event => {
-    if (event.target?.closest && !event.target.closest(".notification-wrap")) closeNotificationPanel();
+    if (!event.target?.closest) return;
+    if (!event.target.closest(".notification-wrap")) closeNotificationPanel();
+    if (!event.target.closest(".more-wrap") && !event.target.closest("#extraMenu")) closeExtraMenu();
   });
   document.addEventListener("keydown", event => {
-    if (event.key === "Escape") closeNotificationPanel();
+    if (event.key === "Escape") {
+      closeNotificationPanel();
+      closeExtraMenu();
+    }
   });
+  if (typeof window.addEventListener === "function") {
+    window.addEventListener("resize", () => {
+      const menu = el("extraMenu");
+      if (menu && !menu.hidden) closeExtraMenu();
+    });
+  }
 }
 
 el("page").addEventListener("click", event => {

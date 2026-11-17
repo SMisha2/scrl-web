@@ -60,7 +60,12 @@ Deno.serve(async (req: Request) => {
       if (payload.confirmation !== "УДАЛИТЬ") {
         return response({ error: "Подтверди удаление аккаунта." }, 400, origin);
       }
-    } else if (payload.action === "delete_post") {
+    } else if (payload.action === "delete_user") {
+      const targetId = typeof payload.target_user_id === "string" ? payload.target_user_id : "";
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(targetId)) {
+        return response({ error: "Некорректный идентификатор аккаунта." }, 400, origin);
+      }
+    } else if (payload.action === "delete_post" || payload.action === "admin_delete_post") {
       const postId = typeof payload.post_id === "string" ? payload.post_id : "";
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(postId)) {
         return response({ error: "Некорректный идентификатор публикации." }, 400, origin);
@@ -87,6 +92,58 @@ Deno.serve(async (req: Request) => {
       auth: { persistSession: false, autoRefreshToken: false }
     });
 
+    if (payload.action === "delete_user") {
+      const targetId = String(payload.target_user_id || "");
+      if (targetId === userData.user.id) {
+        return response({ error: "Нельзя удалить аккаунт, под которым выполнен вход." }, 400, origin);
+      }
+      const { data: isAdmin, error: roleError } = await userClient.rpc("scrl_is_admin");
+      if (roleError || isAdmin !== true) {
+        return response({ error: "Удалять аккаунты может только действующий администратор." }, 403, origin);
+      }
+      const { data: targetProfile, error: targetProfileError } = await admin
+        .from("profiles")
+        .select("id,role,deleted_at")
+        .eq("id", targetId)
+        .maybeSingle();
+      if (targetProfileError) {
+        return response({ error: "Не удалось проверить профиль перед удалением." }, 500, origin);
+      }
+      if (!targetProfile || targetProfile.deleted_at) {
+        return response({ error: "Аккаунт не найден или уже удалён." }, 404, origin);
+      }
+      if (!["student", "teacher"].includes(String(targetProfile.role))) {
+        return response({ error: "Удалять можно только аккаунты учеников и учителей. Аккаунты администраторов защищены." }, 403, origin);
+      }
+      const { error: cleanupError } = await admin.rpc("scrl_delete_account", { p_user: targetId });
+      if (cleanupError) {
+        return response({ error: cleanupError.message || "Перед удалением нужно завершить активные операции." }, 409, origin);
+      }
+      const { error: deleteError } = await admin.auth.admin.deleteUser(targetId);
+      if (deleteError) {
+        return response({
+          error: "Данные аккаунта уже обезличены, но Supabase Auth не завершил удаление. Обратись к администратору проекта.",
+          anonymized: true
+        }, 502, origin);
+      }
+      return response({ success: true }, 200, origin);
+    }
+
+    if (payload.action === "admin_delete_post") {
+      const { data: isAdmin, error: roleError } = await userClient.rpc("scrl_is_admin");
+      if (roleError || isAdmin !== true) {
+        return response({ error: "Удалять чужие публикации может только действующий администратор." }, 403, origin);
+      }
+      const { error } = await admin.rpc("scrl_admin_delete_post", {
+        p_actor: userData.user.id,
+        p_post: payload.post_id as string
+      });
+      if (error) {
+        return response({ error: error.message || "Не удалось удалить публикацию." }, 409, origin);
+      }
+      return response({ success: true }, 200, origin);
+    }
+
     if (payload.action === "delete_post") {
       const { error } = await admin.rpc("scrl_delete_own_post", {
         p_user: userData.user.id,
@@ -100,7 +157,7 @@ Deno.serve(async (req: Request) => {
 
     // This RPC anonymizes user-authored data and keeps profile IDs referenced by
     // historical financial rows. It also refuses deletion while holds or active
-    // deals, market orders, or auctions exist.
+    // deals, exchange orders, or auctions exist.
     const { error: cleanupError } = await admin.rpc("scrl_delete_account", { p_user: userData.user.id });
     if (cleanupError) {
       return response({ error: cleanupError.message || "Перед удалением нужно завершить активные операции." }, 409, origin);
