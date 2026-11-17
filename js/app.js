@@ -12,6 +12,9 @@ const app = el("app");
 const login = el("loginForm");
 const reg = el("regForm");
 const codeForm = el("codeForm");
+const resetPasswordForm = el("resetPasswordForm");
+const forgotPasswordButton = el("forgotPassword");
+let passwordRecoveryToken = "";
 const toast = el("toast");
 if (!window.__scrlTestMode && typeof navigator !== "undefined" &&
     navigator.serviceWorker && typeof navigator.serviceWorker.register === "function") {
@@ -39,6 +42,10 @@ function msg(text) {
 function installMinecraftBookCursors() {
   if (window.__scrlTestMode || !document.querySelectorAll) return;
 
+  const canvas = document.createElement("canvas");
+  const measure = canvas.getContext && canvas.getContext("2d");
+  if (!measure) return;
+
   document.querySelectorAll("#authBook .mc-input-shell input").forEach(input => {
     const shell = input.parentElement;
     if (!shell || shell.querySelector(".mc-writing-cursor")) return;
@@ -50,71 +57,79 @@ function installMinecraftBookCursors() {
     cursor.hidden = true;
     shell.appendChild(cursor);
 
-    // Keep a hidden copy of the input text and put a zero-width marker at the
-    // exact selection point. The browser lays it out with the input's font.
-    const mirror = document.createElement("span");
-    mirror.className = "mc-caret-measure";
-    mirror.setAttribute("aria-hidden", "true");
-    const prefix = document.createTextNode("");
-    const marker = document.createElement("span");
-    marker.className = "mc-caret-marker";
-    const suffix = document.createTextNode("");
-    mirror.append(prefix, marker, suffix);
-    shell.appendChild(mirror);
-
     const positionCursor = () => {
-      if (document.activeElement !== input) return;
-
-      const style = window.getComputedStyle(input);
-      const visibleText = input.type === "password" ? "•".repeat(input.value.length) : input.value;
-      const rawStart = typeof input.selectionStart === "number" ? input.selectionStart : input.value.length;
-      const rawEnd = typeof input.selectionEnd === "number" ? input.selectionEnd : rawStart;
-      const caret = Math.max(0, Math.min(visibleText.length, rawStart));
-      const selectionEnd = Math.max(caret, Math.min(visibleText.length, rawEnd));
-
-      // A blinking caret should not sit on top of a selected text range.
-      if (caret !== selectionEnd) {
+      if (document.activeElement !== input) {
         cursor.hidden = true;
         return;
       }
 
-      prefix.nodeValue = visibleText.slice(0, caret);
-      suffix.nodeValue = visibleText.slice(caret);
+      const start = typeof input.selectionStart === "number" ? input.selectionStart : input.value.length;
+      const end = typeof input.selectionEnd === "number" ? input.selectionEnd : start;
+      if (start !== end) {
+        cursor.hidden = true;
+        return;
+      }
 
-      const shellRect = shell.getBoundingClientRect();
+      const style = window.getComputedStyle(input);
+      let visibleText = input.type === "password" ? "•".repeat(input.value.length) : input.value;
+      if (style.textTransform === "uppercase") visibleText = visibleText.toUpperCase();
+      if (style.textTransform === "lowercase") visibleText = visibleText.toLowerCase();
+      const caret = Math.max(0, Math.min(visibleText.length, start));
+      const prefix = visibleText.slice(0, caret);
+
+      // Measure the exact visible prefix and whole string. This also handles
+      // centered code inputs and their letter spacing without a fake text mirror.
+      measure.font = style.font || (style.fontSize + " " + style.fontFamily);
+      const spacing = Number.parseFloat(style.letterSpacing) || 0;
+      const charCount = value => Array.from(value).length;
+      const widthOf = value => value
+        ? measure.measureText(value).width + Math.max(0, charCount(value) - 1) * spacing
+        : 0;
+      const fullWidth = widthOf(visibleText);
+      const prefixWidth = widthOf(prefix);
+
+      const paddingLeft = Number.parseFloat(style.paddingLeft) || 0;
+      const paddingRight = Number.parseFloat(style.paddingRight) || 0;
+      const contentWidth = Math.max(0, input.clientWidth - paddingLeft - paddingRight);
+      const indent = Number.parseFloat(style.textIndent) || 0;
+      let textStart = paddingLeft + indent - input.scrollLeft;
+      if (style.textAlign === "center") {
+        textStart += (contentWidth - fullWidth) / 2;
+      } else if (style.textAlign === "right" || style.textAlign === "end") {
+        textStart += contentWidth - fullWidth;
+      } else if (style.direction === "rtl") {
+        textStart += contentWidth - fullWidth;
+      }
+
       const inputRect = input.getBoundingClientRect();
-      mirror.style.left = (inputRect.left - shellRect.left + input.clientLeft) + "px";
-      mirror.style.top = (inputRect.top - shellRect.top + input.clientTop) + "px";
-      mirror.style.width = input.clientWidth + "px";
-      mirror.style.height = input.clientHeight + "px";
-      mirror.style.boxSizing = "border-box";
-      mirror.style.padding = style.padding;
-      mirror.style.font = style.font;
-      mirror.style.letterSpacing = style.letterSpacing;
-      mirror.style.wordSpacing = style.wordSpacing;
-      mirror.style.lineHeight = style.lineHeight;
-      mirror.style.textAlign = style.textAlign;
-      mirror.style.textIndent = style.textIndent;
-      mirror.style.textTransform = style.textTransform;
-      mirror.style.direction = style.direction;
-      mirror.style.fontKerning = style.fontKerning;
-      mirror.style.fontVariant = style.fontVariant;
-      mirror.style.fontFeatureSettings = style.fontFeatureSettings;
-      mirror.style.whiteSpace = "pre";
-      mirror.scrollLeft = input.scrollLeft;
+      const shellRect = shell.getBoundingClientRect();
+      const x = inputRect.left - shellRect.left + input.clientLeft + textStart + prefixWidth;
+      cursor.style.left = x + "px";
 
-      const markerRect = marker.getBoundingClientRect();
-      cursor.style.left = (markerRect.left - shellRect.left) + "px";
+      const paddingTop = Number.parseFloat(style.paddingTop) || 0;
+      const paddingBottom = Number.parseFloat(style.paddingBottom) || 0;
+      const contentHeight = Math.max(0, input.clientHeight - paddingTop - paddingBottom);
+      const fontSize = Number.parseFloat(style.fontSize) || 16;
+      const parsedLineHeight = Number.parseFloat(style.lineHeight);
+      const lineHeight = Number.isFinite(parsedLineHeight) ? parsedLineHeight : fontSize * 1.2;
+      cursor.style.top = (
+        inputRect.top - shellRect.top + input.clientTop +
+        paddingTop + Math.max(0, (contentHeight - lineHeight) / 2)
+      ) + "px";
       cursor.style.font = style.font;
-      cursor.style.lineHeight = style.lineHeight;
+      cursor.style.lineHeight = lineHeight + "px";
+      cursor.style.letterSpacing = "0";
       cursor.hidden = false;
     };
 
-    // keydown runs before the browser moves the caret, so measure on the next
-    // frame; selectionchange also covers mouse/touch selection and arrow keys.
+    let frame = 0;
     const schedulePosition = () => {
       if (typeof window.requestAnimationFrame === "function") {
-        window.requestAnimationFrame(positionCursor);
+        if (frame) window.cancelAnimationFrame(frame);
+        frame = window.requestAnimationFrame(() => {
+          frame = 0;
+          positionCursor();
+        });
       } else {
         setTimeout(positionCursor, 0);
       }
@@ -147,7 +162,7 @@ function updateBookControls() {
   const isCode = !codeForm.hidden;
   const sign = el("bookSign");
   if (sign) {
-    sign.setAttribute("form", !isRegistration ? "loginForm" : isCode ? "codeForm" : "regForm");
+    sign.setAttribute("form", !isRegistration ? (passwordRecoveryToken && !resetPasswordForm.hidden ? "resetPasswordForm" : "loginForm") : isCode ? "codeForm" : "regForm");
     sign.textContent = "Готово";
   }
 
@@ -172,6 +187,12 @@ function setMode(mode) {
     book.dataset.activePage = activePage;
   }
 
+  passwordRecoveryToken = "";
+  resetPasswordForm.hidden = true;
+  if (forgotPasswordButton) forgotPasswordButton.hidden = false;
+  if (el("openRegistration")) el("openRegistration").hidden = false;
+  if (el("loginTitle")) el("loginTitle").textContent = "С Возвращением,";
+  if (el("loginDesc")) el("loginDesc").textContent = "войдите, чтоб начать пользоваться";
   login.hidden = false;
   reg.hidden = !isSpread;
   codeForm.hidden = true;
@@ -680,6 +701,48 @@ async function refreshRemoteData(options = {}) {
     return data;
   }
   return pending;
+}
+
+function setPasswordRecoveryPage(token) {
+  if (!token) return;
+  passwordRecoveryToken = token;
+
+  const book = el("authBook");
+  if (book) {
+    book.classList.remove("is-spread");
+    book.dataset.activePage = "1";
+  }
+  login.hidden = true;
+  reg.hidden = true;
+  codeForm.hidden = true;
+  resetPasswordForm.hidden = false;
+  if (forgotPasswordButton) forgotPasswordButton.hidden = true;
+  if (el("openRegistration")) el("openRegistration").hidden = true;
+  if (el("returnToPage2")) el("returnToPage2").hidden = true;
+  if (el("bookSign")) el("bookSign").hidden = false;
+  if (el("loginTitle")) el("loginTitle").textContent = "Сброс пароля";
+  if (el("loginDesc")) el("loginDesc").textContent = "Придумайте новый пароль для аккаунта.";
+  updateBookControls();
+  el("resetPass").focus();
+}
+
+function startPasswordRecoveryFromUrl() {
+  if (!window.location || !window.location.hash || typeof URLSearchParams !== "function") return;
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  if (params.get("type") !== "recovery") return;
+
+  const accessToken = params.get("access_token");
+  if (!accessToken) {
+    const detail = params.get("error_description") || params.get("error") || "Ссылка восстановления недействительна или устарела.";
+    el("logErr").textContent = decodeURIComponent(detail.replace(/\+/g, " "));
+    return;
+  }
+
+  setPasswordRecoveryPage(accessToken);
+  // The recovery token is kept in memory only, not in the visible URL/history.
+  if (window.history && typeof window.history.replaceState === "function") {
+    window.history.replaceState(null, document.title, window.location.pathname + window.location.search);
+  }
 }
 
 function setCodePage() {
@@ -2475,6 +2538,84 @@ loginFormConfigs.forEach(config => {
   });
 });
 
+if (forgotPasswordButton) {
+  forgotPasswordButton.addEventListener("click", async () => {
+    const email = el("logMail").value.trim().toLowerCase();
+    const error = el("logErr");
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      error.textContent = "Сначала введи электронную почту.";
+      el("logMail").focus();
+      return;
+    }
+
+    forgotPasswordButton.disabled = true;
+    error.textContent = "";
+    try {
+      sessionStorage.setItem("scrlRecoveryEmail", email);
+      const redirectTo = APP_REDIRECT_URL;
+      await ask("recover?redirect_to=" + encodeURIComponent(redirectTo), { email });
+      error.textContent = "Запрос принят. Проверь почту и папку «Спам»: там должна быть ссылка для сброса пароля.";
+    } catch (err) {
+      error.textContent = err.message || "Не удалось запросить восстановление пароля.";
+    } finally {
+      forgotPasswordButton.disabled = false;
+    }
+  });
+}
+
+resetPasswordForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  const password = el("resetPass").value;
+  const repeated = el("resetPassAgain").value;
+  const error = el("resetPasswordErr");
+  error.textContent = "";
+  if (password.length < 8) {
+    error.textContent = "Пароль должен быть не короче 8 символов.";
+    return;
+  }
+  if (password !== repeated) {
+    error.textContent = "Пароли не совпадают.";
+    return;
+  }
+  if (!passwordRecoveryToken) {
+    error.textContent = "Ссылка восстановления устарела. Запроси новую.";
+    return;
+  }
+
+  const button = el("bookSign");
+  if (button) button.disabled = true;
+  try {
+    const url = String(cfg.url || "").replace(/\/$/, "");
+    if (!url || !cfg.key) throw new Error("База аккаунтов пока не подключена.");
+    const response = await fetch(url + "/auth/v1/user", {
+      method: "PUT",
+      headers: {
+        apikey: cfg.key,
+        Authorization: "Bearer " + passwordRecoveryToken,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ password })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.message || result.msg || "Не удалось изменить пароль. Запроси новую ссылку восстановления.");
+
+    const email = sessionStorage.getItem("scrlRecoveryEmail") || "";
+    passwordRecoveryToken = "";
+    sessionStorage.removeItem("scrlRecoveryEmail");
+    resetPasswordForm.reset();
+    setMode("login");
+    if (email) el("logMail").value = email;
+    if (window.history && typeof window.history.replaceState === "function") {
+      window.history.replaceState(null, document.title, window.location.pathname + window.location.search);
+    }
+    msg("Пароль обновлён. Теперь войди с новым паролем.");
+  } catch (err) {
+    error.textContent = err.message || "Не удалось изменить пароль.";
+  } finally {
+    if (button) button.disabled = false;
+  }
+});
+
 reg.addEventListener("submit", async event => {
   event.preventDefault();
   el("regErr").textContent = "";
@@ -2627,6 +2768,7 @@ if (authBook && !window.__scrlTestMode) {
   });
   installMinecraftBookCursors();
 }
+startPasswordRecoveryFromUrl();
 
 document.querySelectorAll(".nav-tab").forEach(btn => btn.addEventListener("click", () => setPage(btn.dataset.page)));
 if (el("topbarBalance")) el("topbarBalance").addEventListener("click", () => setPage("wallet"));
