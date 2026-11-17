@@ -569,12 +569,15 @@ test("new posts, listings and auctions show a distinct message when AI hides the
 });
 
 
-test("market is removed from navigation, page routing and onboarding guide", () => {
+test("market is removed from navigation and routing, auth no longer includes an onboarding spread", () => {
   const { api } = boot();
   assert.equal(api.marketPage, undefined);
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   assert.doesNotMatch(html, /Маркет и биржа/);
-  assert.match(html, /Биржа ScRl/);
+  assert.doesNotMatch(html, /Биржа ScRl/);
+  assert.doesNotMatch(html, /book-spread|infoPage2|Как устроен ScRl/);
+  assert.match(html, /Страница 1 \/ 2/);
+  assert.match(html, /Страница 2 \/ 2/);
 });
 
 
