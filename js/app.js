@@ -2662,6 +2662,7 @@ if (window.__scrlTestMode) {
     exchangePage,
     auctionsPage,
     assistantPage,
+    parentPage,
     financePage,
     walletPage,
     ordersPage,
