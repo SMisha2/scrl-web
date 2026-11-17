@@ -15,8 +15,12 @@ const codeForm = el("codeForm");
 const toast = el("toast");
 if (!window.__scrlTestMode && typeof navigator !== "undefined" &&
     navigator.serviceWorker && typeof navigator.serviceWorker.register === "function") {
-  navigator.serviceWorker.register(new URL("./sw.js", document.baseURI).href)
-    .catch(() => {});
+  const appScriptUrl = document.currentScript && document.currentScript.src
+    ? document.currentScript.src
+    : new URL("./js/app.js", document.baseURI).href;
+  const serviceWorkerUrl = new URL("../sw.js", appScriptUrl).href;
+  navigator.serviceWorker.register(serviceWorkerUrl)
+    .catch(error => console.warn("ScRl: не удалось зарегистрировать кэш фона.", error));
 }
 const key = "scrlDemo3";
 let pending = null;
