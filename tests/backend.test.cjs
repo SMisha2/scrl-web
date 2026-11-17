@@ -13,8 +13,9 @@ function loadBackend(config = {}) {
     setItem(key, value) { stored.set(key, String(value)); },
     removeItem(key) { stored.delete(key); }
   };
-  const fetch = config.fetch || (async (url, options) => {
+  const fetch = async (url, options) => {
     calls.push({ url, options });
+    if (config.fetch) return config.fetch(url, options);
     if (String(url).includes("/functions/v1/scrl-moderation")) {
       return {
         ok: true, status: 200,
@@ -22,7 +23,7 @@ function loadBackend(config = {}) {
       };
     }
     return { ok: true, status: 204, async text() { return ""; } };
-  });
+  };
   vm.runInNewContext(
     fs.readFileSync(path.join(__dirname, "../js/backend.js"), "utf8"),
     { window, sessionStorage, fetch, JSON, String, Number, Map, Date, encodeURIComponent }
@@ -150,7 +151,6 @@ test("an expired REST session is refreshed and the failed request is retried", a
   const { api, calls, sessionStorage } = loadBackend({
     session: { id: "user-1", token: "expired-access", refreshToken: "refresh-old" },
     fetch: async (url, options) => {
-      calls.push({ url, options });
       if (String(url).includes("/auth/v1/token?grant_type=refresh_token")) {
         return {
           ok: true, status: 200,
@@ -182,7 +182,6 @@ test("an expired Edge Function session is refreshed and retried with the new JWT
   const { api, calls, sessionStorage } = loadBackend({
     session: { id: "user-2", token: "expired-access", refreshToken: "refresh-old" },
     fetch: async (url, options) => {
-      calls.push({ url, options });
       if (String(url).includes("/auth/v1/token?grant_type=refresh_token")) {
         return {
           ok: true, status: 200,
