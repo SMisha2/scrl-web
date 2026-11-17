@@ -13,7 +13,7 @@ function boot() {
     const item = {
       id, hidden: false, textContent: "", innerHTML: "", value: "", title: "",
       dataset: {}, listeners: {}, attrs: {},
-      classList: { toggle() {}, add() {}, remove() {} },
+      classList: { toggle() {}, add() {}, remove() {}, contains() { return false; } },
       addEventListener(name, fn) { this.listeners[name] = fn; },
       setAttribute(name, value) { this.attrs[name] = value; },
       removeAttribute(name) { delete this.attrs[name]; },
