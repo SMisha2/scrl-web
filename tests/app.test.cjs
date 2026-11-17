@@ -928,7 +928,7 @@ test("администратор не может блокировать учас
 
 test("удаление аккаунта списывает остатки и уменьшает активную денежную массу", () => {
   const fs = require("node:fs");
-  const migration = fs.readFileSync(path.join(__dirname, "../supabase/migrations/20261116121500_remove_deleted_wallet_balances_from_supply.sql"), "utf8");
+  const migration = fs.readFileSync(path.join(__dirname, "../supabase/migrations/20261116130440_remove_deleted_wallet_balances_from_supply.sql"), "utf8");
   assert.match(migration, /SET scrl = 0,\s*vrub = 0,\s*hold_scrl = 0,\s*hold_vrub = 0/);
   assert.match(migration, /burned_scrl = burned_scrl \+ v_wallet\.scrl/);
   assert.match(migration, /'V-RUB', -v_wallet\.vrub/);
