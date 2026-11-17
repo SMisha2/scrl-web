@@ -859,7 +859,6 @@ function auctionsPage() {
       '<span class="actions">' +
       (canBid && !ended && a.status === "active" && a.owner !== user.id ? '<form class="msg-form" data-form="auctionBid" data-id="' + a.id + '"><input name="amount" type="number" min="' + minNext + '" step="1" placeholder="От ' + minNext + '" required><button class="button button-primary" type="submit">Сделать ставку</button></form>' : '') +
       (mayFinish ? '<button class="text-button" data-do="endauction" data-id="' + a.id + '">' + (a.status === "settlementError" ? "Повторить расчёт" : "Завершить сейчас") + '</button>' : '') +
-       +
       '</span></div><details><summary class="text-button">История ставок</summary><div class="data-list">' + (history || '<p class="muted small">Ставок пока нет.</p>') + '</div></details>' +
       (a.settlementError ? '<p class="small muted">' + safe(a.settlementError) + '</p>' : '') + '</article>';
   }).join("");
@@ -886,11 +885,12 @@ function ordersPage() {
       : d.status === "ready" && d.buyer === me().id
         ? '<button class="text-button" data-do="confirm" data-id="' + d.id + '">Подтвердить</button><button class="text-button" data-do="dispute" data-id="' + d.id + '">Спор</button>'
         : d.status === "ready" && d.seller === me().id ? '<button class="text-button" data-do="dispute" data-id="' + d.id + '">Открыть спор</button>' : '';
+    const canMessage = ["work","ready","dispute"].includes(d.status);
     const messages = (d.messages || []).map(m => '<div class="chat-line"><b>' + safe(userName(m.user)) + '</b><span>' + safe(m.text) + '</span><small>' + (m.status && m.status !== "active" ? "На проверке ИИ · " : "") + new Date(m.date).toLocaleString("ru-RU") + '</small></div>').join("");
     return '<article class="demo-card"><div class="card-top"><span class="tag">' + statusName(d.status) + '</span><span class="muted small">№ ' + safe(d.id.slice(-6)) + '</span></div><h2>' + safe(d.title) + '</h2>' +
       '<p class="muted">Покупатель: ' + safe(userName(d.buyer)) + ' · Исполнитель: ' + safe(userName(d.seller)) + '</p><div class="card-bottom"><b>' + money(d.amount) + ' ScRl' + (d.amount ? ' в резерве: ' + money(d.escrow) : '') + '</b><span class="actions">' + controls + '</span></div>' +
       '<div class="chat-box">' + (messages || '<p class="muted small">Сообщений пока нет.</p>') + '</div>' +
-      '<form class="msg-form" data-form="message" data-id="' + d.id + '"><input name="text" maxlength="240" placeholder="Написать сообщение" required><button class="button button-secondary" type="submit">Отправить</button></form>' +
+      (canMessage ? '<form class="msg-form" data-form="message" data-id="' + d.id + '"><input name="text" maxlength="240" placeholder="Написать сообщение" required><button class="button button-secondary" type="submit">Отправить</button></form>' : '<p class="small muted">Переписка закрыта после завершения сделки.</p>') +
       (d.status === "done" && !data.reviews.some(r => r.deal === d.id && r.user === me().id) ? '<form class="msg-form" data-form="review" data-id="' + d.id + '"><select name="rating"><option value="5">5 — Отлично</option><option value="4">4 — Хорошо</option><option value="3">3 — Нормально</option><option value="2">2</option><option value="1">1</option></select><input name="text" maxlength="180" placeholder="Отзыв (необязательно)"><button class="button button-secondary" type="submit">Оставить отзыв</button></form>' : '') +
       '</article>';
   }).join("");
@@ -1509,14 +1509,24 @@ function bid(id, amount) {
   const value = Number(amount);
   const minimum = a.bid > 0 ? a.bid + a.step : a.startPrice;
   if (!Number.isSafeInteger(value) || value < minimum || value > 1000000) throw new Error("Минимальная ставка — " + minimum + " ScRl.");
+  let previousLeader = null;
+  let previousBid = null;
   if (a.leader && a.bid > 0) {
-    const old = getUser(a.leader);
-    const oldBid = data.bids.find(b => b.auction === a.id && b.user === a.leader && b.amount === a.bid && b.status === "active");
-    if (!old || !oldBid || old.holdScrl < a.bid) throw new Error("Не удалось проверить резерв предыдущей ставки.");
-    old.holdScrl = Math.max(0, core.round(old.holdScrl - a.bid));
-    oldBid.status = old.id === me().id ? "raised" : "outbid";
-    change(old.id, "ScRl", a.bid, "Возврат перебитой ставки");
-    if (old.id !== me().id) notify(old.id, "Твою ставку в аукционе «" + a.title + "» перебили.");
+    previousLeader = getUser(a.leader);
+    previousBid = data.bids.find(b => b.auction === a.id && b.user === a.leader && b.amount === a.bid && b.status === "active");
+    if (!previousLeader || !previousBid || previousLeader.holdScrl < a.bid) {
+      throw new Error("Не удалось проверить резерв предыдущей ставки.");
+    }
+  }
+  const availableAfterRelease = Number(me().scrl || 0) +
+    (previousLeader?.id === me().id ? Number(a.bid) : 0);
+  if (availableAfterRelease < value) throw new Error("Недостаточно ScRl для такой ставки.");
+
+  if (previousLeader && previousBid) {
+    previousLeader.holdScrl = Math.max(0, core.round(previousLeader.holdScrl - a.bid));
+    previousBid.status = previousLeader.id === me().id ? "raised" : "outbid";
+    change(previousLeader.id, "ScRl", a.bid, "Возврат перебитой ставки");
+    if (previousLeader.id !== me().id) notify(previousLeader.id, "Твою ставку в аукционе «" + a.title + "» перебили.");
   }
   if (me().scrl < value) throw new Error("Недостаточно ScRl для такой ставки.");
   change(me().id, "ScRl", -value, "Ставка в аукционе: " + a.title);
@@ -2718,6 +2728,8 @@ if (window.__scrlTestMode) {
     bid,
     endAuction,
     closeExpiredAuctions,
+    weekKey,
+    change,
     placeExchangeOrder,
     buyExchangeOrder,
     cancelExchangeOrder
