@@ -12,11 +12,11 @@
   <link rel="preload" href="assets/MinecraftRus.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/backgrounds/day.png" as="image" fetchpriority="high">
   <link rel="preload" href="assets/backgrounds/night.png" as="image" fetchpriority="low">
-  <link rel="stylesheet" href="css/style.css?v=175">
+  <link rel="stylesheet" href="css/style.css?v=176">
   <script src="js/config.js" defer></script>
   <script src="js/core.js" defer></script>
-  <script src="js/backend.js?v=157" defer></script>
-  <script src="js/app.js?v=180" defer></script>
+  <script src="js/backend.js?v=158" defer></script>
+  <script src="js/app.js?v=181" defer></script>
 </head>
 <body>
   <div id="worldScenery" class="world-scenery" aria-hidden="true">
@@ -55,6 +55,7 @@
             <p class="form-error" id="resetPasswordErr" aria-live="polite"></p>
           </form>
           <button class="book-page-link" id="openRegistration" type="button">Нет аккаунта? Зарегистрируйся</button>
+          <button class="button button-primary book-action-button" id="bookSign" type="submit" form="loginForm">Войти</button>
         </section>
 
           <section class="book-page book-page--registration" id="registrationPage" aria-label="Страница 2 — регистрация">
@@ -107,9 +108,6 @@
             <button class="book-page-link book-page-link--return" id="returnToPage2" type="button">Уже есть аккаунт? Войти</button>
           </section>
       </section>
-      <div class="book-actions" aria-label="Действия">
-        <button class="button button-primary book-action-button" id="bookSign" type="submit" form="loginForm">Войти</button>
-      </div>
     </div>
   </main>
   <div id="app" hidden>
