@@ -488,7 +488,7 @@ test("страницы входа и регистрации имеют свои 
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   assert.match(html, /id="bookSign"[^>]*>Войти<\/button>/);
-  assert.match(app, /isRecovery\s*\?\s*"Сохранить пароль"/);
+  assert.match(app, /isPasswordReset\s*\?\s*"Сохранить пароль"/);
   assert.match(app, /:\s*!isRegistration\s*\n\s*\?\s*"Войти"/);
   assert.match(app, /isCode\s*\n\s*\?\s*"Подтвердить"/);
   assert.match(app, /"Зарегистрироваться"/);
@@ -599,7 +599,7 @@ test("email confirmation accepts the eight-digit OTP configured in Supabase", ()
   assert.match(app, /\[0-9\]\{8\}/);
   assert.match(html, /id="code"[^>]*maxlength="8" pattern="\[0-9\]\{8\}"/);
   assert.match(html, /восьмизначный код/);
-  assert.ok(html.includes("js/app.js?v=186"));
+  assert.ok(html.includes("js/app.js?v=187"));
 });
 
 
