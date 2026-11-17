@@ -2948,7 +2948,10 @@ el("logout").addEventListener("click", () => {
 function closeExtraMenu() {
   const menu = el("extraMenu");
   const button = el("moreBtn");
-  if (menu) menu.hidden = true;
+  if (menu) {
+    menu.hidden = true;
+    menu.removeAttribute("style");
+  }
   if (button) button.setAttribute("aria-expanded", "false");
 }
 
@@ -2960,14 +2963,39 @@ if (el("moreBtn") && el("extraMenu")) {
     event.preventDefault();
     event.stopPropagation();
     const opening = extraMenu.hidden;
-    extraMenu.hidden = !opening;
-    moreButton.setAttribute("aria-expanded", String(opening));
-    if (opening) closeNotificationPanel();
+    if (!opening) {
+      closeExtraMenu();
+      closeNotificationPanel();
+      return;
+    }
+
+    extraMenu.hidden = false;
+    moreButton.setAttribute("aria-expanded", "true");
+    closeNotificationPanel();
+
+    const mobile = typeof window.matchMedia === "function"
+      ? window.matchMedia("(max-width: 760px)").matches
+      : Number(window.innerWidth || 0) <= 760;
+
+    // On desktop the navigation rail clips overflow-y. A fixed popover escapes
+    // that clipping while remaining aligned with the More button.
+    if (!mobile) {
+      const viewportWidth = Math.max(320, Number(window.innerWidth || 1024));
+      const viewportHeight = Math.max(320, Number(window.innerHeight || 768));
+      const anchor = moreButton.getBoundingClientRect();
+      const width = Math.min(260, viewportWidth - 16);
+      extraMenu.style.position = "fixed";
+      extraMenu.style.width = width + "px";
+      extraMenu.style.maxHeight = "min(70dvh, calc(100dvh - 24px))";
+      extraMenu.style.right = "auto";
+      extraMenu.style.left = Math.max(8, Math.min(anchor.right - width, viewportWidth - width - 8)) + "px";
+      extraMenu.style.top = Math.max(8, Math.min(anchor.bottom + 6, viewportHeight - 280)) + "px";
+    }
   });
 
   extraMenu.addEventListener("click", event => {
     const button = event.target?.closest?.("button[data-page]");
-    if (!button || button.hidden) return;
+    if (!button || button.hidden || button.disabled) return;
     event.stopPropagation();
     setPage(button.dataset.page);
     closeExtraMenu();
