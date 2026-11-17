@@ -277,6 +277,20 @@ test("светлая тема запускается по умолчанию и 
   api.switchTheme();
   assert.equal(api.activeTheme(), "light");
 });
+test("переключатель темы — двухпозиционный слайдер с доступным состоянием", () => {
+  const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
+  assert.match(html, /id="themeBtn"[^>]*role="switch"[^>]*aria-checked="false"/);
+  assert.match(html, /id="authThemeBtn"[^>]*role="switch"[^>]*aria-checked="false"/);
+  assert.equal((html.match(/class="theme-switch-track"/g) || []).length, 2);
+  assert.match(app, /button\\.setAttribute\\("aria-checked", String\\(normalized === "dark"\\)\\)/);
+  assert.match(css, /\\.theme-switch-thumb/);
+  assert.match(css, /translateX\\(30px\\)/);
+  assert.match(css, /translateX\\(26px\\)/);
+  assert.match(css, /theme-switch-thumb::after/);
+});
+
 
 
 
@@ -327,9 +341,16 @@ test("светлые поля привязаны напрямую к data-theme=
   assert.ok(css.includes('html[data-theme="light"] body textarea'));
   assert.ok(css.includes('border: 4px solid #111111 !important'));
   assert.ok(css.includes('background-color: #c4c4c4 !important'));
-  assert.ok(html.includes('css/style.css?v=172'));
+  assert.ok(html.includes('css/style.css?v=173'));
 });
 
+
+
+test("в светлой теме текстовые блоки всегда имеют светлую подложку", () => {
+  const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
+  assert.match(css, /html\\[data-theme="light"\\] body #page p[\\s\\S]*?background-color:#f7f9f1 !important/);
+  assert.match(css, /html\\[data-theme="light"\\] body #auth \\.book-subtitle[\\s\\S]*?background-color:#f8f8ee !important/);
+});
 
 test("вход и регистрация занимают страницы 1 и 2 на всех размерах", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
@@ -344,16 +365,22 @@ test("вход и регистрация занимают страницы 1 и 
   assert.match(css, /@media \(max-width:620px\)/);
 });
 
-test("авторизация использует нативный системный курсор во всех полях", () => {
+test("курсор underscore следует за реальной кареткой во всех полях авторизации", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
   assert.equal((html.match(/С Возвращением,/g) || []).length, 1);
-  assert.match(html, /class="mc-input-shell"/);
-  assert.doesNotMatch(app, /installMinecraftBookCursors|mc-writing-cursor|cursor\.textContent\s*=\s*"_"/);
-  assert.match(css, /caret-color:#405640 !important/);
-  assert.match(css, /caret-color:#eef4e9 !important/);
-  assert.doesNotMatch(css, /mc-writing-cursor|mc-caret-measure|mc-caret-marker/);
+  assert.match(html, /id="regForm"/);
+  assert.match(html, /id="codeForm"/);
+  assert.match(app, /function installMinecraftBookCursors\(\)/);
+  assert.match(app, /#authBook \\.mc-input-shell input/);
+  assert.match(app, /cursor\\.textContent = "_"/);
+  assert.match(app, /marker\\.getBoundingClientRect\\(\\)/);
+  assert.match(app, /document\\.body\\.append\\(mirror, cursor\\)/);
+  assert.match(app, /document\\.addEventListener\\("selectionchange", updateSelection\\)/);
+  assert.match(css, /\\.mc-writing-cursor/);
+  assert.match(css, /\\.mc-caret-measure/);
+  assert.match(css, /caret-color:transparent !important/);
 });
 test("восстановление пароля проходит через письмо Supabase и recovery token", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
@@ -543,17 +570,19 @@ test("переключение входа и регистрации перели
   assert.match(css, /#auth \.book-page::before[\s\S]*?display:none !important/);
 });
 
-test("регистрационная форма не создаёт собственный underscore поверх курсора браузера", () => {
+test("underscore отображается и в форме регистрации, и в поле восьмизначного кода", () => {
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
-  assert.doesNotMatch(app, /installMinecraftBookCursors|mc-writing-cursor|mc-caret-measure|cursor\.textContent\s*=\s*"_"/);
-  assert.doesNotMatch(css, /mc-writing-cursor|mc-caret-measure|mc-caret-marker|caret-color:\s*transparent/);
-  assert.match(css, /#auth #codeForm input#code/);
+  assert.match(app, /document\\.querySelectorAll\\("#authBook \\.mc-input-shell input"\\)/);
+  assert.match(app, /input\\.type === "password"[\\s\\S]*?repeat\\(input\\.value\\.length\\)/);
+  assert.match(app, /cursor\\.textContent = "_"/);
+  assert.match(css, /html body #auth #codeForm input#code/);
+  assert.match(css, /html body \\.mc-writing-cursor\\[hidden\\]/);
   assert.match(app, /Этот код уже использован, заменён новым или истёк/);
-  assert.match(app, /el\("code"\)\.value = ""/);
-  assert.match(app, /button\.disabled = true/);
+  assert.match(app, /el\\("code"\\)\\.value = ""/);
   assert.match(html, /id="regForm"/);
+  assert.match(html, /id="codeForm"/);
 });
 test("email confirmation accepts the eight-digit OTP configured in Supabase", () => {
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
@@ -562,7 +591,7 @@ test("email confirmation accepts the eight-digit OTP configured in Supabase", ()
   assert.match(app, /\[0-9\]\{8\}/);
   assert.match(html, /id="code"[^>]*maxlength="8" pattern="\[0-9\]\{8\}"/);
   assert.match(html, /восьмизначный код/);
-  assert.ok(html.includes("js/app.js?v=177"));
+  assert.ok(html.includes("js/app.js?v=178"));
 });
 
 

@@ -39,6 +39,167 @@ function msg(text) {
   msg.timer = setTimeout(() => toast.classList.remove("is-visible"), 2600);
 }
 
+function installMinecraftBookCursors() {
+  if (window.__scrlTestMode || !document.body || !document.querySelectorAll) return;
+
+  document.querySelectorAll("#authBook .mc-input-shell input").forEach(input => {
+    const shell = input.parentElement;
+    if (!shell || shell.dataset.mcCaretReady === "true") return;
+    shell.dataset.mcCaretReady = "true";
+
+    const mirror = document.createElement("div");
+    mirror.className = "mc-caret-measure";
+    mirror.setAttribute("aria-hidden", "true");
+
+    const marker = document.createElement("span");
+    marker.className = "mc-caret-marker";
+    marker.setAttribute("aria-hidden", "true");
+
+    const cursor = document.createElement("span");
+    cursor.className = "mc-writing-cursor";
+    cursor.textContent = "_";
+    cursor.setAttribute("aria-hidden", "true");
+    cursor.hidden = true;
+
+    document.body.append(mirror, cursor);
+
+    const px = value => {
+      const parsed = Number.parseFloat(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+
+    const updateCursor = () => {
+      if (document.activeElement !== input) {
+        cursor.hidden = true;
+        shell.classList.remove("is-typing");
+        return;
+      }
+
+      const start = typeof input.selectionStart === "number" ? input.selectionStart : input.value.length;
+      const end = typeof input.selectionEnd === "number" ? input.selectionEnd : start;
+      if (start !== end) {
+        cursor.hidden = true;
+        return;
+      }
+
+      const style = window.getComputedStyle(input);
+      const inputRect = input.getBoundingClientRect();
+      const scaleX = input.offsetWidth > 0 ? inputRect.width / input.offsetWidth : 1;
+      const scaleY = input.offsetHeight > 0 ? inputRect.height / input.offsetHeight : 1;
+      const borderLeft = px(style.borderLeftWidth) * scaleX;
+      const borderRight = px(style.borderRightWidth) * scaleX;
+      const borderTop = px(style.borderTopWidth) * scaleY;
+      const borderBottom = px(style.borderBottomWidth) * scaleY;
+      const paddingLeft = px(style.paddingLeft) * scaleX;
+      const paddingRight = px(style.paddingRight) * scaleX;
+      const paddingTop = px(style.paddingTop) * scaleY;
+      const paddingBottom = px(style.paddingBottom) * scaleY;
+      const fontSize = px(style.fontSize) * scaleX || 16;
+      const parsedLineHeight = style.lineHeight === "normal" ? NaN : px(style.lineHeight) * scaleY;
+      const lineHeight = Number.isFinite(parsedLineHeight) && parsedLineHeight > 0
+        ? parsedLineHeight
+        : fontSize * 1.25;
+
+      // A fixed-position mirror uses the browser's text layout with the exact
+      // input font, spacing, padding, alignment, direction and current scroll.
+      // Both marker and underscore are measured in viewport coordinates, so
+      // 3D page flips, responsive sizing and centered OTP text are accounted for.
+      mirror.style.position = "fixed";
+      mirror.style.display = "block";
+      mirror.style.boxSizing = "border-box";
+      mirror.style.left = (inputRect.left + borderLeft) + "px";
+      mirror.style.top = (inputRect.top + borderTop) + "px";
+      mirror.style.width = Math.max(0, inputRect.width - borderLeft - borderRight) + "px";
+      mirror.style.height = Math.max(0, inputRect.height - borderTop - borderBottom) + "px";
+      mirror.style.padding = [
+        paddingTop + "px",
+        paddingRight + "px",
+        paddingBottom + "px",
+        paddingLeft + "px"
+      ].join(" ");
+      mirror.style.border = "0";
+      mirror.style.margin = "0";
+      mirror.style.fontFamily = style.fontFamily;
+      mirror.style.fontSize = fontSize + "px";
+      mirror.style.fontWeight = style.fontWeight;
+      mirror.style.fontStyle = style.fontStyle;
+      mirror.style.fontVariant = style.fontVariant;
+      mirror.style.fontStretch = style.fontStretch;
+      mirror.style.fontKerning = style.fontKerning;
+      mirror.style.fontFeatureSettings = style.fontFeatureSettings;
+      mirror.style.fontVariationSettings = style.fontVariationSettings;
+      mirror.style.lineHeight = lineHeight + "px";
+      mirror.style.letterSpacing = (px(style.letterSpacing) * scaleX) + "px";
+      mirror.style.wordSpacing = (px(style.wordSpacing) * scaleX) + "px";
+      mirror.style.textAlign = style.textAlign;
+      mirror.style.textIndent = (px(style.textIndent) * scaleX) + "px";
+      mirror.style.textTransform = style.textTransform;
+      mirror.style.direction = style.direction;
+      mirror.style.unicodeBidi = style.unicodeBidi;
+      mirror.style.writingMode = style.writingMode;
+      mirror.style.textRendering = style.textRendering;
+      mirror.style.whiteSpace = "pre";
+      mirror.style.overflow = "hidden";
+      mirror.scrollLeft = input.scrollLeft * scaleX;
+      mirror.scrollTop = input.scrollTop * scaleY;
+
+      const visibleValue = input.type === "password"
+        ? "•".repeat(input.value.length)
+        : input.value;
+      mirror.replaceChildren(
+        document.createTextNode(visibleValue.slice(0, start)),
+        marker,
+        document.createTextNode(visibleValue.slice(start))
+      );
+
+      const markerRect = marker.getBoundingClientRect();
+      cursor.style.position = "fixed";
+      cursor.style.left = markerRect.left + "px";
+      cursor.style.top = markerRect.top + "px";
+      cursor.style.fontFamily = style.fontFamily;
+      cursor.style.fontSize = fontSize + "px";
+      cursor.style.fontWeight = style.fontWeight;
+      cursor.style.fontStyle = style.fontStyle;
+      cursor.style.lineHeight = lineHeight + "px";
+      cursor.style.letterSpacing = "0";
+      cursor.style.color = document.documentElement.dataset.theme === "dark" ? "#edf4e9" : "#344b36";
+      cursor.hidden = false;
+      shell.classList.add("is-typing");
+    };
+
+    let frame = 0;
+    const scheduleCursor = () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      if (typeof window.requestAnimationFrame === "function") {
+        frame = window.requestAnimationFrame(() => {
+          frame = 0;
+          updateCursor();
+        });
+      } else {
+        updateCursor();
+      }
+    };
+    const updateSelection = () => {
+      if (document.activeElement === input) scheduleCursor();
+    };
+
+    input.addEventListener("focus", scheduleCursor);
+    input.addEventListener("blur", () => {
+      cursor.hidden = true;
+      shell.classList.remove("is-typing");
+    });
+    ["input", "keyup", "click", "select", "scroll", "change", "compositionend", "pointerup", "touchend"].forEach(name => {
+      input.addEventListener(name, scheduleCursor);
+    });
+    input.addEventListener("keydown", scheduleCursor);
+    shell.addEventListener("transitionend", scheduleCursor);
+    document.addEventListener("selectionchange", updateSelection);
+    document.addEventListener("scroll", scheduleCursor, true);
+    window.addEventListener("resize", scheduleCursor);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(scheduleCursor);
+  });
+}
+
 function updateBookControls() {
   const book = el("authBook");
   if (!book) return;
@@ -2408,13 +2569,14 @@ function paintWorldTheme(theme) {
 
   [el("themeBtn"), el("authThemeBtn")].forEach(button => {
     if (!button) return;
-    button.textContent = normalized === "dark" ? "☀ Светлая тема" : "☾ Тёмная тема";
-    button.setAttribute("aria-label", normalized === "dark" ? "Включить светлую тему" : "Включить тёмную тему");
-    button.title = normalized === "dark" ? "Светлая тема" : "Тёмная тема";
+    button.setAttribute("role", "switch");
+    button.setAttribute("aria-checked", String(normalized === "dark"));
+    button.setAttribute("aria-label", "Тёмная тема");
+    button.title = normalized === "dark" ? "Переключить на светлую тему" : "Переключить на тёмную тему";
   });
 
   const meta = document.querySelector && document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", normalized === "dark" ? "#101820" : "#9ab99b");
+  if (meta) meta.setAttribute("content", normalized === "dark" ? "#0b110d" : "#e8eee4");
 }
 
 function applyTheme() {
@@ -2697,6 +2859,7 @@ if (authBook && !window.__scrlTestMode) {
     }
     updateBookControls();
   });
+  installMinecraftBookCursors();
 }
 startPasswordRecoveryFromUrl();
 

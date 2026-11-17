@@ -12,11 +12,11 @@
   <link rel="preload" href="assets/MinecraftRus.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/backgrounds/day.png" as="image" fetchpriority="high">
   <link rel="preload" href="assets/backgrounds/night.png" as="image" fetchpriority="low">
-  <link rel="stylesheet" href="css/style.css?v=172">
+  <link rel="stylesheet" href="css/style.css?v=173">
   <script src="js/config.js" defer></script>
   <script src="js/core.js" defer></script>
   <script src="js/backend.js?v=156" defer></script>
-  <script src="js/app.js?v=177" defer></script>
+  <script src="js/app.js?v=178" defer></script>
 </head>
 <body>
   <div id="worldScenery" class="world-scenery" aria-hidden="true">
@@ -24,7 +24,7 @@
     <div class="world-layer world-layer--surface"></div>
   </div>
   <main id="auth" class="auth-screen">
-    <button id="authThemeBtn" class="auth-theme-btn" type="button" aria-label="Переключить мир">☾ Тёмная тема</button>
+    <button id="authThemeBtn" class="auth-theme-btn theme-switch" type="button" role="switch" aria-checked="false" aria-label="Тёмная тема" title="Переключить на тёмную тему"><span class="theme-switch-track" aria-hidden="true"><span class="theme-switch-icon theme-switch-icon--light">☀</span><span class="theme-switch-icon theme-switch-icon--dark">☾</span><span class="theme-switch-thumb"></span></span></button>
     <div class="auth-stage">
       <section class="auth-book" id="authBook" aria-label="Книга входа и регистрации">
         <div class="book-page-stack" aria-hidden="true"></div>
@@ -147,7 +147,7 @@
             <span class="balance-group balance-group--vrub"><small>V-RUB</small><strong id="topbarVrubBalance">0</strong></span>
           </button>
           <div class="topbar-user">
-            <button id="themeBtn" class="theme-btn" type="button">☾ Тёмная тема</button>
+            <button id="themeBtn" class="theme-btn theme-switch" type="button" role="switch" aria-checked="false" aria-label="Тёмная тема" title="Переключить на тёмную тему"><span class="theme-switch-track" aria-hidden="true"><span class="theme-switch-icon theme-switch-icon--light">☀</span><span class="theme-switch-icon theme-switch-icon--dark">☾</span><span class="theme-switch-thumb"></span></span></button>
             <span id="avatar" class="user-avatar">Г</span>
             <span id="userName" class="user-name">Гость</span>
             <button id="logout" class="logout-button" type="button" aria-label="Выйти из аккаунта" title="Выйти из аккаунта">Выйти</button>
