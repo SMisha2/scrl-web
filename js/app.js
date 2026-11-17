@@ -2295,11 +2295,21 @@ async function actionRemote(btn) {
     if (!["approve", "reject"].includes(decision)) throw new Error("Некорректное решение.");
     const target = (data.exchangeConsentRequests || []).find(item => String(item.user_id) === String(id));
     if (!target) throw new Error("Заявка уже обработана или не найдена.");
-    const question = decision === "approve"
-      ? "Подтверждаешь, что лично удостоверился в согласии родителя или законного представителя " + (target.full_name || "участника") + "?"
-      : "Отклонить заявку на доступ к бирже для " + (target.full_name || "участника") + "?";
-    if (!confirm(question)) return;
-    await backend.reviewExchangeParentConsent(id, decision);
+    let verificationNote = "";
+    if (decision === "approve") {
+      const enteredNote = prompt(
+        "Укажи, как именно проверено согласие родителя или законного представителя. Например: личное подтверждение или официальный школьный канал. Не записывай ФИО, телефоны, email и другие личные данные."
+      );
+      if (enteredNote === null) return;
+      verificationNote = String(enteredNote).trim();
+      if (verificationNote.length < 5 || verificationNote.length > 300) {
+        throw new Error("Опиши способ проверки (от 5 до 300 символов), не указывая личные данные.");
+      }
+      if (!confirm("Подтвердить, что согласие проверено указанным способом, и открыть доступ к бирже?")) return;
+    } else if (!confirm("Отклонить заявку на доступ к бирже для " + (target.full_name || "участника") + "?")) {
+      return;
+    }
+    await backend.reviewExchangeParentConsent(id, decision, verificationNote);
     await refreshRemoteData();
     setPage("admin");
     msg(decision === "approve" ? "Родительское согласие подтверждено. Доступ к бирже открыт." : "Заявка отклонена.");
