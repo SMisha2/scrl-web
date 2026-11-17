@@ -24,7 +24,8 @@ if (!window.__scrlTestMode && typeof navigator !== "undefined" &&
   navigator.serviceWorker.register(serviceWorkerUrl)
     .catch(error => console.warn("ScRl: не удалось зарегистрировать кэш фона.", error));
 }
-const CONSENT_POLICY_VERSION = "2026-11-17-v1";
+const PERSONAL_DATA_CONSENT_VERSION = "2026-11-17-v1";
+const AI_MODERATION_CONSENT_VERSION = "2026-11-17-v2";
 const key = "scrlDemo3";
 let pending = null;
 let filter = { term: "", type: "all" };
@@ -2458,7 +2459,7 @@ async function submitRemote(form) {
     if (!personalConsent || !aiConsent) throw new Error("Нужно принять оба отдельных согласия.");
     await backend.saveSafetyData({
       birthDate, personalConsent, aiConsent,
-      personalVersion: CONSENT_POLICY_VERSION, aiVersion: CONSENT_POLICY_VERSION
+      personalVersion: PERSONAL_DATA_CONSENT_VERSION, aiVersion: AI_MODERATION_CONSENT_VERSION
     });
     await refreshRemoteData();
     setPage("home");
@@ -3024,8 +3025,8 @@ codeForm.addEventListener("submit", async event => {
         birthDate: registration.birthDate,
         personalConsent: registration.personalConsent === true,
         aiConsent: registration.aiConsent === true,
-        personalVersion: CONSENT_POLICY_VERSION,
-        aiVersion: CONSENT_POLICY_VERSION
+        personalVersion: PERSONAL_DATA_CONSENT_VERSION,
+        aiVersion: AI_MODERATION_CONSENT_VERSION
       });
       msg("Почта подтверждена, согласия сохранены. Теперь войди по email и паролю.");
     } catch (profileError) {
