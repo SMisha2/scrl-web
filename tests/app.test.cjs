@@ -310,7 +310,7 @@ test("светлые поля привязаны напрямую к data-theme=
   assert.ok(css.includes('html[data-theme="light"] body textarea'));
   assert.ok(css.includes('border: 4px solid #111111 !important'));
   assert.ok(css.includes('background-color: #c4c4c4 !important'));
-  assert.ok(html.includes('css/style.css?v=166'));
+  assert.ok(html.includes('css/style.css?v=167'));
 });
 
 
@@ -425,7 +425,7 @@ test("uploaded day/night photos are rendered smoothly, not pixelated", () => {
   assert.match(tail, /transform: none !important/);
   assert.match(tail, /background-size: cover !important/);
   assert.match(tail, /transition: opacity 1\.15s ease !important/);
-  assert.ok(html.includes('css/style.css?v=166'));
+  assert.ok(html.includes('css/style.css?v=167'));
 });
 
 
@@ -765,7 +765,7 @@ test("фоновая сцена кэшируется service worker для по�
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const worker = fs.readFileSync(path.join(__dirname, "../sw.js"), "utf8");
   assert.match(app, /navigator\.serviceWorker\.register\(new URL\("\.\/sw\.js", document\.baseURI\)/);
-  assert.match(worker, /scrl-world-backgrounds-v2/);
+  assert.match(worker, /scrl-world-backgrounds-v3/);
   assert.match(worker, /night\.png/);
   assert.match(worker, /day\.png/);
   assert.match(worker, /cache\.match\(request, \{ ignoreSearch: true \}\)/);
@@ -776,4 +776,12 @@ test("small metadata text and logo/coin alignment overrides are present", () => 
   assert.match(css, /#page \.small[\s\S]*?font-size:14px !important/);
   assert.match(css, /\.brand-logo-frame[\s\S]*?place-items:center !important/);
   assert.match(css, /\.currency-coin-frame[\s\S]*?align-self:center !important/);
+});
+
+
+test("mobile flex bases match the smaller logo and coin frames", () => {
+  const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
+  const tail = css.slice(css.lastIndexOf("Keep flex bases in sync"));
+  assert.match(tail, /brand-logo-frame[\s\S]*?flex-basis:40px !important/);
+  assert.match(tail, /currency-coin-frame[\s\S]*?flex-basis:24px !important/);
 });
