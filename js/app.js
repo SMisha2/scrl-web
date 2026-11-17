@@ -922,7 +922,7 @@ function privacyPage() {
     '<form id="privacyConsentForm" class="demo-form consent-form">' +
     '<label for="privacyBirthDate">Дата рождения</label><input id="privacyBirthDate" name="birthDate" type="date" max="' + today + '" value="' + safe(birthDate) + '"' + (birthDate ? ' readonly aria-readonly="true"' : "") + ' required>' +
     '<label class="consent-check"><input type="checkbox" name="personalConsent" value="yes"' + personalChecked + ' required><span>Согласен(на) на обработку персональных данных для работы ScRl, безопасности, поддержки и рассмотрения споров.</span></label>' +
-    '<label class="consent-check"><input type="checkbox" name="aiConsent" value="yes"' + aiChecked + ' required><span>Отдельно соглашаюсь на автоматическую проверку пользовательских текстов средствами ИИ с возможной передачей текста внешнему поставщику Groq.</span></label>' +
+    '<label class="consent-check"><input type="checkbox" name="aiConsent" value="yes"' + aiChecked + ' required><span>Отдельно соглашаюсь на ИИ-модерацию публикаций, услуг, аукционов, сообщений, отзывов, жалоб, профиля и других материалов ScRl с возможной передачей соответствующих текстов Groq.</span></label>' +
     '<button class="button button-primary" type="submit">Сохранить согласия</button></form>';
 }
 
