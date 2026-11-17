@@ -1095,7 +1095,7 @@ test("toolbar uses a uniform grey achievement frame and the profile shortcut ope
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   assert.match(html, /id="profileShortcut"[\s\S]*id="avatar"[\s\S]*id="userName"/);
-  assert.match(app, /profileShortcut\)\.addEventListener\("click", \(\) => setPage\("profile"\)\)/);
+  assert.ok(app.includes('if (el("profileShortcut")) el("profileShortcut").addEventListener("click", () => setPage("profile"));'));
   assert.match(css, /--scrl-achievement-fill:#c6c6c6/);
   assert.match(css, /topbar \.main-nav \.nav-tab\.is-active/);
   assert.match(css, /topbar \.topbar-profile/);
