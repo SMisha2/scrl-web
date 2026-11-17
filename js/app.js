@@ -2055,17 +2055,6 @@ function action(btn) {
     save(); setPage("admin"); msg("Аккаунт удалён, история обезличена.");
     return;
   }
-  if (type === "deleteuser") {
-    if (me().role !== "admin") throw new Error("Нет доступа.");
-    const target = getUser(id);
-    if (!target || target.deleted || target.id === me().id || target.role === "admin") throw new Error("Этот аккаунт нельзя удалить.");
-    if (!confirm("Окончательно удалить аккаунт " + target.name + "? Он потеряет возможность входа. Личные данные будут удалены или обезличены, финансовый журнал сохранится без идентифицирующих заметок.")) return;
-    await backend.adminDeleteUser(id);
-    await refreshRemoteData();
-    setPage("admin");
-    msg("Аккаунт удалён. Финансовая история обезличена.");
-    return;
-  }
   if (type === "removeuser") {
     if (me().role !== "admin") throw new Error("Нет доступа.");
     const u = getUser(id);
@@ -2247,6 +2236,17 @@ async function actionRemote(btn) {
     await refreshRemoteData();
     setPage("admin");
     msg("Класс участника обновлён.");
+    return;
+  }
+  if (type === "deleteuser") {
+    if (me().role !== "admin") throw new Error("Нет доступа.");
+    const target = getUser(id);
+    if (!target || target.deleted || target.id === me().id || target.role === "admin") throw new Error("Этот аккаунт нельзя удалить.");
+    if (!confirm("Окончательно удалить аккаунт " + target.name + "? Он потеряет возможность входа. Личные данные будут удалены или обезличены, финансовый журнал сохранится без идентифицирующих заметок.")) return;
+    await backend.adminDeleteUser(id);
+    await refreshRemoteData();
+    setPage("admin");
+    msg("Аккаунт удалён. Финансовая история обезличена.");
     return;
   }
   if (type === "removeuser") {
