@@ -212,7 +212,6 @@
       ["wallets", "select=user_id,scrl,vrub,hold_scrl,hold_vrub"],
       ["ledger", "select=id,user_id,currency,delta,note,created_at&order=created_at.desc&limit=1000"],
       ["posts", "select=*&order=created_at.desc&limit=1000"],
-      ["listings", "select=*&order=created_at.desc&limit=1000"],
       ["deals", "select=*&order=created_at.desc&limit=1000"],
       ["deal_messages", "select=*&order=created_at.asc&limit=2000"],
       ["exchange_orders", "select=*&order=created_at.desc&limit=1000"],
@@ -292,11 +291,7 @@
         category: row.category, price: Number(row.price), user: row.owner_id,
         status: row.status, date: time(row.created_at)
       })),
-      listings: rows.listings.map(row => ({
-        id: row.id, title: row.title, desc: row.description, category: row.category,
-        price: Number(row.price), user: row.owner_id, slots: Number(row.slots),
-        status: row.status, date: time(row.created_at)
-      })),
+      listings: [],
       deals: rows.deals.map(row => ({
         id: row.id, title: row.title, buyer: row.buyer_id, seller: row.seller_id,
         amount: Number(row.amount), escrow: Number(row.escrow), from: row.source,
