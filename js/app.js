@@ -365,6 +365,7 @@ function change(id, currency, amount, note) {
   if (remoteReady && !window.__scrlTestMode) throw new Error("Баланс изменяется только через защищённые серверные операции.");
   const user = getUser(id);
   if (!user) throw new Error("Участник не найден.");
+  if (currency !== "ScRl" && currency !== "V-RUB") throw new Error("Неизвестная валюта.");
   const field = currency === "ScRl" ? "scrl" : "vrub";
   const value = Number(amount);
   if (!Number.isFinite(value)) throw new Error("Некорректная сумма.");
@@ -510,9 +511,9 @@ function showBanAppeal() {
   updateBookControls();
 }
 
-async function enterRemote(name, mail, token, id) {
+async function enterRemote(name, mail, token, id, refreshToken = "") {
   resetAdminPreviewRole();
-  const session = { id, name: name || "Участник", mail: mail || "", token, guest: false };
+  const session = { id, name: name || "Участник", mail: mail || "", token, refreshToken, guest: false };
   sessionStorage.setItem("scrlSession", JSON.stringify(session));
   remoteReady = false;
   try {
@@ -530,6 +531,11 @@ async function enterRemote(name, mail, token, id) {
 
     const user = getUser(id);
     if (!user) throw new Error("Профиль не найден в общей базе. Повтори вход.");
+    const latestSession = sess();
+    if (latestSession?.id === id) {
+      session.token = latestSession.token || session.token;
+      session.refreshToken = latestSession.refreshToken || session.refreshToken;
+    }
     session.name = user.name;
     sessionStorage.setItem("scrlSession", JSON.stringify(session));
     if (user.blocked) {
@@ -567,7 +573,7 @@ async function enterRemote(name, mail, token, id) {
   }
 }
 
-function enter(name, mail, token = "", guest = false, id = "") {
+function enter(name, mail, token = "", guest = false, id = "", refreshToken = "") {
   if (window.__scrlTestMode) return enterLocal(name, mail, token, guest, id);
   if (guest || !token || !id) {
     sessionStorage.removeItem("scrlSession");
@@ -576,7 +582,7 @@ function enter(name, mail, token = "", guest = false, id = "") {
     app.hidden = true;
     return;
   }
-  return enterRemote(name, mail, token, id);
+  return enterRemote(name, mail, token, id, refreshToken);
 }
 
 function leave() {
@@ -943,18 +949,23 @@ function profilePage() {
     ? '<section class="account-danger"><h2>Удаление аккаунта</h2><p>Каждый зарегистрированный участник — ученик, учитель или администратор — может удалить свой аккаунт. Действие необратимо: профиль будет обезличен, публикации и личные сообщения удалены, финансовая история сохранена без персональных данных. Остатки ScRl и V-RUB после удаления недоступны. Перед удалением заверши активные сделки, заявки на бирже, аукционы и освободи все резервы.</p><form id="deleteAccountForm" class="demo-form account-delete-form"><label for="deleteAccountConfirm">Введи слово УДАЛИТЬ для подтверждения</label><input id="deleteAccountConfirm" name="confirmation" maxlength="7" autocomplete="off" required><button class="button button-danger" type="submit">Удалить аккаунт окончательно</button></form></section>'
     : '<section class="account-danger"><h2>Удаление аккаунта</h2><p>Удаление доступно только после входа в зарегистрированный аккаунт. В демо-режиме действие отключено.</p></section>';
   return '<p class="eyebrow">АККАУНТ</p><h1>Профиль</h1><div class="demo-stats"><div class="demo-stat"><span>Отзывы</span><b>' + reviews.length + '</b></div><div class="demo-stat"><span>Средняя оценка</span><b>' + avg + '</b></div></div>' +
-    '<form id="profileForm" class="demo-form"><h2>Мои данные</h2><label>ФИО</label><input name="name" maxlength="100" value="' + safe(user.name) + '" required><label>Email</label><input value="' + safe(user.mail || "Email скрыт для других участников") + '" disabled><label>Класс</label><input name="room" maxlength="12" value="' + safe(user.room || "") + '"' + (user.role === "teacher" && !isAdminAccount() ? ' disabled title="Класс меняет администратор"' : "") + '>' +
+    '<form id="profileForm" class="demo-form"><h2>Мои данные</h2><label>ФИО</label><input name="name" maxlength="100" value="' + safe(user.name) + '" required><label>Email</label><input value="' + safe(user.mail || "Email скрыт для других участников") + '" disabled><label>Класс</label><input name="room" maxlength="12" value="' + safe(user.room || "") + '"' + (!isAdminAccount() ? ' readonly aria-readonly="true" title="Класс меняет администратор"' : "") + '>' +
+    (!isAdminAccount() ? '<p class="small muted">Класс меняет администратор.</p>' : '') +
     roleChoice + '<button class="button button-primary" type="submit">Сохранить</button></form>' +
     deleteSection +
     '<h2>Мои отзывы</h2><div class="data-list">' + (reviews.map(r => '<div class="data-row"><span>' + safe(r.text || "Без текста") + '<small>' + r.rating + ' из 5 · ' + safe(userName(r.user)) + '</small></span></div>').join("") || '<p class="muted">Отзывов пока нет.</p>') + '</div>';
 }
 
 
-function weekKey() {
-  const d = new Date();
-  const start = new Date(d);
-  start.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-  return start.toISOString().slice(0, 10);
+function weekKey(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Europe/Warsaw", year: "numeric", month: "2-digit", day: "2-digit"
+  }).formatToParts(now);
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  const localDate = new Date(Date.UTC(Number(values.year), Number(values.month) - 1, Number(values.day)));
+  const weekday = localDate.getUTCDay() || 7;
+  localDate.setUTCDate(localDate.getUTCDate() - weekday + 1);
+  return localDate.toISOString().slice(0, 10);
 }
 
 function financePage() {
@@ -1103,9 +1114,9 @@ function adminPage() {
     (adminFilter.locked === "all" || (adminFilter.locked === "yes" ? u.blocked : !u.blocked)) &&
     [u.name, u.mail, u.room].join(" ").toLowerCase().includes(search)
   );
-  const users = people.map(u => '<div class="data-row"><span><b>' + safe(u.name) + '</b><small>' + safe(u.mail || "Email скрыт в общем списке") + ' · ' + safe(u.room || "Без класса") + ' · ' + roleName(u.role) + (u.blocked ? ' · Заблокирован: ' + safe(u.blockReason || "без причины") : '') + '</small></span>' +
-    '<span class="actions">' + (u.role !== "admin" ? '<button class="text-button" data-do="block" data-id="' + u.id + '">' + (u.blocked ? "Разблокировать" : "Заблокировать") + '</button><button class="text-button" data-do="promote" data-id="' + u.id + '">' + (u.role === "teacher" ? "Сделать учеником" : "Назначить учителем") + '</button>' : '<span class="small muted">Администратор</span>') +
-    (u.id !== user.id && u.role !== "admin" && !u.name.includes("Удалённый") ? '<button class="text-button" data-do="removeuser" data-id="' + u.id + '">Обезличить</button>' : '') + '</span></div>'
+  const users = people.map(u => '<div class="data-row"><span><b>' + safe(u.name) + '</b><small>' + safe(u.mail || "Email скрыт в общем списке") + ' · ' + safe(u.room || "Без класса") + ' · ' + roleName(u.role) + (u.deleted ? ' · Удалён' : u.blocked ? ' · Заблокирован' : '') + '</small></span>' +
+    '<span class="actions">' + (u.role !== "admin" && !u.deleted ? '<button class="text-button" data-do="block" data-id="' + u.id + '">' + (u.blocked ? "Разблокировать" : "Заблокировать") + '</button><button class="text-button" data-do="promote" data-id="' + u.id + '">' + (u.role === "teacher" ? "Сделать учеником" : "Назначить учителем") + '</button><button class="text-button" data-do="set-room" data-id="' + u.id + '">Класс</button>' : '<span class="small muted">' + (u.deleted ? "Удалённый профиль" : "Администратор") + '</span>') +
+    (u.id !== user.id && u.role !== "admin" && !u.deleted && !u.name.includes("Удалённый") ? '<button class="text-button" data-do="removeuser" data-id="' + u.id + '">Обезличить</button>' : '') + '</span></div>'
   ).join("");
   const queue = reports.map(r => {
     if (r.kind === "deal") return '<div class="data-row"><span><b>' + safe(r.reason) + '</b><small>Спор · ' + new Date(r.date).toLocaleString("ru-RU") + '</small></span><span class="actions"><button class="text-button" data-do="refunddeal" data-id="' + r.id + '">Вернуть</button><button class="text-button" data-do="paydeal" data-id="' + r.id + '">Выплатить</button><button class="text-button" data-do="splitdeal" data-id="' + r.id + '">50/50</button></span></div>';
@@ -1760,16 +1771,30 @@ function action(btn) {
     if (u && u.id !== me().id && u.role !== "admin") {
       if (u.role === "teacher") {
         u.role = "student";
+        u.room = "";
       } else {
-        const room = prompt("Введи класс для учителя " + u.name + ":");
-        if (!room || !room.trim()) throw new Error("Для учителя нужно указать класс.");
-        u.room = room.trim().slice(0, 12);
+        const room = prompt("Введи класс для учителя " + u.name + ":", u.room || "");
+        if (room === null) return;
+        if (!room.trim() || room.trim().length > 12) throw new Error("Класс должен содержать от 1 до 12 символов.");
+        u.room = room.trim();
         u.role = "teacher";
       }
       data.audit.unshift({ id: uid(), user: me().id, text: "Изменена роль: " + u.name + " → " + roleName(u.role) + (u.role === "teacher" ? " · " + u.room : ""), date: Date.now() });
       save();
       setPage("admin");
     }
+  }
+  if (type === "set-room") {
+    if (me().role !== "admin") throw new Error("Нет доступа.");
+    const u = getUser(id);
+    if (!u || u.deleted || !["student","teacher"].includes(u.role)) throw new Error("Для этого участника нельзя изменить класс.");
+    const room = prompt("Класс участника " + u.name + ":", u.room || "");
+    if (room === null) return;
+    if (!room.trim() || room.trim().length > 12) throw new Error("Класс должен содержать от 1 до 12 символов.");
+    u.room = room.trim();
+    data.audit.unshift({ id: uid(), user: me().id, text: "Изменён класс участника " + u.name + ": " + u.room, date: Date.now() });
+    save();
+    setPage("admin");
   }
   if (type === "refunddeal" || type === "paydeal" || type === "splitdeal") {
     if (me().role !== "admin") throw new Error("Нет доступа.");
@@ -1936,17 +1961,36 @@ async function actionRemote(btn) {
   if (type === "promote") {
     if (me().role !== "admin") throw new Error("Нет доступа.");
     const target = getUser(id);
-    if (!target) throw new Error("Участник не найден.");
+    if (!target || target.deleted) throw new Error("Участник не найден или аккаунт удалён.");
     let actionName = "teacher";
     let room = "";
     if (target.role === "teacher") actionName = "student";
     else {
-      room = prompt("Введи класс для учителя " + target.name + ":");
-      if (!room || !room.trim()) throw new Error("Для учителя нужно указать класс.");
+      room = prompt("Введи класс для учителя " + target.name + ":", target.room || "");
+      if (room === null) return;
+      if (!room.trim() || room.trim().length > 12) throw new Error("Класс должен содержать от 1 до 12 символов.");
     }
     await backend.adminSetUser(id, actionName, "", room.trim());
     await refreshRemoteData();
     setPage("admin");
+    return;
+  }
+  if (type === "set-room") {
+    if (me().role !== "admin") throw new Error("Нет доступа.");
+    const target = getUser(id);
+    if (!target || target.deleted || !["student","teacher"].includes(target.role)) {
+      throw new Error("Для этого участника нельзя изменить класс.");
+    }
+    const room = prompt("Класс участника " + target.name + ":", target.room || "");
+    if (room === null) return;
+    const normalizedRoom = room.trim();
+    if (!normalizedRoom || normalizedRoom.length > 12) {
+      throw new Error("Класс должен содержать от 1 до 12 символов.");
+    }
+    await backend.adminSetUser(id, "class", "", normalizedRoom);
+    await refreshRemoteData();
+    setPage("admin");
+    msg("Класс участника обновлён.");
     return;
   }
   if (type === "removeuser") {
@@ -2381,7 +2425,7 @@ loginFormConfigs.forEach(config => {
         password: passField.value
       });
       const name = result.user?.user_metadata?.full_name || result.user?.email || "Ученик";
-      await enter(name, result.user?.email || email, result.access_token || "", false, result.user.id);
+      await enter(name, result.user?.email || email, result.access_token || "", false, result.user.id, result.refresh_token || "");
     } catch (err) {
       const message = String(err.message || "");
       if (/email not confirmed/i.test(message)) {
@@ -2678,7 +2722,7 @@ el("page").addEventListener("submit", async event => {
 
 const oldSess = sess();
 if (oldSess) {
-  enter(oldSess.name || "Ученик", oldSess.mail || "", oldSess.token || "", oldSess.guest || false, oldSess.id || "");
+  enter(oldSess.name || "Ученик", oldSess.mail || "", oldSess.token || "", oldSess.guest || false, oldSess.id || "", oldSess.refreshToken || "");
 } else {
   auth.hidden = false;
   app.hidden = true;
