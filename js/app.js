@@ -2941,6 +2941,7 @@ startPasswordRecoveryFromUrl();
 
 document.querySelectorAll(".nav-tab").forEach(btn => btn.addEventListener("click", () => setPage(btn.dataset.page)));
 if (el("topbarBalance")) el("topbarBalance").addEventListener("click", () => setPage("wallet"));
+if (el("profileShortcut")) el("profileShortcut").addEventListener("click", () => setPage("profile"));
 el("logout").addEventListener("click", () => {
   if (window.confirm("Выйти из аккаунта ScRl?")) leave();
 });
