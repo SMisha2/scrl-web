@@ -599,7 +599,7 @@ test("email confirmation accepts the eight-digit OTP configured in Supabase", ()
   assert.match(app, /\[0-9\]\{8\}/);
   assert.match(html, /id="code"[^>]*maxlength="8" pattern="\[0-9\]\{8\}"/);
   assert.match(html, /восьмизначный код/);
-  assert.ok(html.includes("js/app.js?v=183"));
+  assert.ok(html.includes("js/app.js?v=184"));
 });
 
 
@@ -1077,4 +1077,14 @@ test("кнопка регистрации остаётся в потоке, а �
   assert.match(html, /class="reg-name-grid"[\s\S]*id="regLast"[\s\S]*id="regFirst"[\s\S]*id="regPat"/);
   assert.match(css, /#auth #regForm \.reg-name-grid[\s\S]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(css, /#bookSign\.book-action-button[\s\S]*position:static !important/);
+});
+
+
+test("desktop More popover uses fixed viewport positioning to escape nav overflow clipping", () => {
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  assert.match(app, /extraMenu\.style\.position = "fixed"/);
+  assert.match(app, /moreButton\.getBoundingClientRect\(\)/);
+  assert.match(app, /extraMenu\.style\.left/);
+  assert.match(app, /extraMenu\.style\.top/);
+  assert.match(app, /menu\.removeAttribute\("style"\)/);
 });
