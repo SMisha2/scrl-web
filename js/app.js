@@ -976,7 +976,7 @@ function walletPage() {
 
 function boardPage() {
   const rows = data.posts.filter(post =>
-    (post.status === "active" || (post.user === me().id && ["review", "hidden"].includes(post.status))) &&
+    (post.status === "active" || me().role === "admin" || (post.user === me().id && ["review", "hidden"].includes(post.status))) &&
     !getUser(post.user)?.blocked
   )
     .filter(post => filter.type === "all" || post.type === filter.type)
@@ -991,9 +991,10 @@ function boardPage() {
       return '<article class="demo-card"><div class="card-top"><span class="tag">' + (post.type === "need" ? "Мне нужно" : "Я могу") + '</span>' + moderationTag + '<span class="muted small">' + safe(userName(post.user)) + ' · ' + safe(post.category) + '</span></div>' +
         '<h2>' + safe(post.title) + '</h2><p class="muted">' + safe(post.desc) + '</p><div class="card-bottom"><b>' + (post.price ? money(post.price) + ' ScRl' : 'Бесплатно') + '</b>' +
         '<span class="actions"><button class="text-button" data-do="fav" data-kind="post" data-id="' + post.id + '">' + (fav ? "★ В избранном" : "☆ Избранное") + '</button>' +
-        (post.user === me().id ? '<button class="text-button" data-do="remove-post" data-id="' + post.id + '">Удалить</button>' :
-          '<details><summary class="text-button">Пожаловаться</summary><form class="msg-form" data-form="report" data-kind="post" data-id="' + post.id + '"><select name="reason"><option value="spam">Спам или обман</option><option value="unsafe">Опасное предложение</option><option value="privacy">Личные данные</option><option value="harassment">Оскорбления</option><option value="other">Другое</option></select><input name="details" maxlength="180" placeholder="Подробности (необязательно)"><button class="button button-secondary" type="submit">Отправить</button></form></details>' +
-          '<button class="text-button" data-do="reply" data-id="' + post.id + '">Откликнуться</button>') + '</span></div></article>';
+        (post.user === me().id || me().role === "admin"
+          ? '<button class="text-button admin-danger-action" data-do="' + (post.user === me().id ? "remove-post" : "admin-delete-publication") + '" data-kind="post" data-id="' + post.id + '">' + (post.user === me().id ? "Удалить" : "Удалить публикацию") + '</button>'
+          : '<details><summary class="text-button">Пожаловаться</summary><form class="msg-form" data-form="report" data-kind="post" data-id="' + post.id + '"><select name="reason"><option value="spam">Спам или обман</option><option value="unsafe">Опасное предложение</option><option value="privacy">Личные данные</option><option value="harassment">Оскорбления</option><option value="other">Другое</option></select><input name="details" maxlength="180" placeholder="Подробности (необязательно)"><button class="button button-secondary" type="submit">Отправить</button></form></details>') +
+        (post.user !== me().id && post.status === "active" ? '<button class="text-button" data-do="reply" data-id="' + post.id + '">Откликнуться</button>' : '') + '</span></div></article>';
     }).join("");
   const cats = data.posts.filter(p => p.user === me().id && p.type === "need").map(p => p.category);
   const matches = data.posts.filter(p => p.user !== me().id && p.type === "offer" && p.status === "active" && !getUser(p.user)?.blocked && cats.includes(p.category)).sort((a,b) => a.price-b.price).slice(0,3);
@@ -1366,6 +1367,15 @@ function adminPage() {
     return '<div class="data-row"><span><b>' + safe(r.reason) + '</b><small>' + safe(r.reasonCode || r.kind) + ' · ' + safe(r.details || "") + ' · ' + new Date(r.date).toLocaleString("ru-RU") + '</small></span>' +
       '<span class="actions"><button class="text-button" data-do="keep" data-id="' + r.id + '">Оставить</button><button class="text-button" data-do="hide" data-id="' + r.id + '">Скрыть</button></span></div>';
   }).join("");
+  const publicationRows = [
+    ...data.posts.map(post => ({ kind: "post", id: post.id, title: post.title, owner: post.user, status: post.status })),
+    ...(data.listings || []).map(item => ({ kind: "listing", id: item.id, title: item.title, owner: item.user, status: item.status }))
+  ].map(item =>
+    '<article class="data-row"><span><b>' + safe(item.title) + '</b><small>' +
+    (item.kind === "post" ? "Доска" : "Услуга") + ' · ' + safe(userName(item.owner)) + ' · ' + safe(item.status || "без статуса") +
+    '</small></span><button class="text-button admin-danger-action" data-do="admin-delete-publication" data-kind="' + item.kind +
+    '" data-id="' + safe(item.id) + '">Удалить</button></article>'
+  ).join("");
   const aiCases = (data.moderation?.adminCases || []).map(item =>
     '<article class="data-row"><span><b>' + safe(item.user) + ' · ' + safe(item.kind) + ' · ' + safe(item.decision) + '</b><small>' +
     safe((item.categories || []).join(", ")) + ' · уверенность ' + Math.round(Number(item.confidence || 0) * 100) + '% · ' +
@@ -1403,6 +1413,8 @@ function adminPage() {
     '<details class="admin-section admin-section--members" open><summary><span>Участники</span><small>' + people.length + ' · поиск, роли и доступ</small></summary><div class="admin-section-body">' +
     '<form id="adminFilter" class="filter-row"><input name="term" value="' + safe(adminFilter.term) + '" placeholder="Поиск по имени или классу"><select name="role"><option value="all"' + (adminFilter.role === "all" ? " selected" : "") + '>Все роли</option><option value="student"' + (adminFilter.role === "student" ? " selected" : "") + '>Ученики</option><option value="teacher"' + (adminFilter.role === "teacher" ? " selected" : "") + '>Учителя</option><option value="admin"' + (adminFilter.role === "admin" ? " selected" : "") + '>Администраторы</option></select><select name="locked"><option value="all"' + (adminFilter.locked === "all" ? " selected" : "") + '>Любой статус</option><option value="yes"' + (adminFilter.locked === "yes" ? " selected" : "") + '>Заблокированные</option><option value="no"' + (adminFilter.locked === "no" ? " selected" : "") + '>Активные</option></select><button class="button button-secondary" type="submit">Найти</button></form>' +
     '<div class="data-list admin-users-list">' + (users || '<p class="muted">Никого не найдено.</p>') + '</div></div></details>' +
+    '<details class="admin-section admin-section--publications" open><summary><span>Публикации</span><small>' + (data.posts.length + (data.listings || []).length) + ' · можно удалить любую</small></summary><div class="admin-section-body"><div class="data-list">' +
+    (publicationRows || '<p class="muted">Публикаций нет.</p>') + '</div></div></details>' +
     '<details class="admin-section"><summary><span>Экономика ScRl</span><small>балансы, покрытие и курс</small></summary><div class="admin-section-body">' +
     '<div class="demo-stats"><div class="demo-stat"><span>ScRl в обороте и резерве</span><b>' + money(cover.tokens) + '</b></div><div class="demo-stat"><span>V-RUB всего</span><b>' + money(cover.vrub) + '</b></div><div class="demo-stat"><span>Обеспеченный лимит</span><b>' + money(cover.limit) + '</b></div><div class="demo-stat"><span>Покрытие</span><b>' + money(cover.ratio * 100) + '%</b></div></div>' +
     '<p class="muted small">Текущий курс: ' + rateMoney(currentRate()) + ' V-RUB за ScRl · комиссия по покрытию: ' + money(data.fee * 100) + '% · сожжено: ' + money(data.burned) + ' ScRl.</p>' +
@@ -1883,26 +1895,34 @@ function action(btn) {
     setPage("favorites");
   }
   if (type === "report") report(btn.dataset.kind, id, "other", "");
-  if (type === "remove-post") {
-    const post = data.posts.find(p => p.id === id && p.user === me().id);
-    if (!post) throw new Error("Можно удалять только собственные публикации.");
-    if (typeof confirm === "function" && !confirm("Удалить свою публикацию?")) return;
+  if (type === "remove-post" || type === "remove-listing" || type === "admin-delete-publication") {
+    const kind = type === "remove-listing" || (type === "admin-delete-publication" && btn.dataset.kind === "listing")
+      ? "listing" : "post";
+    const isAdmin = me().role === "admin";
+    const collection = kind === "post" ? data.posts : data.listings;
+    const publication = collection.find(item => item.id === id);
+    if (!publication || (!isAdmin && publication.user !== me().id) || (type === "admin-delete-publication" && !isAdmin)) {
+      throw new Error("Можно удалять только собственные публикации; администратор может удалять любые.");
+    }
+    if (typeof confirm === "function" && !confirm("Удалить «" + publication.title + "»?")) return;
+    const source = kind === "post" ? "board" : "market";
     const hasActiveDeal = (data.deals || []).some(d =>
-      d.source === "board" && String(d.sourceId) === String(id) &&
+      d.source === source && String(d.sourceId) === String(id) &&
       ["work", "ready", "dispute"].includes(d.status)
     );
-    if (hasActiveDeal) throw new Error("Сначала заверши активную сделку по этой публикации.");
-    data.posts = data.posts.filter(p => p.id !== id);
-    data.favorites = (data.favorites || []).filter(f => !(f.kind === "post" && String(f.target) === String(id)));
-    data.reports = (data.reports || []).filter(r => !(r.kind === "post" && String(r.target) === String(id)));
-    log("Удалена собственная публикация.");
+    if (hasActiveDeal && !isAdmin) throw new Error("Сначала заверши активную сделку по этой публикации.");
+    if (kind === "post") data.posts = data.posts.filter(item => item.id !== id);
+    else data.listings = data.listings.filter(item => item.id !== id);
+    data.favorites = (data.favorites || []).filter(f => !(f.kind === kind && String(f.target) === String(id)));
+    data.reports = (data.reports || []).filter(r => !(r.kind === kind && String(r.target) === String(id)));
+    data.audit.unshift({
+      id: uid(), user: me().id,
+      text: (isAdmin && publication.user !== me().id ? "Администратор удалил публикацию: " : "Удалена публикация: ") + publication.title,
+      date: Date.now()
+    });
     save();
-    setPage("board");
+    setPage(isAdmin ? "admin" : (kind === "post" ? "board" : "market"));
     msg("Публикация удалена.");
-  }
-  if (type === "remove-listing") {
-    const item = data.listings.find(p => p.id === id && p.user === me().id && p.status === "active");
-    if (item) { item.status = "closed"; log("Снята услуга «" + item.title + "»."); setPage("market"); }
   }
   if (type === "scan") {
     if (me().role !== "admin") throw new Error("Нет доступа.");
@@ -2145,19 +2165,35 @@ async function actionRemote(btn) {
     return;
   }
   if (type === "remove-post") {
-    const post = data.posts.find(p => p.id === id && p.user === me().id);
-    if (!post) throw new Error("Можно удалять только собственные публикации.");
-    if (typeof confirm === "function" && !confirm("Удалить свою публикацию? При активной сделке удаление будет заблокировано.")) return;
-    await backend.deletePost(id);
+    const post = data.posts.find(p => p.id === id);
+    if (!post || (post.user !== me().id && me().role !== "admin")) throw new Error("Можно удалять только собственные публикации.");
+    if (typeof confirm === "function" && !confirm("Удалить публикацию «" + post.title + "»?")) return;
+    await backend.deletePublication("post", id);
     await refreshRemoteData();
-    setPage("board");
+    setPage(me().role === "admin" ? "admin" : "board");
     msg("Публикация удалена.");
     return;
   }
   if (type === "remove-listing") {
-    await backend.closePublication("listing", id);
+    const item = data.listings.find(p => p.id === id);
+    if (!item || (item.user !== me().id && me().role !== "admin")) throw new Error("Можно удалять только собственные услуги.");
+    if (typeof confirm === "function" && !confirm("Удалить услугу «" + item.title + "»?")) return;
+    await backend.deletePublication("listing", id);
     await refreshRemoteData();
-    setPage("market");
+    setPage(me().role === "admin" ? "admin" : "market");
+    msg("Услуга удалена.");
+    return;
+  }
+  if (type === "admin-delete-publication") {
+    if (me().role !== "admin") throw new Error("Удалять чужие публикации может только администратор.");
+    const kind = btn.dataset.kind === "listing" ? "listing" : "post";
+    const publication = kind === "post" ? data.posts.find(p => p.id === id) : data.listings.find(p => p.id === id);
+    if (!publication) throw new Error("Публикация не найдена или уже удалена.");
+    if (typeof confirm === "function" && !confirm("Администратору удалить публикацию «" + publication.title + "»?")) return;
+    await backend.deletePublication(kind, id);
+    await refreshRemoteData();
+    setPage("admin");
+    msg("Публикация удалена администратором.");
     return;
   }
   if (type === "scan") {

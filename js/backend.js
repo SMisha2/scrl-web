@@ -409,11 +409,14 @@
         p_category: payload.category, p_price: payload.price, p_slots: payload.slots
       });
     },
+    deletePublication(kind, id) {
+      return rpc("scrl_delete_publication", { p_kind: String(kind), p_id: String(id) });
+    },
     deletePost(id) {
-      return edgeFunction("scrl-account", { action: "delete_post", post_id: String(id) });
+      return this.deletePublication("post", id);
     },
     closePublication(kind, id) {
-      return rpc("scrl_close_publication", { p_kind: kind, p_id: id });
+      return this.deletePublication(kind, id);
     },
     async createDeal(payload) {
       await moderationCheck("deal", { title: String(payload.title || "").trim() });

@@ -599,7 +599,7 @@ test("email confirmation accepts the eight-digit OTP configured in Supabase", ()
   assert.match(app, /\[0-9\]\{8\}/);
   assert.match(html, /id="code"[^>]*maxlength="8" pattern="\[0-9\]\{8\}"/);
   assert.match(html, /восьмизначный код/);
-  assert.ok(html.includes("js/app.js?v=188"));
+  assert.ok(html.includes("js/app.js?v=189"));
 });
 
 
@@ -1192,4 +1192,68 @@ test("администратор может снять обычную и ИИ-б
   assert.match(migration, /public\.scrl_is_admin\(\)/);
   assert.match(migration, /UPDATE public\.scrl_moderation_bans[\s\S]*?active = false/);
   assert.match(migration, /UPDATE public\.profiles[\s\S]*?blocked = false/);
+});
+
+test("владелец может удалить собственную публикацию", () => {
+  const { api } = boot();
+  const own = {
+    id: "own-delete-test", user: api.me().id, type: "offer",
+    title: "Моя тестовая публикация", desc: "Тест", category: "Другое",
+    price: 0, status: "active", date: Date.now()
+  };
+  api.data.posts.unshift(own);
+  api.action({ dataset: { do: "remove-post", id: own.id } });
+  assert.equal(api.data.posts.some(item => item.id === own.id), false);
+});
+
+test("администратор видит скрытые публикации и кнопку удаления", () => {
+  const { api } = boot();
+  api.me().role = "admin";
+  api.data.posts.unshift({
+    id: "foreign-hidden-post", user: "u2", type: "need",
+    title: "Чужая скрытая публикация", desc: "Тест", category: "Другое",
+    price: 0, status: "hidden", date: Date.now()
+  });
+  const page = api.adminPage();
+  assert.match(page, /Публикации/);
+  assert.match(page, /Чужая скрытая публикация/);
+  assert.match(page, /data-do="admin-delete-publication" data-kind="post" data-id="foreign-hidden-post"/);
+});
+
+test("администратор может удалить чужую публикацию в локальном режиме", () => {
+  const { api } = boot();
+  api.me().role = "admin";
+  const foreign = {
+    id: "admin-delete-test", user: "u2", type: "need",
+    title: "Публикация другого участника", desc: "Тест", category: "Другое",
+    price: 0, status: "active", date: Date.now()
+  };
+  api.data.posts.unshift(foreign);
+  api.action({ dataset: { do: "admin-delete-publication", id: foreign.id, kind: "post" } });
+  assert.equal(api.data.posts.some(item => item.id === foreign.id), false);
+});
+
+test("владелец может удалить собственную услугу", () => {
+  const { api } = boot();
+  const own = {
+    id: "own-listing-test", user: api.me().id, title: "Моя услуга",
+    desc: "Тест", category: "Учёба", price: 1, slots: 1,
+    status: "active", date: Date.now()
+  };
+  api.data.listings.unshift(own);
+  api.action({ dataset: { do: "remove-listing", id: own.id } });
+  assert.equal(api.data.listings.some(item => item.id === own.id), false);
+});
+
+test("удаление публикаций использует защищённую RPC с проверкой владельца и администратора", () => {
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  const backend = fs.readFileSync(path.join(__dirname, "../js/backend.js"), "utf8");
+  const migration = fs.readFileSync(path.join(__dirname, "../supabase/migrations/20261117030819_delete_publications_owner_or_admin.sql"), "utf8");
+  assert.match(app, /await backend\.deletePublication\("post", id\)/);
+  assert.match(app, /data-do="admin-delete-publication"/);
+  assert.match(backend, /rpc\("scrl_delete_publication",\s*\{\s*p_kind:\s*String\(kind\),\s*p_id:\s*String\(id\)\s*\}\)/);
+  assert.match(migration, /public\.scrl_is_admin\(\)/);
+  assert.match(migration, /v_owner <> auth\.uid\(\)/);
+  assert.match(migration, /public\.posts/);
+  assert.match(migration, /public\.listings/);
 });
