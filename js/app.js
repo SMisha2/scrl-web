@@ -12,6 +12,7 @@ const reg = el("regForm");
 const codeForm = el("codeForm");
 const resetPasswordForm = el("resetPasswordForm");
 const forgotPasswordButton = el("forgotPassword");
+const forgotPasswordForm = el("forgotPasswordForm");
 let passwordRecoveryToken = "";
 const toast = el("toast");
 if (!window.__scrlTestMode && typeof navigator !== "undefined" &&
@@ -203,37 +204,30 @@ function installMinecraftBookCursors() {
 function updateBookControls() {
   const book = el("authBook");
   if (!book) return;
-
   const isRegistration = book.classList.contains("is-spread");
   const isCode = !codeForm.hidden;
-  const isRecovery = Boolean(passwordRecoveryToken && !resetPasswordForm.hidden);
+  const isRecoveryPage = book.dataset.activePage === "0";
+  const isPasswordReset = Boolean(passwordRecoveryToken && !resetPasswordForm.hidden);
+  const isRecoveryRequest = Boolean(forgotPasswordForm && !forgotPasswordForm.hidden);
   const loginPage = el("loginPage");
   const registrationPage = el("registrationPage");
   const sign = el("bookSign");
   const targetPage = isRegistration ? registrationPage : loginPage;
-
   if (sign) {
-    const formId = isRecovery
-      ? "resetPasswordForm"
-      : !isRegistration
-        ? "loginForm"
-        : isCode
-          ? "codeForm"
-          : "regForm";
-    const label = isRecovery
-      ? "Сохранить пароль"
-      : !isRegistration
-        ? "Войти"
-        : isCode
-          ? "Подтвердить"
-          : "Зарегистрироваться";
+    const formId = isPasswordReset ? "resetPasswordForm"
+      : isRecoveryRequest ? "forgotPasswordForm"
+      : !isRegistration ? "loginForm"
+      : isCode ? "codeForm" : "regForm";
+    const label = isPasswordReset ? "Сохранить пароль"
+      : isRecoveryRequest ? "Отправить ссылку"
+      : !isRegistration ? "Войти"
+      : isCode ? "Подтвердить" : "Зарегистрироваться";
     sign.setAttribute("form", formId);
     sign.textContent = label;
-
-    // Keep the primary action inside the active book page, not below the book.
     if (targetPage && typeof targetPage.appendChild === "function" && sign.parentElement !== targetPage) targetPage.appendChild(sign);
   }
-
+  const pageCounter = el("authPageCounter");
+  if (pageCounter) pageCounter.textContent = isRecoveryPage ? "404/???" : "Страница " + (isRegistration ? "2" : "1") + " / 2";
   if (loginPage) {
     loginPage.inert = isRegistration;
     loginPage.setAttribute("aria-hidden", String(isRegistration));
@@ -255,6 +249,7 @@ function setMode(mode) {
 
   passwordRecoveryToken = "";
   resetPasswordForm.hidden = true;
+  if (forgotPasswordForm) forgotPasswordForm.hidden = true;
   if (forgotPasswordButton) forgotPasswordButton.hidden = false;
   if (el("openRegistration")) el("openRegistration").hidden = false;
   if (el("loginTitle")) el("loginTitle").textContent = "С Возвращением,";
@@ -274,6 +269,34 @@ function setMode(mode) {
   if (el("regErr")) el("regErr").textContent = "";
   updateBookControls();
 }
+
+function openPasswordRecoveryPage() {
+  const book = el("authBook");
+  if (book) {
+    book.classList.remove("is-spread");
+    book.classList.remove("is-page-2");
+    book.dataset.activePage = "0";
+  }
+  passwordRecoveryToken = "";
+  login.hidden = true;
+  reg.hidden = true;
+  codeForm.hidden = true;
+  resetPasswordForm.hidden = true;
+  if (forgotPasswordForm) forgotPasswordForm.hidden = false;
+  if (forgotPasswordButton) forgotPasswordButton.hidden = true;
+  if (el("openRegistration")) el("openRegistration").hidden = true;
+  if (el("returnToPage2")) el("returnToPage2").hidden = true;
+  if (el("banAppealPanel")) el("banAppealPanel").hidden = true;
+  if (el("bookSign")) el("bookSign").hidden = false;
+  if (el("loginTitle")) el("loginTitle").textContent = "Восстановление пароля";
+  if (el("loginDesc")) el("loginDesc").textContent = "Отправим ссылку на почту, привязанную к аккаунту.";
+  if (el("forgotMail")) el("forgotMail").value = String(el("logMail")?.value || "").trim();
+  if (el("forgotPasswordErr")) el("forgotPasswordErr").textContent = "";
+  if (el("logErr")) el("logErr").textContent = "";
+  updateBookControls();
+  el("forgotMail")?.focus();
+}
+
 function safe(value) {
   return String(value ?? "").replace(/[&<>"']/g, char => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -507,8 +530,17 @@ function me() {
   return activeUser;
 }
 
+function shortProfileName(value) {
+  const fullName = String(value || "").trim().replace(/\s+/g, " ");
+  if (!fullName || fullName.includes("@")) return "Участник";
+  const parts = fullName.split(" ");
+  if (parts.length < 2) return parts[0] || "Участник";
+  const initial = part => Array.from(String(part || ""))[0]?.toLocaleUpperCase("ru-RU") + ".";
+  return [parts[0], initial(parts[1]), parts[2] ? initial(parts[2]) : ""].filter(Boolean).join(" ");
+}
+
 function userName(id) {
-  return getUser(id)?.name || "Участник";
+  return shortProfileName(getUser(id)?.name || "Участник");
 }
 
 function change(id, currency, amount, note) {
@@ -595,7 +627,7 @@ function showAppLoading(name = "Участник") {
   const avatar = el("avatar");
   const loading = el("appLoading");
   const loadingText = el("appLoadingText");
-  if (userName) userName.textContent = displayName;
+  if (userName) userName.textContent = shortProfileName(displayName);
   if (avatar) avatar.textContent = displayName.charAt(0).toUpperCase();
   if (loadingText) loadingText.textContent = "Подключаемся к ScRl…";
   if (loading) loading.hidden = false;
@@ -614,7 +646,7 @@ function revealApp(user) {
   auth.removeAttribute("aria-hidden");
   app.hidden = false;
   if (document.body?.classList) document.body.classList.add("app-active");
-  if (el("userName")) el("userName").textContent = user.name;
+  if (el("userName")) el("userName").textContent = shortProfileName(user.name);
   if (el("avatar")) el("avatar").textContent = user.name.charAt(0).toUpperCase();
   app.classList.remove("is-entering", "is-ready");
   setPage("home");
@@ -807,15 +839,15 @@ async function refreshRemoteData(options = {}) {
 function setPasswordRecoveryPage(token) {
   if (!token) return;
   passwordRecoveryToken = token;
-
   const book = el("authBook");
   if (book) {
     book.classList.remove("is-spread");
-    book.dataset.activePage = "1";
+    book.dataset.activePage = "0";
   }
   login.hidden = true;
   reg.hidden = true;
   codeForm.hidden = true;
+  if (forgotPasswordForm) forgotPasswordForm.hidden = true;
   resetPasswordForm.hidden = false;
   if (forgotPasswordButton) forgotPasswordButton.hidden = true;
   if (el("openRegistration")) el("openRegistration").hidden = true;
@@ -974,7 +1006,7 @@ function boardPage() {
     '<form id="boardForm" class="demo-form"><h2>Новая публикация</h2><label>Тип</label><select name="type"><option value="need">Мне нужно</option><option value="offer">Я могу</option></select>' +
     '<label>Тема</label><select name="category"><option>Учёба</option><option>Математика</option><option>Языки</option><option>Дизайн</option><option>Творчество</option><option>Другое</option></select>' +
     '<label>Заголовок</label><input name="title" maxlength="80" required><label>Описание</label><textarea name="desc" rows="3" maxlength="300" required></textarea>' +
-    '<label>Цена в ScRl (0 — бесплатно)</label><input name="price" type="number" min="0" max="500" value="0" required><button class="button button-primary" type="submit">Опубликовать</button></form>' +
+    '<label>Цена в ScRl (0 — бесплатно, без лимита)</label><input name="price" type="number" min="0" step="any" value="0" required><button class="button button-primary" type="submit">Опубликовать</button></form>' +
     '<div class="demo-list-title"><h2>Публикации</h2><span class="muted small">' + rows.length + ' записей</span></div>' +
     '<div class="demo-list">' + (rows || '<p class="muted">По этому запросу ничего нет.</p>') + '</div>';
 }
@@ -1311,13 +1343,15 @@ function adminPage() {
     [u.name, u.mail, u.room].join(" ").toLowerCase().includes(search)
   );
   const users = people.map(u => {
-    const canManage = u.id !== user.id && u.role !== "admin" && !u.deleted && !String(u.name || "").includes("Удалённый");
+    const canManage = u.id !== user.id && !u.deleted && !String(u.name || "").includes("Удалённый");
     const controls = canManage
-      ? '<button class="text-button" data-do="block" data-id="' + safe(u.id) + '">' + (u.blocked ? "Разблокировать" : "Заблокировать") + '</button>' +
-        '<button class="text-button" data-do="promote" data-id="' + safe(u.id) + '">' + (u.role === "teacher" ? "Сделать учеником" : "Назначить учителем") + '</button>' +
-        '<button class="text-button" data-do="set-room" data-id="' + safe(u.id) + '">Изменить класс</button>' +
-        '<button class="text-button" data-do="removeuser" data-id="' + safe(u.id) + '">Обезличить</button>' +
-        '<button class="text-button admin-danger-action" data-do="deleteuser" data-id="' + safe(u.id) + '">Удалить аккаунт</button>'
+      ? (u.role === "admin"
+        ? '<button class="text-button admin-danger-action" data-do="deleteuser" data-id="' + safe(u.id) + '">Удалить аккаунт администратора</button>'
+        : '<button class="text-button" data-do="block" data-id="' + safe(u.id) + '">' + (u.blocked ? "Разблокировать" : "Заблокировать") + '</button>' +
+          '<button class="text-button" data-do="promote" data-id="' + safe(u.id) + '">' + (u.role === "teacher" ? "Сделать учеником" : "Назначить учителем") + '</button>' +
+          '<button class="text-button" data-do="set-room" data-id="' + safe(u.id) + '">Изменить класс</button>' +
+          '<button class="text-button" data-do="removeuser" data-id="' + safe(u.id) + '">Обезличить</button>' +
+          '<button class="text-button admin-danger-action" data-do="deleteuser" data-id="' + safe(u.id) + '">Удалить аккаунт</button>')
       : '<span class="small muted">' + (u.deleted ? "Удалённый профиль" : u.id === user.id ? "Текущий аккаунт" : "Аккаунт администратора защищён") + '</span>';
     return '<article class="data-row admin-user-row"><div class="admin-user-main"><b>' + safe(u.name) + '</b><small>' +
       safe(u.mail || "Email скрыт в общем списке") + ' · ' + safe(u.room || "Без класса") + ' · ' + roleName(u.role) +
@@ -1374,7 +1408,7 @@ function adminPage() {
     '<p class="muted small">Текущий курс: ' + rateMoney(currentRate()) + ' V-RUB за ScRl · комиссия по покрытию: ' + money(data.fee * 100) + '% · сожжено: ' + money(data.burned) + ' ScRl.</p>' +
     '<div class="rate-bars">' + chart + '</div><form id="economyForm" class="demo-form"><h2>Целевой курс</h2><label>V-RUB за 1 ScRl</label><input name="rate" type="number" min="0.001" max="1" step="0.001" value="' + data.rate + '" required><button class="button button-primary" type="submit">Сохранить курс</button></form></div></details>' +
     '<details class="admin-section moderation-admin"><summary><span>ИИ-модерация</span><small>' + (data.moderation?.adminCases || []).length + ' дел · ' + (data.moderation?.adminAppeals || []).length + ' апелляций</small></summary><div class="admin-section-body">' +
-    '<p class="moderation-status-line"><b>Статус:</b> ' + safe(aiStatusText) + '</p><p class="muted small">На проверку попадают публикации, услуги, аукционы, сделки, личные сообщения, отзывы, имена профилей, жалобы и основания начислений. Критические блокировки применяются только при высокой уверенности; остальные случаи остаются в очереди.</p>' +
+    '<p class="moderation-status-line"><b>Статус:</b> ' + safe(aiStatusText) + '</p><p class="muted small">На проверку попадают публикации, услуги, аукционы, сделки, личные сообщения, отзывы, имена профилей, жалобы и основания начислений. Отмеченные объявления и жалобы видят только администраторы — учителям эта очередь не передаётся. Критические блокировки применяются только при высокой уверенности; неоднозначные материалы остаются на ручной проверке.</p>' +
     '<h3>Дела на проверке · ' + (data.moderation?.adminCases || []).length + '</h3><div class="data-list">' + (aiCases || '<p class="muted">Открытых AI-дел нет.</p>') + '</div>' +
     '<h3>Апелляции · ' + (data.moderation?.adminAppeals || []).length + '</h3><div class="data-list">' + (aiAppeals || '<p class="muted">Ожидающих апелляций нет.</p>') + '</div></div></details>' +
     '<details class="admin-section"><summary><span>Жалобы и споры</span><small>' + reports.length + ' открыто</small></summary><div class="admin-section-body"><div class="data-list">' + (queue || '<p class="muted">Очередь пуста.</p>') + '</div></div></details>' +
@@ -1438,7 +1472,7 @@ function updateMenu() {
   document.querySelectorAll(".nav-tab").forEach(btn => { btn.hidden = parentMode; });
   const name = el("userName");
   const avatar = el("avatar");
-  if (name) name.textContent = parentMode ? "Родитель · тест" : (me().name || "Участник");
+  if (name) name.textContent = parentMode ? "Родитель · тест" : shortProfileName(me().name || "Участник");
   if (avatar) avatar.textContent = parentMode ? "Р" : String(me().name || "У").charAt(0).toUpperCase();
   const notifications = el("notificationWrap");
   if (notifications) notifications.hidden = parentMode;
@@ -1508,7 +1542,7 @@ function createDeal(title, buyer, seller, amount, from, sourceId = "") {
   if (!b || !s) throw new Error("Не получилось найти участников сделки.");
   if (buyer === seller) throw new Error("Нельзя создать сделку с самим собой.");
   if (b.blocked || s.blocked) throw new Error("Заблокированный участник не может участвовать в сделке.");
-  if (!Number.isFinite(price) || price < 0 || price > 500) throw new Error("Некорректная сумма сделки.");
+  if (!Number.isFinite(price) || price < 0) throw new Error("Некорректная сумма сделки.");
   if (price > 0) {
     change(buyer, "ScRl", -price, "Резерв по сделке: " + title);
     b.holdScrl = core.round(b.holdScrl + price);
@@ -2031,7 +2065,7 @@ function action(btn) {
   if (type === "deleteuser") {
     if (me().role !== "admin") throw new Error("Нет доступа.");
     const u = getUser(id);
-    if (!u || u.deleted || u.id === me().id || u.role === "admin") throw new Error("Этот аккаунт нельзя удалить.");
+    if (!u || u.deleted || u.id === me().id) throw new Error("Этот аккаунт нельзя удалить.");
     const activeDeal = data.deals.some(d => (d.buyer === id || d.seller === id) && ["work","ready","dispute"].includes(d.status));
     const activeOrder = data.exchangeOrders.some(o => o.user === id && o.status === "active");
     const activeAuction = data.auctions.some(x => ["active","settlementError"].includes(x.status) && (x.owner === id || x.leader === id));
@@ -2241,7 +2275,7 @@ async function actionRemote(btn) {
   if (type === "deleteuser") {
     if (me().role !== "admin") throw new Error("Нет доступа.");
     const target = getUser(id);
-    if (!target || target.deleted || target.id === me().id || target.role === "admin") throw new Error("Этот аккаунт нельзя удалить.");
+    if (!target || target.deleted || target.id === me().id) throw new Error("Этот аккаунт нельзя удалить.");
     if (!confirm("Окончательно удалить аккаунт " + target.name + "? Он потеряет возможность входа. Личные данные будут удалены или обезличены, финансовый журнал сохранится без идентифицирующих заметок.")) return;
     await backend.adminDeleteUser(id);
     await refreshRemoteData();
@@ -2343,7 +2377,7 @@ async function submitRemote(form) {
     const title = String(fields.get("title") || "").trim();
     const description = String(fields.get("desc") || "").trim();
     const price = Number(fields.get("price"));
-    if (!title || !description || !Number.isFinite(price) || price < 0 || price > 500) throw new Error("Проверь заголовок, описание и цену.");
+    if (!title || !description || !Number.isFinite(price) || price < 0) throw new Error("Проверь заголовок, описание и цену.");
     await backend.createPost({
       type: String(fields.get("type") || "need"), title, description,
       category: String(fields.get("category") || "Другое"), price
@@ -2451,7 +2485,7 @@ async function submitRemote(form) {
     session.name = name;
     saveSession(JSON.stringify(session));
     if (isAdminAccount() && selectedRole) setAdminPreviewRole(selectedRole);
-    el("userName").textContent = name;
+    el("userName").textContent = shortProfileName(name);
     el("avatar").textContent = name.charAt(0).toUpperCase();
     log("Обновлён профиль.");
     setPage("profile");
@@ -2519,7 +2553,7 @@ async function submit(form) {
     const title = String(fields.get("title") || "").trim();
     const desc = String(fields.get("desc") || "").trim();
     const price = Number(fields.get("price"));
-    if (!title || !desc || !Number.isFinite(price) || price < 0 || price > 500) throw new Error("Проверь заголовок, описание и цену.");
+    if (!title || !desc || !Number.isFinite(price) || price < 0) throw new Error("Проверь заголовок, описание и цену.");
     const status = needsReview(title + " " + desc) ? "review" : "active";
     const post = { id: uid(), type: fields.get("type"), title, desc, category: fields.get("category"), price, user: me().id, status, date: Date.now() };
     data.posts.unshift(post);
@@ -2594,7 +2628,7 @@ async function submit(form) {
     if (!s?.guest && s?.token && cfg.url && cfg.key) await saveProfile(me().id, name, s.token, me().room);
     s.name = name;
     saveSession(JSON.stringify(s));
-    el("userName").textContent = name;
+    el("userName").textContent = shortProfileName(name);
     el("avatar").textContent = name.charAt(0).toUpperCase();
     log("Обновлён профиль.");
     setPage("profile");
@@ -2708,26 +2742,33 @@ loginFormConfigs.forEach(config => {
 });
 
 if (forgotPasswordButton) {
-  forgotPasswordButton.addEventListener("click", async () => {
-    const email = el("logMail").value.trim().toLowerCase();
-    const error = el("logErr");
+  forgotPasswordButton.addEventListener("click", openPasswordRecoveryPage);
+}
+if (el("backFromRecovery")) {
+  el("backFromRecovery").addEventListener("click", () => setMode("login"));
+}
+if (forgotPasswordForm) {
+  forgotPasswordForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    const email = String(el("forgotMail")?.value || "").trim().toLowerCase();
+    const error = el("forgotPasswordErr");
+    const button = el("bookSign");
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      error.textContent = "Сначала введи электронную почту.";
-      el("logMail").focus();
+      error.textContent = "Проверь адрес электронной почты.";
+      el("forgotMail")?.focus();
       return;
     }
-
-    forgotPasswordButton.disabled = true;
+    if (button) button.disabled = true;
     error.textContent = "";
     try {
       sessionStorage.setItem("scrlRecoveryEmail", email);
-      const redirectTo = APP_REDIRECT_URL;
-      await ask("recover?redirect_to=" + encodeURIComponent(redirectTo), { email });
-      error.textContent = "Запрос принят. Проверь почту и папку «Спам»: там должна быть ссылка для сброса пароля.";
+      await ask("recover?redirect_to=" + encodeURIComponent(APP_REDIRECT_URL), { email });
+      error.textContent = "Запрос принят. Проверь почту и папку «Спам». В письме будет ссылка для создания нового пароля.";
     } catch (err) {
       error.textContent = err.message || "Не удалось запросить восстановление пароля.";
     } finally {
-      forgotPasswordButton.disabled = false;
+      if (button) button.disabled = false;
+      updateBookControls();
     }
   });
 }

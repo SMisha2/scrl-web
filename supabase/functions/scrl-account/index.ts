@@ -112,10 +112,12 @@ Deno.serve(async (req: Request) => {
       if (!targetProfile || targetProfile.deleted_at) {
         return response({ error: "Аккаунт не найден или уже удалён." }, 404, origin);
       }
-      if (!["student", "teacher"].includes(String(targetProfile.role))) {
-        return response({ error: "Удалять можно только аккаунты учеников и учителей. Аккаунты администраторов защищены." }, 403, origin);
+      if (!["student", "teacher", "admin"].includes(String(targetProfile.role))) {
+        return response({ error: "Неизвестная роль аккаунта. Удаление остановлено." }, 403, origin);
       }
-      const { error: cleanupError } = await admin.rpc("scrl_delete_account", { p_user: targetId });
+      // The caller JWT is checked by scrl_is_admin() inside the SECURITY DEFINER RPC.
+      // The service client is used only for the Supabase Auth identity deletion.
+      const { error: cleanupError } = await userClient.rpc("scrl_delete_account", { p_user: targetId });
       if (cleanupError) {
         return response({ error: cleanupError.message || "Перед удалением нужно завершить активные операции." }, 409, origin);
       }

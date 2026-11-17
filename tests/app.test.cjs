@@ -341,7 +341,7 @@ test("светлые поля привязаны напрямую к data-theme=
   assert.ok(css.includes('html[data-theme="light"] body textarea'));
   assert.ok(css.includes('border: 4px solid #111111 !important'));
   assert.ok(css.includes('background-color: #c4c4c4 !important'));
-  assert.ok(html.includes('css/style.css?v=180'));
+  assert.ok(html.includes('css/style.css?v=181'));
 });
 
 
@@ -479,7 +479,7 @@ test("uploaded day/night photos are rendered smoothly, not pixelated", () => {
   assert.match(tail, /transform: none !important/);
   assert.match(tail, /background-size: cover !important/);
   assert.match(tail, /transition: opacity 1\.15s ease !important/);
-  assert.ok(html.includes('css/style.css?v=180'));
+  assert.ok(html.includes('css/style.css?v=181'));
 });
 
 
@@ -1107,7 +1107,7 @@ test("toolbar uses a uniform grey achievement frame and the profile shortcut ope
 test("переключатель темы авторизации поднят выше, а размеры боксов панели зафиксированы", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
-  assert.ok(html.includes("css/style.css?v=180"));
+  assert.ok(html.includes("css/style.css?v=181"));
   assert.match(css, /auth-theme-btn\s*\{\s*top:clamp\(16px,calc\(50% - 285px\),220px\) !important/);
   assert.match(css, /\[data-page="home"\][\s\S]*flex:0 0 96px !important/);
   assert.match(css, /\[data-page="board"\][\s\S]*flex:0 0 78px !important/);
@@ -1115,4 +1115,69 @@ test("переключатель темы авторизации поднят в
   assert.match(css, /topbar \.topbar-profile\s*\{\s*flex:0 0 180px !important/);
   assert.match(css, /border-width:3px !important/);
   assert.match(css, /letter-spacing:0 !important/);
+});
+
+
+test("board post prices are uncapped from publication through checkout", () => {
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  const boardPage = app.slice(app.indexOf("function boardPage()"), app.indexOf("function marketPage()"));
+  assert.match(boardPage, /name="price" type="number" min="0" step="any"/);
+  assert.doesNotMatch(boardPage, /max="500"/);
+
+  const remoteStart = app.indexOf('if (form.id === "boardForm")');
+  const remoteEnd = app.indexOf('if (form.id === "marketForm")', remoteStart);
+  assert.ok(remoteStart >= 0 && remoteEnd > remoteStart);
+  assert.doesNotMatch(app.slice(remoteStart, remoteEnd), /price > 500/);
+
+  const localSubmit = app.indexOf("async function submit(form)");
+  const localStart = app.indexOf('if (form.id === "boardForm")', localSubmit);
+  const localEnd = app.indexOf('if (form.id === "marketForm")', localStart);
+  assert.ok(localStart >= 0 && localEnd > localStart);
+  assert.doesNotMatch(app.slice(localStart, localEnd), /price > 500/);
+
+  const dealStart = app.indexOf("function createDeal(");
+  const dealEnd = app.indexOf("function refreshFee(", dealStart);
+  assert.doesNotMatch(app.slice(dealStart, dealEnd), /price > 500/);
+});
+
+test("password recovery uses the hidden zero page and leaves normal auth on pages 1 and 2", () => {
+  const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  assert.match(html, /id="forgotPasswordForm"/);
+  assert.match(html, /id="authPageCounter"[^>]*>Страница 1 \/ 2/);
+  assert.match(html, /<span class="page-counter">Страница 2 \/ 2<\/span>/);
+  assert.match(app, /forgotPasswordButton\.addEventListener\("click", openPasswordRecoveryPage\)/);
+  assert.match(app, /book\.dataset\.activePage = "0"/);
+  assert.match(app, /404\/\?\?\?/);
+  assert.match(app, /params\.get\("type"\) !== "recovery"/);
+});
+
+test("visible profile names use surname and initials without changing stored full names", () => {
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  assert.match(app, /function shortProfileName\(value\)/);
+  assert.match(app, /return \[parts\[0\], initial\(parts\[1\]\), parts\[2\] \? initial\(parts\[2\]\) : ""\]/);
+  assert.match(app, /shortProfileName\(me\(\)\.name/);
+  assert.match(app, /shortProfileName\(user\.name\)/);
+});
+
+test("obfuscation-aware moderation combines fields and routes manual review to admins only", () => {
+  const moderation = fs.readFileSync(path.join(__dirname, "../supabase/functions/scrl-moderation/index.ts"), "utf8");
+  assert.match(moderation, /fields_joined_in_original_order/);
+  assert.match(moderation, /visual_confusables_folded/);
+  assert.match(moderation, /punctuation_and_spacing_removed/);
+  assert.match(moderation, /mixed_script_tokens/);
+  assert.match(moderation, /result\.confidence<0\.74/);
+  assert.match(moderation, /role=eq\.admin/);
+  assert.match(moderation, /Новое объявление ожидает ручной проверки администратора/);
+  assert.match(moderation, /Получена новая жалоба; требуется ручная проверка администратора/);
+});
+
+test("administrator deletion accepts other admin accounts but validates the acting admin in SQL", () => {
+  const account = fs.readFileSync(path.join(__dirname, "../supabase/functions/scrl-account/index.ts"), "utf8");
+  const migration = fs.readFileSync(path.join(__dirname, "../supabase/migrations/20261117030000_board_pricing_admin_delete.sql"), "utf8");
+  assert.match(account, /\["student", "teacher", "admin"\]/);
+  assert.match(account, /userClient\.rpc\("scrl_delete_account"/);
+  assert.match(account, /auth\.admin\.deleteUser\(targetId\)/);
+  assert.match(migration, /AND NOT public\.scrl_is_admin\(\)/);
+  assert.match(migration, /Сначала назначь другого администратора/);
 });

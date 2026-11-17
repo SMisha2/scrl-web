@@ -12,11 +12,11 @@
   <link rel="preload" href="assets/MinecraftRus.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/backgrounds/day.png" as="image" fetchpriority="high">
   <link rel="preload" href="assets/backgrounds/night.png" as="image" fetchpriority="low">
-  <link rel="stylesheet" href="css/style.css?v=180">
+  <link rel="stylesheet" href="css/style.css?v=181">
   <script src="js/config.js" defer></script>
   <script src="js/core.js" defer></script>
   <script src="js/backend.js?v=159" defer></script>
-  <script src="js/app.js?v=186" defer></script>
+  <script src="js/app.js?v=187" defer></script>
 </head>
 <body>
   <div id="worldScenery" class="world-scenery" aria-hidden="true">
@@ -31,7 +31,7 @@
 
         <section class="book-page book-page--single" id="loginPage" aria-label="Страница 1 — вход">
           <div class="book-page-top">
-            <span class="page-counter">Страница 1 / 2</span>
+            <span class="page-counter" id="authPageCounter">Страница 1 / 2</span>
           </div>
           <div class="book-copy">
             <h1 id="loginTitle" class="book-title">С Возвращением,</h1>
@@ -45,6 +45,13 @@
             <span class="mc-input-shell"><input id="logPass" name="password" type="password" autocomplete="current-password" aria-label="Пароль" required minlength="8"></span>
             <p class="form-error" id="logErr" aria-live="polite"></p>
             <button class="book-inline-link" id="forgotPassword" type="button">Забыли пароль?</button>
+          </form>
+          <form id="forgotPasswordForm" class="auth-form book-form" hidden>
+            <p class="code-info">Введи адрес почты, привязанный к аккаунту. Мы отправим на него безопасную ссылку для восстановления.</p>
+            <label for="forgotMail">Электронная почта:</label>
+            <span class="mc-input-shell"><input id="forgotMail" name="email" type="email" autocomplete="email" maxlength="120" required></span>
+            <p class="form-error" id="forgotPasswordErr" aria-live="polite"></p>
+            <button class="book-inline-link" id="backFromRecovery" type="button">Назад ко входу</button>
           </form>
           <form id="resetPasswordForm" class="auth-form book-form" hidden>
             <p class="code-info">Открой ссылку восстановления из письма и задай новый пароль.</p>
