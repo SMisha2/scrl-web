@@ -341,7 +341,7 @@ test("светлые поля привязаны напрямую к data-theme=
   assert.ok(css.includes('html[data-theme="light"] body textarea'));
   assert.ok(css.includes('border: 4px solid #111111 !important'));
   assert.ok(css.includes('background-color: #c4c4c4 !important'));
-  assert.ok(html.includes('css/style.css?v=179'));
+  assert.ok(html.includes('css/style.css?v=180'));
 });
 
 
@@ -479,7 +479,7 @@ test("uploaded day/night photos are rendered smoothly, not pixelated", () => {
   assert.match(tail, /transform: none !important/);
   assert.match(tail, /background-size: cover !important/);
   assert.match(tail, /transition: opacity 1\.15s ease !important/);
-  assert.ok(html.includes('css/style.css?v=179'));
+  assert.ok(html.includes('css/style.css?v=180'));
 });
 
 
@@ -1101,4 +1101,18 @@ test("toolbar uses a uniform grey achievement frame and the profile shortcut ope
   assert.match(css, /topbar \.topbar-profile/);
   assert.match(css, /theme-btn\.theme-switch[\s\S]*border-radius:999px !important/);
   assert.match(css, /auth-theme-btn[\s\S]*left:min\(calc\(50% \+ 286px\),calc\(100vw - 78px\)\) !important/);
+});
+
+
+test("переключатель темы авторизации поднят выше, а размеры боксов панели зафиксированы", () => {
+  const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
+  assert.ok(html.includes("css/style.css?v=180"));
+  assert.match(css, /auth-theme-btn\s*\{\s*top:clamp\(16px,calc\(50% - 285px\),220px\) !important/);
+  assert.match(css, /\[data-page="home"\][\s\S]*flex:0 0 96px !important/);
+  assert.match(css, /\[data-page="board"\][\s\S]*flex:0 0 78px !important/);
+  assert.match(css, /topbar \.topbar-balance\s*\{\s*flex:0 0 154px !important/);
+  assert.match(css, /topbar \.topbar-profile\s*\{\s*flex:0 0 180px !important/);
+  assert.match(css, /border-width:3px !important/);
+  assert.match(css, /letter-spacing:0 !important/);
 });
