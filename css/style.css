@@ -7791,3 +7791,223 @@ html[data-theme="dark"] body #app .topbar .topbar-balance { transform:none !impo
 html body #page #boardForm input[name="price"] {
   box-sizing:border-box !important; width:100% !important; min-width:0 !important; max-width:100% !important;
 }
+
+/* Light theme refresh: neutral grey text on white and soft-white surfaces. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --page: #ffffff;
+  --surface: #ffffff;
+  --surface2: #f7f8fa;
+  --text: #555c64;
+  --muted: #6b737c;
+  --border: #e4e7eb;
+  --accent: #8b949e;
+  --accent2: #626b75;
+  --accent-soft: #f0f2f4;
+  --button: #eef1f4;
+  --button-hover: #e5e9ed;
+  --shadow: 0 4px 18px rgba(31, 41, 55, .06);
+  --stone-frame-fill: #ffffff;
+  --stone-frame-outline: #d5d9de;
+  --stone-frame-light: #ffffff;
+  --stone-frame-shadow: #e3e6ea;
+  --scrl-pastel-page: #ffffff;
+  --scrl-pastel-card: #ffffff;
+  --scrl-pastel-card-alt: #f8f9fb;
+  --scrl-pastel-edge: #e4e7eb;
+  --scrl-pastel-text: #555c64;
+  --scrl-pastel-muted: #6b737c;
+  --scrl-pastel-choice: #f1f3f5;
+  --scrl-pastel-choice-edge: #e1e5e9;
+  --scrl-pastel-choice-text: #555c64;
+  --scrl-pastel-gold: #f3f4f6;
+  --scrl-pastel-gold-text: #555c64;
+  --scrl-pastel-shadow: rgba(31, 41, 55, .06);
+}
+
+html[data-theme="light"],
+html[data-theme="light"] body {
+  color: #555c64 !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+}
+
+html[data-theme="light"] body #worldScenery {
+  display: none !important;
+}
+
+html[data-theme="light"] body #auth,
+html[data-theme="light"] body #app,
+html[data-theme="light"] body #page,
+html[data-theme="light"] body .page-wrap,
+html[data-theme="light"] body .auth-screen {
+  color: #555c64 !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+}
+
+html[data-theme="light"] body #app *:not(#scrl-light-theme-never-match),
+html[data-theme="light"] body #auth *:not(#scrl-light-theme-never-match),
+html[data-theme="light"] body #toast {
+  color: #555c64 !important;
+}
+
+html[data-theme="light"] body .topbar {
+  background: rgba(255, 255, 255, .97) !important;
+  border-bottom-color: #e5e8ec !important;
+  box-shadow: 0 3px 14px rgba(31, 41, 55, .045) !important;
+}
+
+html[data-theme="light"] body .topbar-balance,
+html[data-theme="light"] body .notification-bell,
+html[data-theme="light"] body .nav-tab:not(.is-active),
+html[data-theme="light"] body .nav-tab.is-active,
+html[data-theme="light"] body .more-btn,
+html[data-theme="light"] body .theme-btn,
+html[data-theme="light"] body .brand-mark,
+html[data-theme="light"] body #page h1,
+html[data-theme="light"] body #page h2,
+html[data-theme="light"] body #page h3,
+html[data-theme="light"] body .button,
+html[data-theme="light"] body .more-menu button,
+html[data-theme="light"] body .text-button {
+  color: #555c64 !important;
+  background: #f5f6f8 !important;
+  border-color: #e2e6ea !important;
+  box-shadow: 0 1px 3px rgba(31, 41, 55, .045) !important;
+}
+
+html[data-theme="light"] body #page .demo-card,
+html[data-theme="light"] body #page .demo-stat,
+html[data-theme="light"] body #page .demo-form,
+html[data-theme="light"] body #page .match-box,
+html[data-theme="light"] body #page .chat-box,
+html[data-theme="light"] body #page .home-overview-card,
+html[data-theme="light"] body #page .demo-columns section,
+html[data-theme="light"] body #page .parent-preview-panel,
+html[data-theme="light"] body .more-menu,
+html[data-theme="light"] body .notification-panel,
+html[data-theme="light"] body .notification-item,
+html[data-theme="light"] body #auth .book-page,
+html[data-theme="light"] body #auth .book-page-stack,
+html[data-theme="light"] body #auth .book-guide-item {
+  color: #555c64 !important;
+  border-color: #e5e8ec !important;
+  background: #ffffff !important;
+  box-shadow: 0 2px 10px rgba(31, 41, 55, .035) !important;
+}
+
+html[data-theme="light"] body #page .chat-line,
+html[data-theme="light"] body #page .data-row,
+html[data-theme="light"] body #page .activity-item,
+html[data-theme="light"] body #page .moderation-state,
+html[data-theme="light"] body #page .moderation-status-line,
+html[data-theme="light"] body #page .demo-note,
+html[data-theme="light"] body #page .section-hint,
+html[data-theme="light"] body #page .notification-empty,
+html[data-theme="light"] body #auth .book-subtitle,
+html[data-theme="light"] body #auth .auth-moderation-disclosure,
+html[data-theme="light"] body #auth .code-help,
+html[data-theme="light"] body #auth .code-info,
+html[data-theme="light"] body #auth .ban-appeal-info,
+html[data-theme="light"] body #auth .book-guide-note {
+  color: #626a73 !important;
+  background-color: #f8f9fb !important;
+  border-color: #e7eaee !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="light"] body input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="submit"]):not([type="button"]):not([type="reset"]),
+html[data-theme="light"] body select,
+html[data-theme="light"] body textarea,
+html[data-theme="light"] body [contenteditable="true"] {
+  color: #555c64 !important;
+  border: 1px solid #dfe3e8 !important;
+  border-radius: 5px !important;
+  background: #ffffff !important;
+  background-image: none !important;
+  box-shadow: inset 0 1px 2px rgba(31, 41, 55, .025) !important;
+  clip-path: none !important;
+}
+
+html[data-theme="light"] body input:focus,
+html[data-theme="light"] body select:focus,
+html[data-theme="light"] body textarea:focus,
+html[data-theme="light"] body [contenteditable="true"]:focus {
+  border-color: #aab3bd !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(125, 137, 150, .13) !important;
+}
+
+html[data-theme="light"] body input::placeholder,
+html[data-theme="light"] body textarea::placeholder {
+  color: #8b929a !important;
+  opacity: 1 !important;
+}
+
+html[data-theme="light"] body input[type="checkbox"],
+html[data-theme="light"] body input[type="radio"] {
+  accent-color: #7b858f !important;
+  border: 1px solid #cfd5db !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
+  clip-path: none !important;
+}
+
+html[data-theme="light"] body .button-primary,
+html[data-theme="light"] body .button-secondary,
+html[data-theme="light"] body #auth .book-action-button,
+html[data-theme="light"] body #auth button#forgotPassword,
+html[data-theme="light"] body #auth button#returnToPage2 {
+  color: #555c64 !important;
+  border-color: #dfe3e8 !important;
+  background: #f0f2f5 !important;
+  box-shadow: 0 1px 3px rgba(31, 41, 55, .045) !important;
+}
+
+html[data-theme="light"] body .tag,
+html[data-theme="light"] body #page .moderation-state,
+html[data-theme="light"] body .moderation-notice[data-state="setup"],
+html[data-theme="light"] body .moderation-notice[data-state="active"] {
+  color: #626a73 !important;
+  border-color: #e2e6ea !important;
+  background: #f6f7f9 !important;
+}
+
+html[data-theme="light"] body .toast {
+  color: #555c64 !important;
+  border-color: #e1e5e9 !important;
+  background: #ffffff !important;
+  box-shadow: 0 4px 16px rgba(31, 41, 55, .10) !important;
+}
+
+html[data-theme="light"] body #page p,
+html[data-theme="light"] body #page li,
+html[data-theme="light"] body #page label,
+html[data-theme="light"] body #page small,
+html[data-theme="light"] body #page .muted,
+html[data-theme="light"] body #page .small,
+html[data-theme="light"] body #page .section-hint,
+html[data-theme="light"] body #page .demo-note,
+html[data-theme="light"] body #page .data-row small,
+html[data-theme="light"] body #page .demo-stat span,
+html[data-theme="light"] body #page .demo-stat small,
+html[data-theme="light"] body #page .activity-item small,
+html[data-theme="light"] body #page .card-top .small,
+html[data-theme="light"] body #page .chat-line small,
+html[data-theme="light"] body #page .moderation-status-line,
+html[data-theme="light"] body #page .notification-empty {
+  color: #626a73 !important;
+  background-color: #f8f9fb !important;
+  border-color: #edf0f3 !important;
+}
+
+html[data-theme="light"] body .mc-writing-cursor {
+  color: #555c64 !important;
+}
+
+html[data-theme="light"] body ::selection {
+  color: #454c54 !important;
+  background: #e9edf1 !important;
+}
+
