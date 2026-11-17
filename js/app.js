@@ -13,6 +13,11 @@ const login = el("loginForm");
 const reg = el("regForm");
 const codeForm = el("codeForm");
 const toast = el("toast");
+if (!window.__scrlTestMode && typeof navigator !== "undefined" &&
+    navigator.serviceWorker && typeof navigator.serviceWorker.register === "function") {
+  navigator.serviceWorker.register(new URL("./sw.js", document.baseURI).href)
+    .catch(() => {});
+}
 const key = "scrlDemo3";
 let pending = null;
 let filter = { term: "", type: "all" };
@@ -748,7 +753,7 @@ function boardPage() {
       return '<article class="demo-card"><div class="card-top"><span class="tag">' + (post.type === "need" ? "Мне нужно" : "Я могу") + '</span>' + moderationTag + '<span class="muted small">' + safe(userName(post.user)) + ' · ' + safe(post.category) + '</span></div>' +
         '<h2>' + safe(post.title) + '</h2><p class="muted">' + safe(post.desc) + '</p><div class="card-bottom"><b>' + (post.price ? money(post.price) + ' ScRl' : 'Бесплатно') + '</b>' +
         '<span class="actions"><button class="text-button" data-do="fav" data-kind="post" data-id="' + post.id + '">' + (fav ? "★ В избранном" : "☆ Избранное") + '</button>' +
-        (post.user === me().id ? '<button class="text-button" data-do="remove-post" data-id="' + post.id + '">Закрыть</button>' :
+        (post.user === me().id ? '<button class="text-button" data-do="remove-post" data-id="' + post.id + '">Удалить</button>' :
           '<details><summary class="text-button">Пожаловаться</summary><form class="msg-form" data-form="report" data-kind="post" data-id="' + post.id + '"><select name="reason"><option value="spam">Спам или обман</option><option value="unsafe">Опасное предложение</option><option value="privacy">Личные данные</option><option value="harassment">Оскорбления</option><option value="other">Другое</option></select><input name="details" maxlength="180" placeholder="Подробности (необязательно)"><button class="button button-secondary" type="submit">Отправить</button></form></details>' +
           '<button class="text-button" data-do="reply" data-id="' + post.id + '">Откликнуться</button>') + '</span></div></article>';
     }).join("");
@@ -931,7 +936,7 @@ function profilePage() {
       ? '<label for="profileRole">Режим просмотра</label><select id="profileRole" name="role"><option value="admin"' + (user.role === "admin" ? " selected" : "") + '>Администратор</option><option value="student"' + (user.role === "student" ? " selected" : "") + '>Ученик</option><option value="teacher"' + (user.role === "teacher" ? " selected" : "") + '>Учитель</option><option value="parent"' + (user.role === "parent" ? " selected" : "") + '>Родитель (тест)</option></select><p class="small muted">Это только переключение интерфейса. Настоящая роль в базе остаётся «Администратор». Родитель — тестовый экран без данных учеников и без записи роли в базу. При новом входе режим сбрасывается.</p>'
       : '<p class="small muted">Роль: ' + roleName(user.role) + '. Изменить её может только администратор.</p>';
   const deleteSection = remoteReady && !sess()?.guest
-    ? '<section class="account-danger"><h2>Удаление аккаунта</h2><p>Действие необратимо. Профиль будет обезличен; твои публикации и сообщения удалены, а финансовая история сохранена без личных данных. Остатки ScRl и V-RUB после удаления недоступны. Перед удалением заверши активные сделки, заявки на бирже, аукционы и освободи все резервы.</p><form id="deleteAccountForm" class="demo-form account-delete-form"><label for="deleteAccountConfirm">Введи слово УДАЛИТЬ для подтверждения</label><input id="deleteAccountConfirm" name="confirmation" maxlength="7" autocomplete="off" required><button class="button button-danger" type="submit">Удалить аккаунт окончательно</button></form></section>'
+    ? '<section class="account-danger"><h2>Удаление аккаунта</h2><p>Каждый зарегистрированный участник — ученик, учитель или администратор — может удалить свой аккаунт. Действие необратимо: профиль будет обезличен, публикации и личные сообщения удалены, финансовая история сохранена без персональных данных. Остатки ScRl и V-RUB после удаления недоступны. Перед удалением заверши активные сделки, заявки на бирже, аукционы и освободи все резервы.</p><form id="deleteAccountForm" class="demo-form account-delete-form"><label for="deleteAccountConfirm">Введи слово УДАЛИТЬ для подтверждения</label><input id="deleteAccountConfirm" name="confirmation" maxlength="7" autocomplete="off" required><button class="button button-danger" type="submit">Удалить аккаунт окончательно</button></form></section>'
     : '<section class="account-danger"><h2>Удаление аккаунта</h2><p>Удаление доступно только после входа в зарегистрированный аккаунт. В демо-режиме действие отключено.</p></section>';
   return '<p class="eyebrow">АККАУНТ</p><h1>Профиль</h1><div class="demo-stats"><div class="demo-stat"><span>Отзывы</span><b>' + reviews.length + '</b></div><div class="demo-stat"><span>Средняя оценка</span><b>' + avg + '</b></div></div>' +
     '<form id="profileForm" class="demo-form"><h2>Мои данные</h2><label>ФИО</label><input name="name" maxlength="100" value="' + safe(user.name) + '" required><label>Email</label><input value="' + safe(user.mail || "Email скрыт для других участников") + '" disabled><label>Класс</label><input name="room" maxlength="12" value="' + safe(user.room || "") + '"' + (user.role === "teacher" && !isAdminAccount() ? ' disabled title="Класс меняет администратор"' : "") + '>' +
@@ -1606,8 +1611,21 @@ function action(btn) {
   }
   if (type === "report") report(btn.dataset.kind, id, "other", "");
   if (type === "remove-post") {
-    const post = data.posts.find(p => p.id === id && p.user === me().id && p.status === "active");
-    if (post) { post.status = "closed"; log("Закрыта публикация «" + post.title + "»."); setPage("board"); }
+    const post = data.posts.find(p => p.id === id && p.user === me().id);
+    if (!post) throw new Error("Можно удалять только собственные публикации.");
+    if (typeof confirm === "function" && !confirm("Удалить свою публикацию?")) return;
+    const hasActiveDeal = (data.deals || []).some(d =>
+      d.source === "board" && String(d.sourceId) === String(id) &&
+      ["work", "ready", "dispute"].includes(d.status)
+    );
+    if (hasActiveDeal) throw new Error("Сначала заверши активную сделку по этой публикации.");
+    data.posts = data.posts.filter(p => p.id !== id);
+    data.favorites = (data.favorites || []).filter(f => !(f.kind === "post" && String(f.target) === String(id)));
+    data.reports = (data.reports || []).filter(r => !(r.kind === "post" && String(r.target) === String(id)));
+    log("Удалена собственная публикация.");
+    save();
+    setPage("board");
+    msg("Публикация удалена.");
   }
   if (type === "remove-listing") {
     const item = data.listings.find(p => p.id === id && p.user === me().id && p.status === "active");
@@ -1808,10 +1826,20 @@ async function actionRemote(btn) {
     await report(btn.dataset.kind, id, "other", "");
     return;
   }
-  if (type === "remove-post" || type === "remove-listing") {
-    await backend.closePublication(type === "remove-post" ? "post" : "listing", id);
+  if (type === "remove-post") {
+    const post = data.posts.find(p => p.id === id && p.user === me().id);
+    if (!post) throw new Error("Можно удалять только собственные публикации.");
+    if (typeof confirm === "function" && !confirm("Удалить свою публикацию? При активной сделке удаление будет заблокировано.")) return;
+    await backend.deletePost(id);
     await refreshRemoteData();
-    setPage(type === "remove-post" ? "board" : "market");
+    setPage("board");
+    msg("Публикация удалена.");
+    return;
+  }
+  if (type === "remove-listing") {
+    await backend.closePublication("listing", id);
+    await refreshRemoteData();
+    setPage("market");
     return;
   }
   if (type === "scan") {
