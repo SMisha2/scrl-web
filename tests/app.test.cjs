@@ -336,8 +336,8 @@ test("авторизация сохраняет читаемые поля и т�
   assert.match(html, /Нет аккаунта\? Зарегистрируйся/);
   assert.match(html, /class="mc-input-shell"/);
   assert.match(app, /cursor\.textContent = "_"/);
-  assert.match(app, /measure\.measureText\(value\)/);
-  assert.match(app, /style\.textAlign === "center"/);
+  assert.match(app, /const mirror = document\.createElement\("div"\)/);
+  assert.match(app, /mirror\.style\.textAlign = style\.textAlign/);
   assert.match(app, /input\.addEventListener\("keydown", schedulePosition\)/);
   assert.match(app, /document\.addEventListener\("selectionchange", onSelectionChange\)/);
   assert.doesNotMatch(app, /input\.id === "code"/);
@@ -537,24 +537,24 @@ test("курсор ввода следует за реальной каретк�
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
-  assert.match(app, /const canvas = document\.createElement\("canvas"\)/);
-  assert.match(app, /measure\.measureText\(value\)\.width/);
-  assert.match(app, /const inputRect = input\.getBoundingClientRect\(\)/);
-  assert.match(app, /const shellRect = shell\.getBoundingClientRect\(\)/);
-  assert.match(app, /style\.textAlign === "center"/);
-  assert.match(app, /const prefixWidth = widthOf\(prefix\)/);
-  assert.doesNotMatch(app, /const mirror = document\.createElement\("span"\)|marker\.getBoundingClientRect\(\)/);
+  assert.match(app, /const mirror = document\.createElement\("div"\)/);
+  assert.match(app, /const marker = document\.createElement\("span"\)/);
+  assert.match(app, /mirror\.replaceChildren/);
+  assert.match(app, /mirror\.offsetLeft \+ marker\.offsetLeft/);
+  assert.match(app, /mirror\.style\.textAlign = style\.textAlign/);
+  assert.match(app, /mirror\.scrollLeft = input\.scrollLeft/);
+  assert.doesNotMatch(app, /measure\.measureText|const canvas = document\.createElement\("canvas"\)/);
   assert.doesNotMatch(app, /if \(input\.id === "code"\) return/);
   assert.match(app, /Этот код уже использован, заменён новым или истёк/);
   assert.match(app, /el\("code"\)\.value = ""/);
   assert.match(app, /button\.disabled = true/);
   assert.match(css, /\.mc-writing-cursor/);
+  assert.match(css, /\.mc-caret-measure/);
   assert.match(css, /#auth #codeForm input#code[\s\S]*?text-overflow: clip !important/);
   assert.match(css, /caret-color:\s*transparent\s*!important/);
   assert.doesNotMatch(html, /codeDeviceMode/);
   assert.doesNotMatch(app, /scrlAuthDeviceMode|setupAuthDeviceMode/);
 });
-
 test("email confirmation accepts the eight-digit OTP configured in Supabase", () => {
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");

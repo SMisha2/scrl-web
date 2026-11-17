@@ -42,20 +42,60 @@ function msg(text) {
 function installMinecraftBookCursors() {
   if (window.__scrlTestMode || !document.querySelectorAll) return;
 
-  const canvas = document.createElement("canvas");
-  const measure = canvas.getContext && canvas.getContext("2d");
-  if (!measure) return;
-
   document.querySelectorAll("#authBook .mc-input-shell input").forEach(input => {
     const shell = input.parentElement;
     if (!shell || shell.querySelector(".mc-writing-cursor")) return;
+
+    const mirror = document.createElement("div");
+    mirror.className = "mc-caret-measure";
+    mirror.setAttribute("aria-hidden", "true");
+
+    const marker = document.createElement("span");
+    marker.className = "mc-caret-marker";
+    marker.setAttribute("aria-hidden", "true");
 
     const cursor = document.createElement("span");
     cursor.className = "mc-writing-cursor";
     cursor.textContent = "_";
     cursor.setAttribute("aria-hidden", "true");
     cursor.hidden = true;
+
+    shell.appendChild(mirror);
     shell.appendChild(cursor);
+
+    const copyTextLayout = style => {
+      mirror.style.position = "absolute";
+      mirror.style.display = "block";
+      mirror.style.boxSizing = "border-box";
+      mirror.style.border = "0";
+      mirror.style.margin = "0";
+      mirror.style.paddingTop = style.paddingTop;
+      mirror.style.paddingRight = style.paddingRight;
+      mirror.style.paddingBottom = style.paddingBottom;
+      mirror.style.paddingLeft = style.paddingLeft;
+      mirror.style.font = style.font;
+      mirror.style.fontFamily = style.fontFamily;
+      mirror.style.fontSize = style.fontSize;
+      mirror.style.fontWeight = style.fontWeight;
+      mirror.style.fontStyle = style.fontStyle;
+      mirror.style.fontVariant = style.fontVariant;
+      mirror.style.fontStretch = style.fontStretch;
+      mirror.style.fontKerning = style.fontKerning;
+      mirror.style.fontFeatureSettings = style.fontFeatureSettings;
+      mirror.style.fontVariationSettings = style.fontVariationSettings;
+      mirror.style.lineHeight = style.lineHeight;
+      mirror.style.letterSpacing = style.letterSpacing;
+      mirror.style.wordSpacing = style.wordSpacing;
+      mirror.style.textAlign = style.textAlign;
+      mirror.style.textIndent = style.textIndent;
+      mirror.style.textTransform = style.textTransform;
+      mirror.style.direction = style.direction;
+      mirror.style.unicodeBidi = style.unicodeBidi;
+      mirror.style.writingMode = style.writingMode;
+      mirror.style.textRendering = style.textRendering;
+      mirror.style.whiteSpace = "pre";
+      mirror.style.overflow = "hidden";
+    };
 
     const positionCursor = () => {
       if (document.activeElement !== input) {
@@ -71,40 +111,40 @@ function installMinecraftBookCursors() {
       }
 
       const style = window.getComputedStyle(input);
-      let visibleText = input.type === "password" ? "•".repeat(input.value.length) : input.value;
-      if (style.textTransform === "uppercase") visibleText = visibleText.toUpperCase();
-      if (style.textTransform === "lowercase") visibleText = visibleText.toLowerCase();
-      const caret = Math.max(0, Math.min(visibleText.length, start));
-      const prefix = visibleText.slice(0, caret);
-
-      // Measure the exact visible prefix and whole string. This also handles
-      // centered code inputs and their letter spacing without a fake text mirror.
-      measure.font = style.font || (style.fontSize + " " + style.fontFamily);
-      const spacing = Number.parseFloat(style.letterSpacing) || 0;
-      const charCount = value => Array.from(value).length;
-      const widthOf = value => value
-        ? measure.measureText(value).width + Math.max(0, charCount(value) - 1) * spacing
-        : 0;
-      const fullWidth = widthOf(visibleText);
-      const prefixWidth = widthOf(prefix);
-
-      const paddingLeft = Number.parseFloat(style.paddingLeft) || 0;
-      const paddingRight = Number.parseFloat(style.paddingRight) || 0;
-      const contentWidth = Math.max(0, input.clientWidth - paddingLeft - paddingRight);
-      const indent = Number.parseFloat(style.textIndent) || 0;
-      let textStart = paddingLeft + indent - input.scrollLeft;
-      if (style.textAlign === "center") {
-        textStart += (contentWidth - fullWidth) / 2;
-      } else if (style.textAlign === "right" || style.textAlign === "end") {
-        textStart += contentWidth - fullWidth;
-      } else if (style.direction === "rtl") {
-        textStart += contentWidth - fullWidth;
-      }
-
       const inputRect = input.getBoundingClientRect();
       const shellRect = shell.getBoundingClientRect();
-      const x = inputRect.left - shellRect.left + input.clientLeft + textStart + prefixWidth;
-      cursor.style.left = x + "px";
+      copyTextLayout(style);
+
+      // Let the browser lay out the same text in a hidden copy of the input.
+      // This accounts for actual font shaping, spacing, padding and alignment.
+      const inputLeft = input.offsetParent === shell
+        ? input.offsetLeft + input.clientLeft
+        : (inputRect.left - shellRect.left) *
+          (shell.offsetWidth && shellRect.width ? shell.offsetWidth / shellRect.width : 1) +
+          shell.scrollLeft - shell.clientLeft + input.clientLeft;
+      const inputTop = input.offsetParent === shell
+        ? input.offsetTop + input.clientTop
+        : (inputRect.top - shellRect.top) *
+          (shell.offsetHeight && shellRect.height ? shell.offsetHeight / shellRect.height : 1) +
+          shell.scrollTop - shell.clientTop + input.clientTop;
+
+      mirror.style.left = inputLeft + "px";
+      mirror.style.top = inputTop + "px";
+      mirror.style.width = input.clientWidth + "px";
+      mirror.style.height = input.clientHeight + "px";
+      mirror.scrollLeft = input.scrollLeft;
+      mirror.scrollTop = input.scrollTop;
+
+      const visibleText = input.type === "password" ? "•".repeat(input.value.length) : input.value;
+      mirror.replaceChildren(
+        document.createTextNode(visibleText.slice(0, start)),
+        marker,
+        document.createTextNode(visibleText.slice(start))
+      );
+
+      // The mirror and underscore share the same positioned parent. Offsets
+      // therefore remain correct during 3D page flips and viewport resizing.
+      cursor.style.left = (mirror.offsetLeft + marker.offsetLeft) + "px";
 
       const paddingTop = Number.parseFloat(style.paddingTop) || 0;
       const paddingBottom = Number.parseFloat(style.paddingBottom) || 0;
@@ -113,8 +153,7 @@ function installMinecraftBookCursors() {
       const parsedLineHeight = Number.parseFloat(style.lineHeight);
       const lineHeight = Number.isFinite(parsedLineHeight) ? parsedLineHeight : fontSize * 1.2;
       cursor.style.top = (
-        inputRect.top - shellRect.top + input.clientTop +
-        paddingTop + Math.max(0, (contentHeight - lineHeight) / 2)
+        inputTop + paddingTop + Math.max(0, (contentHeight - lineHeight) / 2)
       ) + "px";
       cursor.style.font = style.font;
       cursor.style.lineHeight = lineHeight + "px";
@@ -150,8 +189,11 @@ function installMinecraftBookCursors() {
       input.addEventListener(name, schedulePosition)
     );
     input.addEventListener("keydown", schedulePosition);
+    shell.addEventListener("transitionend", schedulePosition);
     document.addEventListener("selectionchange", onSelectionChange);
+    document.addEventListener("scroll", schedulePosition, true);
     window.addEventListener("resize", schedulePosition);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedulePosition);
   });
 }
 function updateBookControls() {
