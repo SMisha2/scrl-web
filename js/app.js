@@ -40,7 +40,6 @@ function installMinecraftBookCursors() {
   if (window.__scrlTestMode || !document.querySelectorAll) return;
 
   document.querySelectorAll("#authBook .mc-input-shell input").forEach(input => {
-    if (input.id === "code") return; // OTP keeps the native browser caret.
     const shell = input.parentElement;
     if (!shell || shell.querySelector(".mc-writing-cursor")) return;
 
@@ -48,10 +47,11 @@ function installMinecraftBookCursors() {
     cursor.className = "mc-writing-cursor";
     cursor.textContent = "_";
     cursor.setAttribute("aria-hidden", "true");
+    cursor.hidden = true;
     shell.appendChild(cursor);
 
-    // This mirror is laid out by the browser with the input's actual font and alignment.
-    // A zero-width marker gives the exact insertion point, including centered fields.
+    // Keep a hidden copy of the input text and put a zero-width marker at the
+    // exact selection point. The browser lays it out with the input's font.
     const mirror = document.createElement("span");
     mirror.className = "mc-caret-measure";
     mirror.setAttribute("aria-hidden", "true");
@@ -67,8 +67,17 @@ function installMinecraftBookCursors() {
 
       const style = window.getComputedStyle(input);
       const visibleText = input.type === "password" ? "•".repeat(input.value.length) : input.value;
-      const rawCaret = typeof input.selectionStart === "number" ? input.selectionStart : visibleText.length;
-      const caret = Math.max(0, Math.min(visibleText.length, rawCaret));
+      const rawStart = typeof input.selectionStart === "number" ? input.selectionStart : input.value.length;
+      const rawEnd = typeof input.selectionEnd === "number" ? input.selectionEnd : rawStart;
+      const caret = Math.max(0, Math.min(visibleText.length, rawStart));
+      const selectionEnd = Math.max(caret, Math.min(visibleText.length, rawEnd));
+
+      // A blinking caret should not sit on top of a selected text range.
+      if (caret !== selectionEnd) {
+        cursor.hidden = true;
+        return;
+      }
+
       prefix.nodeValue = visibleText.slice(0, caret);
       suffix.nodeValue = visibleText.slice(caret);
 
@@ -78,8 +87,8 @@ function installMinecraftBookCursors() {
       mirror.style.top = (inputRect.top - shellRect.top + input.clientTop) + "px";
       mirror.style.width = input.clientWidth + "px";
       mirror.style.height = input.clientHeight + "px";
-      mirror.style.paddingLeft = style.paddingLeft;
-      mirror.style.paddingRight = style.paddingRight;
+      mirror.style.boxSizing = "border-box";
+      mirror.style.padding = style.padding;
       mirror.style.font = style.font;
       mirror.style.letterSpacing = style.letterSpacing;
       mirror.style.wordSpacing = style.wordSpacing;
@@ -88,6 +97,9 @@ function installMinecraftBookCursors() {
       mirror.style.textIndent = style.textIndent;
       mirror.style.textTransform = style.textTransform;
       mirror.style.direction = style.direction;
+      mirror.style.fontKerning = style.fontKerning;
+      mirror.style.fontVariant = style.fontVariant;
+      mirror.style.fontFeatureSettings = style.fontFeatureSettings;
       mirror.style.whiteSpace = "pre";
       mirror.scrollLeft = input.scrollLeft;
 
@@ -95,16 +107,36 @@ function installMinecraftBookCursors() {
       cursor.style.left = (markerRect.left - shellRect.left) + "px";
       cursor.style.font = style.font;
       cursor.style.lineHeight = style.lineHeight;
+      cursor.hidden = false;
+    };
+
+    // keydown runs before the browser moves the caret, so measure on the next
+    // frame; selectionchange also covers mouse/touch selection and arrow keys.
+    const schedulePosition = () => {
+      if (typeof window.requestAnimationFrame === "function") {
+        window.requestAnimationFrame(positionCursor);
+      } else {
+        setTimeout(positionCursor, 0);
+      }
+    };
+    const onSelectionChange = () => {
+      if (document.activeElement === input) schedulePosition();
     };
 
     input.addEventListener("focus", () => {
       shell.classList.add("is-typing");
-      positionCursor();
+      schedulePosition();
     });
-    input.addEventListener("blur", () => shell.classList.remove("is-typing"));
-    ["input", "keyup", "click", "select", "scroll", "change"].forEach(name =>
-      input.addEventListener(name, positionCursor)
+    input.addEventListener("blur", () => {
+      shell.classList.remove("is-typing");
+      cursor.hidden = true;
+    });
+    ["input", "keyup", "click", "select", "scroll", "change", "compositionend", "pointerup", "touchend"].forEach(name =>
+      input.addEventListener(name, schedulePosition)
     );
+    input.addEventListener("keydown", schedulePosition);
+    document.addEventListener("selectionchange", onSelectionChange);
+    window.addEventListener("resize", schedulePosition);
   });
 }
 function updateBookControls() {
