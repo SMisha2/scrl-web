@@ -153,14 +153,14 @@ test("admin account deletion calls the protected account Edge Function with only
   });
 });
 
-test("own post deletion uses the authenticated account Edge Function", async () => {
+test("own post deletion uses the authenticated owner/admin RPC", async () => {
   const { api, calls } = loadBackend();
   await api.deletePost("6d2d7e2a-9e94-4e0d-91f2-8bb84be070ad");
-  assert.match(calls[0].url, /functions\/v1\/scrl-account$/);
+  assert.match(calls[0].url, /rest\/v1\/rpc\/scrl_delete_publication$/);
   assert.equal(calls[0].options.headers.Authorization, "Bearer signed-user-jwt");
   assert.deepEqual(JSON.parse(calls[0].options.body), {
-    action: "delete_post",
-    post_id: "6d2d7e2a-9e94-4e0d-91f2-8bb84be070ad"
+    p_kind: "post",
+    p_id: "6d2d7e2a-9e94-4e0d-91f2-8bb84be070ad"
   });
 });
 
@@ -209,7 +209,7 @@ test("an expired Edge Function session is refreshed and retried with the new JWT
       }
       if (String(url).includes("/functions/v1/scrl-account")) {
         if (options.headers.Authorization === "Bearer expired-access") {
-          return { ok: false, status: 401, async text() { return JSON.stringify({ message: "JWT expired" }); } };
+          return { ok: false, status: 401, async text() { return JSON.stringify({ message: "JWT expired" }); }
         }
         return { ok: true, status: 200, async text() { return JSON.stringify({ success: true }); } };
       }
@@ -217,7 +217,7 @@ test("an expired Edge Function session is refreshed and retried with the new JWT
     }
   });
 
-  await api.deletePost("post-1");
+  await api.adminDeleteUser("6d2d7e2a-9e94-4e0d-91f2-8bb84be070ad");
   assert.equal(calls.length, 3);
   assert.match(calls[1].url, /auth\/v1\/token\?grant_type=refresh_token$/);
   assert.equal(calls[2].options.headers.Authorization, "Bearer fresh-edge-access");

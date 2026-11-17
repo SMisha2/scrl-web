@@ -413,10 +413,10 @@
       return rpc("scrl_delete_publication", { p_kind: String(kind), p_id: String(id) });
     },
     deletePost(id) {
-      return this.deletePublication("post", id);
+      return rpc("scrl_delete_publication", { p_kind: "post", p_id: String(id) });
     },
     closePublication(kind, id) {
-      return this.deletePublication(kind, id);
+      return rpc("scrl_delete_publication", { p_kind: String(kind), p_id: String(id) });
     },
     async createDeal(payload) {
       await moderationCheck("deal", { title: String(payload.title || "").trim() });
