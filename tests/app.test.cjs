@@ -1055,3 +1055,26 @@ test("workflow syntax-checks every browser JavaScript file and verifies both pub
   assert.ok(workflow.includes("https://www.scrl.site/"));
   assert.ok(workflow.includes('check_domain "www.scrl.site"'));
 });
+
+
+test("мобильная навигация показывает все разделы, а меню Ещё остаётся внутри навигации", () => {
+  const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  for (const page of ["home", "board", "exchange", "auctions", "activity", "wallet", "orders", "favorites", "profile"]) {
+    assert.ok(html.includes('data-page="' + page + '"'), "missing page " + page);
+  }
+  assert.match(css, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\) !important/);
+  assert.match(css, /overflow:visible !important/);
+  assert.match(app, /function closeExtraMenu\(\)/);
+  assert.doesNotMatch(app, /document\.body\.appendChild\(menu\)/);
+  assert.match(app, /extraMenu\.addEventListener\("click"/);
+});
+
+test("кнопка регистрации остаётся в потоке, а ФИО сгруппировано в одну строку на ПК", () => {
+  const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
+  assert.match(html, /class="reg-name-grid"[\s\S]*id="regLast"[\s\S]*id="regFirst"[\s\S]*id="regPat"/);
+  assert.match(css, /#auth #regForm \.reg-name-grid[\s\S]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(css, /#bookSign\.book-action-button[\s\S]*position:static !important/);
+});
