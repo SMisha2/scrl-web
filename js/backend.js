@@ -409,7 +409,7 @@
             p_personal_consent: safety.personalConsent === true,
             p_ai_consent: safety.aiConsent === true,
             p_personal_version: String(safety.personalVersion || "2026-11-17-v1"),
-            p_ai_version: String(safety.aiVersion || "2026-11-17-v1")
+            p_ai_version: String(safety.aiVersion || "2026-11-17-v2")
           }
         }, token);
       }
@@ -427,7 +427,7 @@
         p_personal_consent: safety.personalConsent === true,
         p_ai_consent: safety.aiConsent === true,
         p_personal_version: String(safety.personalVersion || "2026-11-17-v1"),
-        p_ai_version: String(safety.aiVersion || "2026-11-17-v1")
+        p_ai_version: String(safety.aiVersion || "2026-11-17-v2")
       });
     },
     requestExchangeParentConsent(confirmed) {
