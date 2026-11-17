@@ -144,7 +144,10 @@ function installMinecraftBookCursors() {
 
       // The mirror and underscore share the same positioned parent. Offsets
       // therefore remain correct during 3D page flips and viewport resizing.
-      cursor.style.left = (mirror.offsetLeft + marker.offsetLeft) + "px";
+      const markerRect = marker.getBoundingClientRect();
+      const scaleX = shellRect.width > 0 ? shell.offsetWidth / shellRect.width : 1;
+      const cursorX = (markerRect.left - shellRect.left) * scaleX;
+      cursor.style.left = cursorX + "px";
 
       const paddingTop = Number.parseFloat(style.paddingTop) || 0;
       const paddingBottom = Number.parseFloat(style.paddingBottom) || 0;

@@ -540,7 +540,9 @@ test("курсор ввода следует за реальной каретк�
   assert.match(app, /const mirror = document\.createElement\("div"\)/);
   assert.match(app, /const marker = document\.createElement\("span"\)/);
   assert.match(app, /mirror\.replaceChildren/);
-  assert.match(app, /mirror\.offsetLeft \+ marker\.offsetLeft/);
+  assert.match(app, /const markerRect = marker\.getBoundingClientRect\(\)/);
+  assert.match(app, /const scaleX = shellRect\.width > 0/);
+  assert.match(app, /markerRect\.left - shellRect\.left/);
   assert.match(app, /mirror\.style\.textAlign = style\.textAlign/);
   assert.match(app, /mirror\.scrollLeft = input\.scrollLeft/);
   assert.doesNotMatch(app, /measure\.measureText|const canvas = document\.createElement\("canvas"\)/);
@@ -562,7 +564,7 @@ test("email confirmation accepts the eight-digit OTP configured in Supabase", ()
   assert.match(app, /\[0-9\]\{8\}/);
   assert.match(html, /id="code"[^>]*maxlength="8" pattern="\[0-9\]\{8\}"/);
   assert.match(html, /восьмизначный код/);
-  assert.ok(html.includes("js/app.js?v=175"));
+  assert.ok(html.includes("js/app.js?v=176"));
 });
 
 
