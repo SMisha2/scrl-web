@@ -433,9 +433,11 @@
     requestExchangeParentConsent(confirmed) {
       return rpc("scrl_request_exchange_parent_consent", { p_parent_confirmed: confirmed === true });
     },
-    reviewExchangeParentConsent(userId, decision) {
+    reviewExchangeParentConsent(userId, decision, verificationNote = "") {
       return rpc("scrl_admin_review_exchange_parent_consent", {
-        p_user_id: String(userId), p_decision: String(decision)
+        p_user_id: String(userId),
+        p_decision: String(decision),
+        p_verification_note: String(verificationNote || "")
       });
     },
     deleteAccount(confirmation) {
