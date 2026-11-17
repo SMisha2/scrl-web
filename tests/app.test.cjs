@@ -793,6 +793,7 @@ test("mobile flex bases match the smaller logo and coin frames", () => {
 test("ученик не может редактировать класс в профиле, администратор может", () => {
   const { api } = boot();
   assert.match(api.profilePage(), /name="room"[^>]*readonly aria-readonly="true"/);
+  api.enter("Администратор", "admin@example.test", "", false, "u0");
   api.data.users.find(user => user.id === api.me().id).role = "admin";
   const adminProfile = api.profilePage();
   assert.match(adminProfile, /id="profileRole"/);
