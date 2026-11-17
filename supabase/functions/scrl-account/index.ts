@@ -53,8 +53,18 @@ Deno.serve(async (req: Request) => {
 
     let payload: Record<string, unknown> = {};
     try { payload = await req.json(); } catch { return response({ error: "Некорректный запрос." }, 400, origin); }
-    if (payload.action !== "delete_account") return response({ error: "Неизвестное действие." }, 400, origin);
-    if (payload.confirmation !== "УДАЛИТЬ") return response({ error: "Подтверди удаление аккаунта." }, 400, origin);
+    if (payload.action === "delete_account") {
+      if (payload.confirmation !== "УДАЛИТЬ") {
+        return response({ error: "Подтверди удаление аккаунта." }, 400, origin);
+      }
+    } else if (payload.action === "delete_post") {
+      const postId = typeof payload.post_id === "string" ? payload.post_id : "";
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(postId)) {
+        return response({ error: "Некорректный идентификатор публикации." }, 400, origin);
+      }
+    } else {
+      return response({ error: "Неизвестное действие." }, 400, origin);
+    }
 
     const url = (Deno.env.get("SUPABASE_URL") || "").replace(/\/+$/, "");
     const publishableKey = secret("SUPABASE_ANON_KEY", "SUPABASE_PUBLISHABLE_KEYS");
@@ -73,6 +83,17 @@ Deno.serve(async (req: Request) => {
     const admin = createClient(url, serviceKey, {
       auth: { persistSession: false, autoRefreshToken: false }
     });
+
+    if (payload.action === "delete_post") {
+      const { error } = await admin.rpc("scrl_delete_own_post", {
+        p_user: userData.user.id,
+        p_post: payload.post_id as string
+      });
+      if (error) {
+        return response({ error: error.message || "Не удалось удалить публикацию." }, 409, origin);
+      }
+      return response({ success: true }, 200, origin);
+    }
 
     // This RPC anonymizes user-authored data and keeps profile IDs referenced by
     // historical financial rows. It also refuses deletion while holds or active
