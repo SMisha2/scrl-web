@@ -28,7 +28,7 @@ function loadBackend(config = {}) {
     fs.readFileSync(path.join(__dirname, "../js/backend.js"), "utf8"),
     { window, sessionStorage, fetch, JSON, String, Number, Map, Date, encodeURIComponent }
   );
-  return { api: window.ScrlBackend, calls };
+  return { api: window.ScrlBackend, calls, sessionStorage };
 }
 
 test("profile login update does not erase the saved class", async () => {
