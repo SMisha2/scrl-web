@@ -7128,3 +7128,56 @@ html[data-theme="dark"] body #app .app-loading-spinner {
     display:none !important;
   }
 }
+
+
+/* Authentication layout: the theme switch sits beside the book on desktop. */
+@media (min-width: 701px) {
+  .auth-theme-btn {
+    top: 50% !important;
+    right: max(16px, calc((100vw - 550px) / 2 - 78px)) !important;
+    left: auto !important;
+    transform: translateY(-50%) !important;
+  }
+  .auth-theme-btn:hover {
+    transform: translateY(calc(-50% - 1px)) !important;
+  }
+}
+
+/* The submit action is anchored to the active paper page. */
+#bookSign.book-action-button {
+  position: absolute !important;
+  z-index: 12 !important;
+  left: 50% !important;
+  bottom: 17px !important;
+  width: min(320px, calc(100% - 44px)) !important;
+  margin: 0 !important;
+  transform: translateX(-50%) !important;
+}
+#bookSign.book-action-button:active {
+  transform: translate(-50%, 2px) !important;
+}
+.book-page {
+  padding-bottom: 76px !important;
+}
+
+/* On phones, center the theme switch horizontally above the book. */
+@media (max-width: 700px) {
+  .auth-theme-btn {
+    top: 10px !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+  }
+  .auth-theme-btn:hover {
+    transform: translateX(-50%) translateY(-1px) !important;
+  }
+}
+@media (max-width: 560px) {
+  #bookSign.book-action-button {
+    bottom: 12px !important;
+    width: calc(100% - 36px) !important;
+  }
+  .book-page {
+    padding-bottom: 68px !important;
+  }
+}
