@@ -305,6 +305,9 @@
         p_category: payload.category, p_price: payload.price, p_slots: payload.slots
       });
     },
+    deletePost(id) {
+      return edgeFunction("scrl-account", { action: "delete_post", post_id: String(id) });
+    },
     closePublication(kind, id) {
       return rpc("scrl_close_publication", { p_kind: kind, p_id: id });
     },
