@@ -1082,9 +1082,9 @@ test("кнопка регистрации остаётся в потоке, а �
 
 test("desktop More popover uses fixed viewport positioning to escape nav overflow clipping", () => {
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
-  assert.match(app, /extraMenu\.style\.position = "fixed"/);
+  assert.match(app, /extraMenu\.style\.setProperty\("position", "fixed", "important"\)/);
   assert.match(app, /moreButton\.getBoundingClientRect\(\)/);
-  assert.match(app, /extraMenu\.style\.left/);
-  assert.match(app, /extraMenu\.style\.top/);
+  assert.match(app, /extraMenu\.style\.setProperty\("left"/);
+  assert.match(app, /extraMenu\.style\.setProperty\("top"/);
   assert.match(app, /menu\.removeAttribute\("style"\)/);
 });
