@@ -231,7 +231,7 @@ function updateBookControls() {
     sign.textContent = label;
 
     // Keep the primary action inside the active book page, not below the book.
-    if (targetPage && sign.parentElement !== targetPage) targetPage.appendChild(sign);
+    if (targetPage && typeof targetPage.appendChild === "function" && sign.parentElement !== targetPage) targetPage.appendChild(sign);
   }
 
   if (loginPage) {
