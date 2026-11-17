@@ -310,7 +310,7 @@ test("светлые поля привязаны напрямую к data-theme=
   assert.ok(css.includes('html[data-theme="light"] body textarea'));
   assert.ok(css.includes('border: 4px solid #111111 !important'));
   assert.ok(css.includes('background-color: #c4c4c4 !important'));
-  assert.ok(html.includes('css/style.css?v=169'));
+  assert.ok(html.includes('css/style.css?v=170'));
 });
 
 
@@ -338,6 +338,9 @@ test("авторизация сохраняет читаемые поля и т�
   assert.match(app, /cursor\.textContent = "_"/);
   assert.match(app, /marker\.getBoundingClientRect\(\)/);
   assert.match(app, /prefix\.nodeValue = visibleText\.slice\(0, caret\)/);
+  assert.match(app, /input\.addEventListener\("keydown", schedulePosition\)/);
+  assert.match(app, /document\.addEventListener\("selectionchange", onSelectionChange\)/);
+  assert.doesNotMatch(app, /input\.id === "code"/);
   assert.match(css, /\.mc-caret-measure/);
   assert.match(css, /\.mc-writing-cursor/);
 });
@@ -425,7 +428,7 @@ test("uploaded day/night photos are rendered smoothly, not pixelated", () => {
   assert.match(tail, /transform: none !important/);
   assert.match(tail, /background-size: cover !important/);
   assert.match(tail, /transition: opacity 1\.15s ease !important/);
-  assert.ok(html.includes('css/style.css?v=169'));
+  assert.ok(html.includes('css/style.css?v=170'));
 });
 
 
@@ -542,7 +545,7 @@ test("email confirmation accepts the eight-digit OTP configured in Supabase", ()
   assert.match(app, /\[0-9\]\{8\}/);
   assert.match(html, /id="code"[^>]*maxlength="8" pattern="\[0-9\]\{8\}"/);
   assert.match(html, /восьмизначный код/);
-  assert.ok(html.includes("js/app.js?v=172"));
+  assert.ok(html.includes("js/app.js?v=173"));
 });
 
 
