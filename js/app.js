@@ -14,6 +14,7 @@ const resetPasswordForm = el("resetPasswordForm");
 const forgotPasswordButton = el("forgotPassword");
 const forgotPasswordForm = el("forgotPasswordForm");
 let passwordRecoveryToken = "";
+let passwordRecoveryRequested = false;
 const toast = el("toast");
 if (!window.__scrlTestMode && typeof navigator !== "undefined" &&
     navigator.serviceWorker && typeof navigator.serviceWorker.register === "function") {
@@ -247,9 +248,11 @@ function setMode(mode) {
     book.classList.toggle("is-spread", isSpread);
     book.classList.remove("is-page-2");
     book.dataset.activePage = activePage;
+    book.classList.remove("is-recovery-page");
   }
 
   passwordRecoveryToken = "";
+  passwordRecoveryRequested = false;
   resetPasswordForm.hidden = true;
   if (forgotPasswordForm) forgotPasswordForm.hidden = true;
   if (forgotPasswordButton) forgotPasswordButton.hidden = false;
@@ -278,8 +281,10 @@ function openPasswordRecoveryPage() {
     book.classList.remove("is-spread");
     book.classList.remove("is-page-2");
     book.dataset.activePage = "0";
+    book.classList.add("is-recovery-page");
   }
   passwordRecoveryToken = "";
+  passwordRecoveryRequested = false;
   login.hidden = true;
   reg.hidden = true;
   codeForm.hidden = true;
@@ -291,7 +296,7 @@ function openPasswordRecoveryPage() {
   if (el("banAppealPanel")) el("banAppealPanel").hidden = true;
   if (el("bookSign")) el("bookSign").hidden = false;
   if (el("loginTitle")) el("loginTitle").textContent = "Восстановление пароля";
-  if (el("loginDesc")) el("loginDesc").textContent = "Отправим ссылку на почту, привязанную к аккаунту.";
+  if (el("loginDesc")) el("loginDesc").textContent = "";
   if (el("forgotMail")) el("forgotMail").value = String(el("logMail")?.value || "").trim();
   if (el("forgotPasswordErr")) el("forgotPasswordErr").textContent = "";
   if (el("logErr")) el("logErr").textContent = "";
@@ -863,7 +868,9 @@ function setPasswordRecoveryPage(token) {
   if (book) {
     book.classList.remove("is-spread");
     book.dataset.activePage = "0";
+    book.classList.add("is-recovery-page");
   }
+  passwordRecoveryRequested = true;
   login.hidden = true;
   reg.hidden = true;
   codeForm.hidden = true;
@@ -883,6 +890,7 @@ function startPasswordRecoveryFromUrl() {
   if (!window.location || !window.location.hash || typeof URLSearchParams !== "function") return;
   const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
   if (params.get("type") !== "recovery") return;
+  passwordRecoveryRequested = true;
 
   const accessToken = params.get("access_token");
   if (!accessToken) {
@@ -1607,13 +1615,9 @@ function updateTopbarBalance() {
 function updateModerationNotice() {
   const notice = el("moderationNotice");
   if (!notice) return;
-  if (data.moderation?.aiEnabled === true) {
-    notice.dataset.state = "active";
-    notice.innerHTML = '<b>ИИ-модерация включена.</b> Groq проверяет пользовательский текст до публикации. Спорные материалы скрываются или направляются в очередь; при недоступности ИИ отправка останавливается.';
-  } else {
-    notice.dataset.state = "setup";
-    notice.innerHTML = '<b>ИИ-модерация пока не активирована.</b> Нужен новый секретный ключ Groq и разрешение на внешнюю проверку. Пока настройка не завершена, новые публикации и другие проверяемые тексты не проходят без проверки.';
-  }
+  notice.hidden = true;
+  notice.textContent = "";
+  notice.removeAttribute("data-state");
 }
 
 function consentStatusNeedsAcceptance(status = data.safety) {
@@ -3063,6 +3067,8 @@ resetPasswordForm.addEventListener("submit", async event => {
 
     const email = sessionStorage.getItem("scrlRecoveryEmail") || "";
     passwordRecoveryToken = "";
+    passwordRecoveryRequested = false;
+    clearSession();
     sessionStorage.removeItem("scrlRecoveryEmail");
     resetPasswordForm.reset();
     setMode("login");
@@ -3443,12 +3449,12 @@ el("page").addEventListener("submit", async event => {
 });
 
 const oldSess = sess();
-if (oldSess) {
+if (oldSess && !passwordRecoveryRequested) {
   enter(oldSess.name || "Ученик", oldSess.mail || "", oldSess.token || "", oldSess.guest || false, oldSess.id || "", oldSess.refreshToken || "");
 } else {
   auth.hidden = false;
   app.hidden = true;
-  setMode("login");
+  if (!passwordRecoveryRequested) setMode("login");
 }
 
 if (window.__scrlTestMode) {
