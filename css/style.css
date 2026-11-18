@@ -8577,3 +8577,62 @@ html[data-style="minecraft"][data-theme="dark"] body #app .topbar .topbar-balanc
   color: #e5eee0 !important;
   opacity: 1 !important;
 }
+
+/* Password recovery screen: remove unrelated copy and enlarge the back control. */
+#auth .auth-book.is-recovery-page #loginDesc,
+#auth .auth-book.is-recovery-page .auth-moderation-disclosure {
+  display:none !important;
+}
+#auth #forgotPasswordForm #backFromRecovery {
+  display:inline-flex !important;
+  align-self:flex-start !important;
+  align-items:center !important;
+  justify-content:center !important;
+  width:auto !important;
+  min-width:172px !important;
+  min-height:42px !important;
+  margin:12px 0 0 !important;
+  padding:10px 16px !important;
+  border:2px solid #9a805c !important;
+  border-radius:3px !important;
+  color:#493a27 !important;
+  background:#e8dfcc !important;
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,.65),inset -2px -2px 0 rgba(74,54,31,.14),2px 2px 0 rgba(74,54,31,.22) !important;
+  font-size:13px !important;
+  font-weight:700 !important;
+  line-height:1.25 !important;
+  text-align:center !important;
+  text-decoration:none !important;
+}
+#auth #forgotPasswordForm #backFromRecovery:hover {
+  color:#352817 !important;
+  background:#f0e7d5 !important;
+  filter:brightness(1.03) !important;
+  text-decoration:none !important;
+}
+html[data-theme="dark"] body #auth #forgotPasswordForm #backFromRecovery {
+  border-color:#727c76 !important;
+  color:#f0f1e8 !important;
+  background:#414a46 !important;
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,.08),inset -2px -2px 0 rgba(0,0,0,.25),2px 2px 0 rgba(0,0,0,.25) !important;
+}
+html[data-theme="dark"] body #auth #forgotPasswordForm #backFromRecovery:hover {
+  color:#ffffff !important;
+  background:#4b5650 !important;
+}
+
+/* Minecraft daytime must show the world image through every structural wrapper. */
+html[data-style="minecraft"][data-theme="light"],
+html[data-style="minecraft"][data-theme="light"] body,
+html[data-style="minecraft"][data-theme="light"] body #auth,
+html[data-style="minecraft"][data-theme="light"] body #app,
+html[data-style="minecraft"][data-theme="light"] body #page,
+html[data-style="minecraft"][data-theme="light"] body .page-wrap,
+html[data-style="minecraft"][data-theme="light"] body .auth-screen,
+html[data-style="minecraft"][data-theme="light"] body > #app:not([hidden]) .page-wrap,
+html[data-style="minecraft"][data-theme="light"] body > #app:not([hidden]) #page {
+  background:transparent !important;
+  background-color:transparent !important;
+  background-image:none !important;
+  box-shadow:none !important;
+}
