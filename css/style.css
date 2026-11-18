@@ -8722,3 +8722,146 @@ html[data-theme="dark"] body #app .topbar .nav-tab.is-active {
 html[data-theme="dark"] body #app .topbar .nav-tab.is-active:hover {
   background:#4a5158 !important;
 }
+
+
+/* Clear review actions: pending ratings stay near the top of My orders. */
+html body #page .review-reminder {
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  flex-wrap:wrap !important;
+  gap:6px 14px !important;
+  margin:0 0 14px !important;
+  padding:12px 14px !important;
+  border:1px solid var(--border) !important;
+  border-left:4px solid #78a66d !important;
+  border-radius:12px !important;
+  background:var(--surface2) !important;
+}
+html body #page .review-reminder strong { font-weight:800 !important; }
+html body #page .review-reminder span,
+html body #page .review-panel p { color:var(--muted) !important; }
+html body #page .order-card { scroll-margin-top:100px; }
+html body #page .order-participants { margin:8px 0 12px !important; }
+html body #page .review-panel {
+  margin:12px 0 !important;
+  padding:14px !important;
+  border:1px solid var(--border) !important;
+  border-left:4px solid #78a66d !important;
+  border-radius:12px !important;
+  background:var(--surface2) !important;
+}
+html body #page .review-panel-heading {
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  flex-wrap:wrap !important;
+  gap:6px 12px !important;
+  margin-bottom:4px !important;
+}
+html body #page .review-panel-heading strong { font-size:16px !important; }
+html body #page .review-panel > p { margin:4px 0 12px !important; }
+html body #page .review-panel form {
+  display:grid !important;
+  gap:7px !important;
+  margin:0 !important;
+}
+html body #page .review-panel label {
+  margin:4px 0 0 !important;
+  text-transform:none !important;
+  font-size:13px !important;
+  font-weight:700 !important;
+}
+html body #page .review-panel select,
+html body #page .review-panel textarea {
+  width:100% !important;
+  margin:0 !important;
+}
+html body #page .review-panel textarea { resize:vertical; min-height:58px; }
+html body #page .review-panel button { justify-self:start !important; margin-top:4px !important; }
+html body #page .review-submitted {
+  margin:12px 0 !important;
+  padding:10px 12px !important;
+  border-radius:9px !important;
+  background:var(--surface2) !important;
+}
+
+/* Confirmation modal before creating a paid marketplace order. */
+html body .purchase-dialog {
+  width:min(440px, calc(100vw - 28px)) !important;
+  max-width:calc(100vw - 28px) !important;
+  max-height:calc(100dvh - 28px) !important;
+  margin:auto !important;
+  padding:0 !important;
+  overflow:auto !important;
+  border:1px solid var(--border) !important;
+  border-radius:16px !important;
+  color:var(--text) !important;
+  background:var(--surface) !important;
+  box-shadow:0 24px 80px rgba(0,0,0,.38) !important;
+}
+html body .purchase-dialog::backdrop {
+  background:rgba(5,10,8,.66) !important;
+  backdrop-filter:blur(4px);
+}
+html body .purchase-dialog-card { padding:22px !important; }
+html body .purchase-dialog-card .eyebrow { margin:0 0 6px !important; }
+html body .purchase-dialog-card h2 { margin:0 0 12px !important; }
+html body .purchase-confirm-name {
+  margin:0 0 16px !important;
+  font-size:17px !important;
+  font-weight:800 !important;
+}
+html body .purchase-confirm-details {
+  display:grid !important;
+  gap:9px !important;
+  padding:12px !important;
+  border:1px solid var(--border) !important;
+  border-radius:10px !important;
+  background:var(--surface2) !important;
+}
+html body .purchase-confirm-details > div {
+  display:flex !important;
+  justify-content:space-between !important;
+  gap:12px !important;
+}
+html body .purchase-confirm-details span { color:var(--muted) !important; }
+html body .purchase-confirm-details strong { text-align:right !important; }
+html body .purchase-confirm-note {
+  margin:12px 0 0 !important;
+  color:var(--muted) !important;
+  font-size:13px !important;
+}
+html body .purchase-dialog-actions {
+  display:flex !important;
+  justify-content:flex-end !important;
+  flex-wrap:wrap !important;
+  gap:8px !important;
+  margin-top:18px !important;
+}
+html body .purchase-dialog-actions button { min-width:112px; }
+html body .purchase-confirm-details,
+html body .purchase-dialog-card,
+html body .purchase-dialog-card * { box-sizing:border-box !important; }
+
+/* Keep the deletion instruction readable; only the required word is uppercase. */
+html body #page .account-delete-form label,
+html body #page .account-delete-form input {
+  text-transform:none !important;
+}
+
+/* The available ScRl coin is larger in the wallet label. */
+html body #page .currency-coin-frame--wallet {
+  width:36px !important;
+  height:36px !important;
+  flex:0 0 36px !important;
+  margin:0 5px !important;
+  vertical-align:middle !important;
+}
+@media (max-width:620px) {
+  html body #page .currency-coin-frame--wallet {
+    width:31px !important;
+    height:31px !important;
+    flex-basis:31px !important;
+  }
+}
