@@ -33,6 +33,9 @@ let filter = { term: "", type: "all" };
 let adminFilter = { term: "", role: "all", locked: "all" };
 let marketFilter = { term: "", category: "all", sort: "new" };
 let adminPreviewRole = "";
+let selectedPublicProfileId = "";
+let publicProfileReturnPage = "board";
+let activePageName = "home";
 
 function msg(text) {
   toast.textContent = text;
@@ -941,7 +944,7 @@ function privacyPage() {
   const onboardingNotice = remoteReady && consentStatusNeedsAcceptance(status)
     ? '<p class="muted">Перед первым использованием ScRl нужно принять обязательные документы и сохранить согласия. После проверки базы откроются остальные разделы.</p>'
     : "";
-  return '<p class="eyebrow">КОНФИДЕНЦИАЛЬНОСТЬ</p><h1>Данные и согласия</h1>' +
+  return '<p class="eyebrow">НАСТРОЙКА АККАУНТА</p><h1>Завершение настройки</h1>' +
     onboardingNotice +
     '<section class="match-box consent-panel"><h2>Какие данные обрабатываются</h2>' +
     '<p>ScRl использует ФИО, электронную почту, дату рождения, класс, публикации, сообщения, отзывы и сведения об операциях для создания аккаунта, работы сервиса, безопасности, поддержки и разбора споров.</p>' +
@@ -973,13 +976,14 @@ function settingsPage() {
     '</section>' +
     '<section class="settings-card settings-shortcuts"><h2>Быстрый переход</h2><p>Нужные разделы собраны здесь, чтобы их было проще найти.</p><div class="settings-shortcut-list">' +
       link("profile", "Профиль и мои данные") +
-      link("privacy", "Конфиденциальность и согласия") +
       link("notices", "Уведомления") +
     '</div></section>';
 }
 
 const pages = {
   home: homePage,
+  myPublications: myPublicationsPage,
+  publicProfile: publicProfilePage,
   settings: settingsPage,
   privacy: privacyPage,
   wallet: walletPage,
@@ -1003,6 +1007,23 @@ function link(page, text) {
   return '<button class="button button-secondary" data-page="' + page + '">' + text + '</button>';
 }
 
+function openPublicProfile(userId) {
+  const target = getUser(String(userId || ""));
+  if (!target) {
+    msg("Профиль участника не найден.");
+    return;
+  }
+  if (target.id === me().id) {
+    setPage("profile");
+    return;
+  }
+  if (activePageName !== "publicProfile") {
+    publicProfileReturnPage = pages[activePageName] ? activePageName : "board";
+  }
+  selectedPublicProfileId = target.id;
+  setPage("publicProfile");
+}
+
 function homePage() {
   const user = me();
   const activeDeals = data.deals.filter(deal =>
@@ -1018,16 +1039,68 @@ function homePage() {
     '<h1>Привет, ' + safe(user.name.split(" ")[0]) + '</h1>' +
     '<p class="muted">Твой обзор ScRl · ' + className + ' · ' + roleName(user.role) + '</p>' +
     '<div class="home-overview">' +
-      '<article class="home-overview-card"><span class="home-overview-label">МОИ ЗАКАЗЫ</span><strong class="home-overview-value">' + activeDeals + '</strong><p>Активные сделки, подтверждения и споры</p></article>' +
-      '<article class="home-overview-card"><span class="home-overview-label">МОИ ПУБЛИКАЦИИ</span><strong class="home-overview-value">' + activePosts + '</strong><p>Действующие запросы и предложения</p></article>' +
-      '<article class="home-overview-card"><span class="home-overview-label">УВЕДОМЛЕНИЯ</span><strong class="home-overview-value">' + unread + '</strong><p>Непрочитанные события аккаунта</p></article>' +
-      '<article class="home-overview-card"><span class="home-overview-label">ИЗБРАННОЕ</span><strong class="home-overview-value">' + favorites + '</strong><p>Сохранённые объявления и услуги</p></article>' +
-    '</div>' +
-    '<p class="small muted demo-note">Баланс ScRl и V-RUB доступен прямо в верхней панели. Для перехода между разделами используй навигацию сверху.</p>';
+      '<button class="home-overview-card" type="button" data-page="orders"><span class="home-overview-label">МОИ ЗАКАЗЫ</span><strong class="home-overview-value">' + activeDeals + '</strong><p>Активные сделки, подтверждения и споры</p><span class="home-overview-action">Открыть заказы →</span></button>' +
+      '<button class="home-overview-card" type="button" data-page="myPublications"><span class="home-overview-label">МОИ ПУБЛИКАЦИИ</span><strong class="home-overview-value">' + activePosts + '</strong><p>Действующие запросы и предложения</p><span class="home-overview-action">Управлять публикациями →</span></button>' +
+      '<button class="home-overview-card" type="button" data-page="notices"><span class="home-overview-label">УВЕДОМЛЕНИЯ</span><strong class="home-overview-value">' + unread + '</strong><p>Непрочитанные события аккаунта</p><span class="home-overview-action">Посмотреть уведомления →</span></button>' +
+      '<button class="home-overview-card" type="button" data-page="favorites"><span class="home-overview-label">ИЗБРАННОЕ</span><strong class="home-overview-value">' + favorites + '</strong><p>Сохранённые объявления и услуги</p><span class="home-overview-action">Открыть избранное →</span></button>' +
+    '</div>';
 }
 
 function roleName(role) {
   return ({ student: "Ученик", teacher: "Учитель", admin: "Администратор", parent: "Родитель (тест)" })[role] || "Ученик";
+}
+
+function userProfileLink(userId, label = userName(userId)) {
+  return '<button class="text-button profile-link" type="button" data-view-user="' + safe(userId) + '">' + safe(label) + '</button>';
+}
+
+function myPublicationsPage() {
+  const userId = me().id;
+  const posts = data.posts.filter(post => post.user === userId);
+  const listings = data.listings.filter(item => item.user === userId);
+  const postCards = posts.map(post =>
+    '<article class="demo-card"><div class="card-top"><span class="tag">' + (post.type === "need" ? "Запрос" : "Предложение") + '</span><span class="tag">' + safe(publicationStatusName(post.status)) + '</span></div>' +
+    '<h2>' + safe(post.title) + '</h2><p class="muted">' + safe(post.desc) + '</p><div class="card-bottom"><b>' + (post.price ? money(post.price) + ' ScRl' : 'Бесплатно') + '</b><button class="text-button admin-danger-action" type="button" data-do="remove-post" data-id="' + safe(post.id) + '">Удалить</button></div></article>'
+  ).join("");
+  const listingCards = listings.map(item =>
+    '<article class="demo-card"><div class="card-top"><span class="tag">Услуга</span><span class="tag">' + safe(publicationStatusName(item.status)) + '</span></div>' +
+    '<h2>' + safe(item.title) + '</h2><p class="muted">' + safe(item.desc) + '</p><div class="card-bottom"><b>' + money(item.price) + ' ScRl · Осталось: ' + Number(item.slots || 0) + '</b><button class="text-button admin-danger-action" type="button" data-do="remove-listing" data-id="' + safe(item.id) + '">Снять услугу</button></div></article>'
+  ).join("");
+  return '<p class="eyebrow">МОИ МАТЕРИАЛЫ</p><h1>Мои публикации</h1>' +
+    '<p class="muted">Здесь собраны все твои запросы, предложения и услуги, включая записи на проверке.</p>' +
+    '<h2>Публикации на доске</h2><div class="demo-list">' + (postCards || '<p class="muted">Пока нет публикаций на доске.</p>') + '</div>' +
+    '<h2>Мои услуги</h2><div class="demo-list">' + (listingCards || '<p class="muted">Пока нет опубликованных услуг.</p>') + '</div>';
+}
+
+function publicationStatusName(status) {
+  return ({ active: "Активна", review: "На проверке", hidden: "Скрыта", sold: "Продана", removed: "Снята" })[status] || String(status || "Неизвестно");
+}
+
+function publicProfilePage() {
+  const user = getUser(selectedPublicProfileId);
+  if (!user || user.blocked || user.deleted) {
+    return '<p class="eyebrow">УЧАСТНИК</p><h1>Профиль недоступен</h1><p class="muted">Этот профиль больше нельзя посмотреть.</p><button class="button button-secondary" type="button" data-page="' + safe(publicProfileReturnPage) + '">Назад</button>';
+  }
+  const reviews = data.reviews.filter(review => review.target === user.id && (review.status || "active") === "active");
+  const average = reviews.length
+    ? (reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / reviews.length).toFixed(1)
+    : "—";
+  const posts = data.posts.filter(post => post.user === user.id && post.status === "active");
+  const listings = data.listings.filter(item => item.user === user.id && item.status === "active");
+  const reviewRows = reviews.map(review =>
+    '<div class="data-row"><span>' + safe(review.text || "Без текста") + '<small>' + Number(review.rating) + ' из 5 · ' + userProfileLink(review.user, userName(review.user)) + '</small></span></div>'
+  ).join("");
+  const publicationRows = posts.map(post =>
+    '<article class="demo-card"><span class="tag">' + (post.type === "need" ? "Запрос" : "Предложение") + '</span><h3>' + safe(post.title) + '</h3><p class="muted">' + safe(post.desc) + '</p></article>'
+  ).join("") + listings.map(item =>
+    '<article class="demo-card"><span class="tag">Услуга</span><h3>' + safe(item.title) + '</h3><p class="muted">' + safe(item.desc) + '</p><b>' + money(item.price) + ' ScRl</b></article>'
+  ).join("");
+  return '<p class="eyebrow">УЧАСТНИК SCrl</p><h1>' + safe(userName(user.id)) + '</h1>' +
+    '<p class="muted">Роль: ' + roleName(user.role) + '</p>' +
+    '<div class="demo-stats"><div class="demo-stat"><span>Оценка</span><b>' + average + '</b><small>' + reviews.length + ' отзывов</small></div><div class="demo-stat"><span>Активные публикации</span><b>' + (posts.length + listings.length) + '</b></div></div>' +
+    '<h2>Публикации и услуги</h2><div class="demo-list">' + (publicationRows || '<p class="muted">Активных публикаций пока нет.</p>') + '</div>' +
+    '<h2>Отзывы</h2><div class="data-list">' + (reviewRows || '<p class="muted">Пока никто не оставил отзыв.</p>') + '</div>' +
+    '<button class="button button-secondary" type="button" data-page="' + safe(publicProfileReturnPage) + '">Назад</button>';
 }
 
 function parentPage() {
@@ -1066,7 +1139,7 @@ function boardPage() {
         : post.status === "hidden"
           ? '<span class="tag moderation-state">Скрыта модерацией</span>'
           : '';
-      return '<article class="demo-card"><div class="card-top"><span class="tag">' + (post.type === "need" ? "Мне нужно" : "Я могу") + '</span>' + moderationTag + '<span class="muted small">' + safe(userName(post.user)) + ' · ' + safe(post.category) + '</span></div>' +
+      return '<article class="demo-card"><div class="card-top"><span class="tag">' + (post.type === "need" ? "Мне нужно" : "Я могу") + '</span>' + moderationTag + '<span class="muted small">' + userProfileLink(post.user) + ' · ' + safe(post.category) + '</span></div>' +
         '<h2>' + safe(post.title) + '</h2><p class="muted">' + safe(post.desc) + '</p><div class="card-bottom"><b>' + (post.price ? money(post.price) + ' ScRl' : 'Бесплатно') + '</b>' +
         '<span class="actions"><button class="text-button" data-do="fav" data-kind="post" data-id="' + post.id + '">' + (fav ? "★ В избранном" : "☆ Избранное") + '</button>' +
         (post.user === me().id || me().role === "admin"
@@ -1076,7 +1149,7 @@ function boardPage() {
     }).join("");
   const cats = data.posts.filter(p => p.user === me().id && p.type === "need").map(p => p.category);
   const matches = data.posts.filter(p => p.user !== me().id && p.type === "offer" && p.status === "active" && !getUser(p.user)?.blocked && cats.includes(p.category)).sort((a,b) => a.price-b.price).slice(0,3);
-  const hints = matches.map(p => '<div class="data-row"><span><b>' + safe(p.title) + '</b><small>' + safe(userName(p.user)) + ' · ' + safe(p.category) + '</small></span><b>' + (p.price ? money(p.price) + ' ScRl' : 'Бесплатно') + '</b></div>').join("");
+  const hints = matches.map(p => '<div class="data-row"><span><b>' + safe(p.title) + '</b><small>' + userProfileLink(p.user) + ' · ' + safe(p.category) + '</small></span><b>' + (p.price ? money(p.price) + ' ScRl' : 'Бесплатно') + '</b></div>').join("");
   return '<p class="eyebrow">ВЗАИМОПОМОЩЬ</p><h1>Доска</h1>' +
     '<section class="match-box"><h2>Подходящие предложения</h2>' + (hints || '<p class="muted small">Создай запрос — здесь появятся предложения по такой же теме.</p>') + '</section>' +
     '<form id="boardFilter" class="filter-row"><input name="term" id="boardTerm" value="' + safe(filter.term) + '" placeholder="Поиск по публикациям">' +
@@ -1097,7 +1170,7 @@ function marketPage() {
     .filter(item => (item.title + " " + item.desc + " " + item.category).toLowerCase().includes(marketFilter.term.toLowerCase()))
     .sort((a,b) => marketFilter.sort === "cheap" ? a.price-b.price : marketFilter.sort === "expensive" ? b.price-a.price : b.date-a.date);
   const rows = items.map(item =>
-    '<article class="demo-card"><div class="card-top"><span class="tag">Услуга</span><span class="muted small">' + safe(userName(item.user)) + ' · ' + safe(item.category) + '</span></div>' +
+    '<article class="demo-card"><div class="card-top"><span class="tag">Услуга</span><span class="muted small">' + userProfileLink(item.user) + ' · ' + safe(item.category) + '</span></div>' +
     '<h2>' + safe(item.title) + '</h2><p class="muted">' + safe(item.desc) + '</p><div class="card-bottom"><b>' + money(item.price) + ' ScRl · Осталось: ' + item.slots + '</b>' +
     '<span class="actions"><button class="text-button" data-do="fav" data-kind="listing" data-id="' + item.id + '">' + (isFav("listing", item.id) ? "★" : "☆") + ' Избранное</button>' +
     (item.user === me().id ? '<button class="text-button" data-do="remove-listing" data-id="' + item.id + '">Снять</button>' :
@@ -1219,15 +1292,15 @@ function ordersPage() {
         ? '<button class="text-button" data-do="confirm" data-id="' + d.id + '">Подтвердить</button><button class="text-button" data-do="dispute" data-id="' + d.id + '">Спор</button>'
         : d.status === "ready" && d.seller === me().id ? '<button class="text-button" data-do="dispute" data-id="' + d.id + '">Открыть спор</button>' : '';
     const canMessage = ["work","ready","dispute"].includes(d.status);
-    const messages = (d.messages || []).map(m => '<div class="chat-line"><b>' + safe(userName(m.user)) + '</b><span>' + safe(m.text) + '</span><small>' + (m.status && m.status !== "active" ? "На проверке ИИ · " : "") + new Date(m.date).toLocaleString("ru-RU") + '</small></div>').join("");
+    const messages = (d.messages || []).map(m => '<div class="chat-line"><b>' + userProfileLink(m.user) + '</b><span>' + safe(m.text) + '</span><small>' + (m.status && m.status !== "active" ? "На проверке ИИ · " : "") + new Date(m.date).toLocaleString("ru-RU") + '</small></div>').join("");
     return '<article class="demo-card"><div class="card-top"><span class="tag">' + statusName(d.status) + '</span><span class="muted small">№ ' + safe(d.id.slice(-6)) + '</span></div><h2>' + safe(d.title) + '</h2>' +
-      '<p class="muted">Покупатель: ' + safe(userName(d.buyer)) + ' · Исполнитель: ' + safe(userName(d.seller)) + '</p><div class="card-bottom"><b>' + money(d.amount) + ' ScRl' + (d.amount ? ' в резерве: ' + money(d.escrow) : '') + '</b><span class="actions">' + controls + '</span></div>' +
+      '<p class="muted">Покупатель: ' + userProfileLink(d.buyer) + ' · Исполнитель: ' + userProfileLink(d.seller) + '</p><div class="card-bottom"><b>' + money(d.amount) + ' ScRl' + (d.amount ? ' в резерве: ' + money(d.escrow) : '') + '</b><span class="actions">' + controls + '</span></div>' +
       '<div class="chat-box">' + (messages || '<p class="muted small">Сообщений пока нет.</p>') + '</div>' +
       (canMessage ? '<form class="msg-form" data-form="message" data-id="' + d.id + '"><input name="text" maxlength="240" placeholder="Написать сообщение" required><button class="button button-secondary" type="submit">Отправить</button></form>' : '<p class="small muted">Переписка закрыта после завершения сделки.</p>') +
-      (d.status === "done" && !data.reviews.some(r => r.deal === d.id && r.user === me().id) ? '<form class="msg-form" data-form="review" data-id="' + d.id + '"><select name="rating"><option value="5">5 — Отлично</option><option value="4">4 — Хорошо</option><option value="3">3 — Нормально</option><option value="2">2</option><option value="1">1</option></select><input name="text" maxlength="180" placeholder="Отзыв (необязательно)"><button class="button button-secondary" type="submit">Оставить отзыв</button></form>' : '') +
+      (d.status === "done" && !data.reviews.some(r => r.deal === d.id && r.user === me().id) ? '<form class="msg-form review-form" data-form="review" data-id="' + d.id + '"><label>Оцени собеседника по завершённому заказу</label><select name="rating" aria-label="Оценка от 1 до 5"><option value="5">5 — Отлично</option><option value="4">4 — Хорошо</option><option value="3">3 — Нормально</option><option value="2">2 — Плохо</option><option value="1">1 — Очень плохо</option></select><input name="text" maxlength="180" placeholder="Расскажи о своём опыте (необязательно)"><button class="button button-secondary" type="submit">Оставить оценку и отзыв</button></form>' : d.status === "done" ? '<p class="small muted">Ты уже оставил(-а) отзыв по этой сделке.</p>' : '') +
       '</article>';
   }).join("");
-  return '<p class="eyebrow">СДЕЛКИ</p><h1>Мои заказы</h1><p class="muted">Здесь можно переписываться, отмечать выполнение и подтверждать оплату.</p>' +
+  return '<p class="eyebrow">СДЕЛКИ</p><h1>Мои заказы</h1><p class="muted">Здесь можно переписываться, отмечать выполнение и подтверждать оплату. Когда заказ завершён, оцени собеседника в карточке сделки. Оценку можно оставить только после завершения заказа.</p>' +
     '<div class="demo-stats"><div class="demo-stat"><span>Активные</span><b>' + mine.filter(d => ["work","ready","dispute"].includes(d.status)).length + '</b></div><div class="demo-stat"><span>Завершённые</span><b>' + mine.filter(d => d.status === "done").length + '</b></div></div>' +
     '<div class="demo-list">' + (rows || '<p class="muted">Пока нет заказов. Можно откликнуться на публикацию или заказать услугу.</p>') + '</div>';
 }
@@ -1276,7 +1349,6 @@ function profilePage() {
     ? '<section class="account-danger"><h2>Удаление аккаунта</h2><p>Каждый зарегистрированный участник — ученик, учитель или администратор — может удалить свой аккаунт. Действие необратимо: профиль будет обезличен, публикации и личные сообщения удалены, финансовая история сохранена без персональных данных. Остатки ScRl и V-RUB будут списаны; ScRl исключаются из доступного оборота. Финансовая история останется обезличенной. Перед удалением заверши активные сделки, заявки на бирже, аукционы и освободи все резервы.</p><form id="deleteAccountForm" class="demo-form account-delete-form"><label for="deleteAccountConfirm">Введи слово УДАЛИТЬ для подтверждения</label><input id="deleteAccountConfirm" name="confirmation" maxlength="7" autocomplete="off" required><button class="button button-danger" type="submit">Удалить аккаунт окончательно</button></form></section>'
     : '<section class="account-danger"><h2>Удаление аккаунта</h2><p>Удаление доступно только после входа в зарегистрированный аккаунт. В демо-режиме действие отключено.</p></section>';
   return '<p class="eyebrow">АККАУНТ</p><h1>Профиль</h1><div class="demo-stats"><div class="demo-stat"><span>Отзывы</span><b>' + reviews.length + '</b></div><div class="demo-stat"><span>Средняя оценка</span><b>' + avg + '</b></div></div>' +
-    link("privacy", "Конфиденциальность и согласия") +
     '<form id="profileForm" class="demo-form"><h2>Мои данные</h2><label>ФИО</label><input name="name" maxlength="100" value="' + safe(user.name) + '" required><label>Email</label><input value="' + safe(user.mail || "Email скрыт для других участников") + '" disabled><label>Класс</label><input name="room" maxlength="12" value="' + safe(user.room || "") + '"' + (!isAdminAccount() ? ' readonly aria-readonly="true" title="Класс меняет администратор"' : "") + '>' +
     (!isAdminAccount() ? '<p class="small muted">Класс меняет администратор.</p>' : '') +
     roleChoice + '<button class="button button-primary" type="submit">Сохранить</button></form>' +
@@ -1641,6 +1713,7 @@ function setPage(name) {
   if (remoteReady && page !== "privacy" && consentStatusNeedsAcceptance(data.safety)) {
     page = "privacy";
   }
+  activePageName = page;
   document.querySelectorAll(".nav-tab").forEach(btn => {
     const active = btn.dataset.page === page;
     btn.classList.toggle("is-active", active);
@@ -3379,6 +3452,11 @@ if (document.addEventListener) {
 el("page").addEventListener("click", event => {
   const target = event.target;
   if (!target.closest) return;
+  const profileTarget = target.closest("[data-view-user]");
+  if (profileTarget) {
+    openPublicProfile(profileTarget.dataset.viewUser);
+    return;
+  }
   const styleToggle = target.closest("[data-style-toggle]");
   if (styleToggle) {
     switchStyle();
@@ -3476,6 +3554,8 @@ if (window.__scrlTestMode) {
     setPage,
     updateTopbarBalance,
     homePage,
+    myPublicationsPage,
+    publicProfilePage,
     boardPage,
     exchangePage,
     auctionsPage,
