@@ -217,6 +217,7 @@ test("покупка услуги проходит через резерв, вы
   const seller = api.getUser("u2");
   const before = buyer.scrl;
   api.action({ dataset: { id: "l1", do: "buy" } });
+  api.confirmPurchase();
   const deal = api.data.deals[0];
   assert.equal(deal.status, "work");
   assert.equal(deal.escrow, 35);
