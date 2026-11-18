@@ -15,7 +15,7 @@ test("all production migrations remain versioned and tracked", () => {
   );
 
   const versions = migrationFiles.map(name => {
-    const match = name.match(/^(\\d{14})_[a-z0-9_]+\\.sql$/);
+    const match = name.match(/^(\d{14})_[a-z0-9_]+\.sql$/);
     assert.ok(match, `Invalid migration filename: ${name}`);
     return match[1];
   });
