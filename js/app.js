@@ -28,6 +28,7 @@ const PERSONAL_DATA_CONSENT_VERSION = "2026-11-17-v1";
 const AI_MODERATION_CONSENT_VERSION = "2026-11-17-v2";
 const key = "scrlDemo3";
 let pending = null;
+let themeTransitionTimer = null;
 let filter = { term: "", type: "all" };
 let adminFilter = { term: "", role: "all", locked: "all" };
 let marketFilter = { term: "", category: "all", sort: "new" };
@@ -1045,13 +1046,13 @@ function walletPage() {
 }
 
 function boardPage() {
-  const rows = data.posts.filter(post =>
+  const visiblePosts = data.posts.filter(post =>
     (post.status === "active" || me().role === "admin" || (post.user === me().id && ["review", "hidden"].includes(post.status))) &&
     !getUser(post.user)?.blocked
   )
     .filter(post => filter.type === "all" || post.type === filter.type)
     .filter(post => (post.title + " " + post.desc + " " + post.category).toLowerCase().includes(filter.term.toLowerCase()))
-    .map(post => {
+  const rows = visiblePosts.map(post => {
       const fav = isFav("post", post.id);
       const moderationTag = post.status === "review"
         ? '<span class="tag moderation-state">На проверке</span>'
@@ -1069,7 +1070,7 @@ function boardPage() {
   const cats = data.posts.filter(p => p.user === me().id && p.type === "need").map(p => p.category);
   const matches = data.posts.filter(p => p.user !== me().id && p.type === "offer" && p.status === "active" && !getUser(p.user)?.blocked && cats.includes(p.category)).sort((a,b) => a.price-b.price).slice(0,3);
   const hints = matches.map(p => '<div class="data-row"><span><b>' + safe(p.title) + '</b><small>' + safe(userName(p.user)) + ' · ' + safe(p.category) + '</small></span><b>' + (p.price ? money(p.price) + ' ScRl' : 'Бесплатно') + '</b></div>').join("");
-  return '<p class="eyebrow">ВЗАИМОПОМОЩЬ</p><h1>Доска</h1><p class="muted">Запросы и предложения учеников.</p>' +
+  return '<p class="eyebrow">ВЗАИМОПОМОЩЬ</p><h1>Доска</h1><p class="muted"></p>' +
     '<section class="match-box"><h2>Подходящие предложения</h2>' + (hints || '<p class="muted small">Создай запрос — здесь появятся предложения по такой же теме.</p>') + '</section>' +
     '<form id="boardFilter" class="filter-row"><input name="term" id="boardTerm" value="' + safe(filter.term) + '" placeholder="Поиск по публикациям">' +
     '<select name="type"><option value="all"' + (filter.type === "all" ? " selected" : "") + '>Все</option><option value="need"' + (filter.type === "need" ? " selected" : "") + '>Мне нужно</option><option value="offer"' + (filter.type === "offer" ? " selected" : "") + '>Я могу</option></select>' +
@@ -1078,7 +1079,7 @@ function boardPage() {
     '<label>Тема</label><select name="category"><option>Учёба</option><option>Математика</option><option>Языки</option><option>Дизайн</option><option>Творчество</option><option>Другое</option></select>' +
     '<label>Заголовок</label><input name="title" maxlength="80" required><label>Описание</label><textarea name="desc" rows="3" maxlength="300" required></textarea>' +
     '<label>Цена в ScRl (0 — бесплатно, без лимита)</label><input name="price" type="number" min="0" step="any" value="0" required><button class="button button-primary" type="submit">Опубликовать</button></form>' +
-    '<div class="demo-list-title"><h2>Публикации</h2><span class="muted small">' + rows.length + ' записей</span></div>' +
+    '<div class="demo-list-title"><h2>Публикации</h2><span class="muted small">' + visiblePosts.length + ' записей</span></div>' +
     '<div class="demo-list">' + (rows || '<p class="muted">По этому запросу ничего нет.</p>') + '</div>';
 }
 
@@ -2892,7 +2893,26 @@ function applyTheme() {
 
 function switchTheme() {
   const current = document.documentElement.dataset.theme === "light" ? "light" : "dark";
-  paintWorldTheme(current === "dark" ? "light" : "dark");
+  const next = current === "dark" ? "light" : "dark";
+  const transition = el("themeTransition");
+  const reduceMotion = window.matchMedia &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (!transition || reduceMotion) {
+    paintWorldTheme(next);
+    return;
+  }
+
+  if (themeTransitionTimer) clearTimeout(themeTransitionTimer);
+  transition.classList.remove("to-light", "to-dark");
+  void transition.offsetWidth;
+  transition.classList.add(next === "light" ? "to-light" : "to-dark");
+  paintWorldTheme(next);
+
+  themeTransitionTimer = setTimeout(() => {
+    transition.classList.remove("to-light", "to-dark");
+    themeTransitionTimer = null;
+  }, 1750);
 }
 
 function applyStyle(style) {
