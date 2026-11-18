@@ -1324,7 +1324,7 @@ function favoritesPage() {
   const favs = data.favorites.filter(f => f.user === me().id).map(f => {
     const item = f.kind === "post" ? data.posts.find(p => p.id === f.id && p.status === "active") : data.listings.find(p => p.id === f.id && p.status === "active");
     if (!item || getUser(item.user)?.blocked) return "";
-    return '<article class="demo-card"><div class="card-top"><span class="tag">' + (f.kind === "post" ? "Публикация" : "Услуга") + '</span><button class="text-button" data-do="fav" data-kind="' + f.kind + '" data-id="' + f.id + '">Убрать</button></div><h2>' + safe(item.title) + '</h2><p class="muted">' + safe(item.desc) + '</p></article>';
+    return '<article class="demo-card"><div class="card-top"><span class="tag">' + (f.kind === "post" ? "Публикация" : "Услуга") + '</span>' + userProfileLink(item.user) + '<button class="text-button" data-do="fav" data-kind="' + f.kind + '" data-id="' + f.id + '">Убрать</button></div><h2>' + safe(item.title) + '</h2><p class="muted">' + safe(item.desc) + '</p></article>';
   }).join("");
   return '<p class="eyebrow">СОХРАНЁННОЕ</p><h1>Избранное</h1><div class="demo-list">' + (favs || '<p class="muted">Ты пока ничего не сохранил.</p>') + '</div>';
 }
@@ -1353,7 +1353,7 @@ function profilePage() {
     (!isAdminAccount() ? '<p class="small muted">Класс меняет администратор.</p>' : '') +
     roleChoice + '<button class="button button-primary" type="submit">Сохранить</button></form>' +
     deleteSection +
-    '<h2>Мои отзывы</h2><div class="data-list">' + (reviews.map(r => '<div class="data-row"><span>' + safe(r.text || "Без текста") + '<small>' + r.rating + ' из 5 · ' + safe(userName(r.user)) + '</small></span></div>').join("") || '<p class="muted">Отзывов пока нет.</p>') + '</div>';
+    '<h2>Мои отзывы</h2><div class="data-list">' + (reviews.map(r => '<div class="data-row"><span>' + safe(r.text || "Без текста") + '<small>' + r.rating + ' из 5 · ' + userProfileLink(r.user) + '</small></span></div>').join("") || '<p class="muted">Отзывов пока нет.</p>') + '</div>';
 }
 
 
@@ -2107,7 +2107,7 @@ function action(btn) {
       date: Date.now()
     });
     save();
-    setPage(isAdmin ? "admin" : (kind === "post" ? "board" : "market"));
+    setPage(isAdmin ? "admin" : (activePageName === "myPublications" ? "myPublications" : (kind === "post" ? "board" : "market")));
     msg("Публикация удалена.");
   }
   if (type === "scan") {
@@ -2356,7 +2356,7 @@ async function actionRemote(btn) {
     if (typeof confirm === "function" && !confirm("Удалить публикацию «" + post.title + "»?")) return;
     await backend.deletePublication("post", id);
     await refreshRemoteData();
-    setPage(me().role === "admin" ? "admin" : "board");
+    setPage(me().role === "admin" ? "admin" : (activePageName === "myPublications" ? "myPublications" : "board"));
     msg("Публикация удалена.");
     return;
   }
@@ -2366,7 +2366,7 @@ async function actionRemote(btn) {
     if (typeof confirm === "function" && !confirm("Удалить услугу «" + item.title + "»?")) return;
     await backend.deletePublication("listing", id);
     await refreshRemoteData();
-    setPage(me().role === "admin" ? "admin" : "market");
+    setPage(me().role === "admin" ? "admin" : (activePageName === "myPublications" ? "myPublications" : "market"));
     msg("Услуга удалена.");
     return;
   }
