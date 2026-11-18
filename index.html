@@ -12,16 +12,21 @@
   <link rel="preload" href="assets/MinecraftRus.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/backgrounds/night.png" as="image" fetchpriority="high">
   <link rel="preload" href="assets/backgrounds/day.png" as="image" fetchpriority="low">
-  <link rel="stylesheet" href="css/style.css?v=198">
+  <link rel="stylesheet" href="css/style.css?v=199">
   <script src="js/config.js" defer></script>
   <script src="js/core.js" defer></script>
   <script src="js/backend.js?v=165" defer></script>
-  <script src="js/app.js?v=203" defer></script>
+  <script src="js/app.js?v=204" defer></script>
 </head>
 <body>
   <div id="worldScenery" class="world-scenery" aria-hidden="true">
     <div class="world-layer world-layer--cave"></div>
     <div class="world-layer world-layer--surface"></div>
+  </div>
+  <div id="themeTransition" class="world-transition" aria-hidden="true">
+    <div class="transition-flash"></div>
+    <div class="transition-glow"></div>
+    <div class="transition-rings"></div>
   </div>
   <main id="auth" class="auth-screen">
     <button id="authThemeBtn" class="auth-theme-btn theme-switch" type="button" role="switch" aria-checked="true" aria-label="Тёмная тема" title="Переключить на светлую тему"><span class="theme-switch-track" aria-hidden="true"><span class="theme-switch-icon theme-switch-icon--light">☀</span><span class="theme-switch-icon theme-switch-icon--dark">☾</span><span class="theme-switch-thumb"></span></span></button>
