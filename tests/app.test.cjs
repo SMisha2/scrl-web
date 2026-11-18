@@ -579,7 +579,7 @@ test("bell counter only shows unread notices for the current user", () => {
 });
 
 
-test("верхняя панель показывает доступный баланс и главная не дублирует навигацию кнопками", () => {
+test("верхняя панель показывает баланс, а карточки главной открывают свои разделы", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
@@ -589,7 +589,12 @@ test("верхняя панель показывает доступный бал
   assert.match(app, /function updateTopbarBalance\(\)/);
   assert.match(app, /el\("topbarBalance"\)\.addEventListener\("click"/);
   const home = app.slice(app.indexOf("function homePage()"), app.indexOf("function roleName(role)"));
-  assert.doesNotMatch(home, /data-page=|link\(/);
+  assert.match(home, /data-page="orders"/);
+  assert.match(home, /data-page="myPublications"/);
+  assert.match(home, /data-page="notices"/);
+  assert.match(home, /data-page="favorites"/);
+  assert.doesNotMatch(home, /Баланс ScRl и V-RUB доступен/);
+  assert.match(css, /home-overview-card:hover/);
   assert.match(css, /--scrl-toolbar-height: 76px/);
 });
 
@@ -1187,6 +1192,7 @@ test("password recovery uses the hidden zero page and leaves normal auth on page
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   assert.match(html, /id="forgotPasswordForm"/);
+  assert.match(html, /Открой ссылку восстановления из письма и задай новый пароль/);
   assert.match(html, /id="authPageCounter"[^>]*>Страница 1 \/ 2/);
   assert.match(html, /<span class="page-counter">Страница 2 \/ 2<\/span>/);
   assert.match(app, /forgotPasswordButton\.addEventListener\("click", openPasswordRecoveryPage\)/);
@@ -1203,6 +1209,22 @@ test("recovery link keeps its token and form ahead of any saved session", () => 
   assert.match(app, /if \(!passwordRecoveryRequested\) setMode\("login"\);/);
   assert.match(app, /setPasswordRecoveryPage\(accessToken\)/);
   assert.match(app, /clearSession\(\);[\s\S]*sessionStorage\.removeItem\("scrlRecoveryEmail"\)/);
+});
+
+
+test("публичные профили доступны из имён участников, а отзывы отображают оценки", () => {
+  const { api } = boot();
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  assert.match(app, /function userProfileLink\(userId/);
+  assert.match(app, /data-view-user=/);
+  assert.match(app, /function publicProfilePage\(\)/);
+  assert.match(app, /data\.reviews\.filter\(review => review\.target === user\.id/);
+  assert.match(app, /Оцени собеседника по завершённому заказу/);
+  assert.match(app, /Оставить оценку и отзыв/);
+  assert.match(app, /function myPublicationsPage\(\)/);
+  assert.match(app, /data-page="myPublications"/);
+  assert.match(api.myPublicationsPage(), /Мои публикации/);
+  assert.match(api.publicProfilePage(), /Профиль недоступен/);
 });
 
 test("visible profile names use surname and initials without changing stored full names", () => {
@@ -1376,19 +1398,25 @@ test("переход темы ограничен фоном и учитывае�
   assert.match(css, /html\[data-style="classic"\]\[data-theme="light"\][\s\S]*?background-color/);
   assert.match(css, /html\[data-style="classic"\]\[data-theme="dark"\][\s\S]*?background-color/);
   assert.match(css, /html\[data-style="minecraft"\] body \.world-layer[\s\S]*?transition: opacity 1\.15s ease/);
+  assert.match(css, /background:#41474e !important/);
+  assert.match(css, /color:#26342b !important/);
   assert.ok(!html.includes('id="authStyleBtn"'));
   assert.ok(!html.includes('id="styleModeToggle"'));
   assert.match(html, /id="authThemeBtn"/);
 });
 
-test("страница «Данные и согласия» возвращает весь контент и форму", () => {
+test("обязательное подтверждение согласий сохраняется, но не показывается в обычной навигации", () => {
   const { api } = boot();
   const page = api.privacyPage();
-  assert.match(page, /Какие данные обрабатываются/);
-  assert.match(page, /ScRl использует ФИО/);
+  const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  assert.match(page, /Завершение настройки/);
   assert.match(page, /privacyConsentForm/);
   assert.match(page, /privacyBirthDate/);
   assert.match(page, /name="allConsents"/);
   assert.match(page, /Сохранить согласия/);
   assert.match(page, /legal\/privacy\.html/);
+  assert.doesNotMatch(html, /data-page="privacy"/);
+  assert.doesNotMatch(app, /link\("privacy"/);
+  assert.match(app, /consentStatusNeedsAcceptance\(data\.safety\)/);
 });
