@@ -793,11 +793,17 @@ function leave() {
 async function ask(path, body) {
   const url = String(cfg.url || "").replace(/\/$/, "");
   if (!url || !cfg.key) throw new Error("База аккаунтов пока не подключена. Регистрация и вход по email и паролю временно недоступны.");
-  const res = await fetch(url + "/auth/v1/" + path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", apikey: cfg.key },
-    body: JSON.stringify(body)
-  });
+  let res;
+  try {
+    res = await fetch(url + "/auth/v1/" + path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: cfg.key },
+      body: JSON.stringify(body)
+    });
+  } catch (error) {
+    console.error("ScRl auth network error:", error);
+    throw new Error("Не удалось связаться с сервером авторизации ScRl (Supabase). Проверь интернет на ПК, VPN/прокси и блокировщики запросов. Если ошибка повторяется, попробуй другую сеть.");
+  }
   const result = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(result.msg || result.message || result.error_description || "Не получилось выполнить запрос.");
   return result;
@@ -911,13 +917,12 @@ function privacyPage() {
   const status = data.safety || {};
   const birthDate = String(status.birthDate || "");
   const today = new Date().toISOString().slice(0, 10);
-  const personalChecked = status.hasPersonalDataConsent === true ? " checked" : "";
-  const aiChecked = status.hasAiConsent === true ? " checked" : "";
+  const allChecked = status.hasPersonalDataConsent === true && status.hasAiConsent === true ? " checked" : "";
   const loadWarning = status.loadError
     ? '<p class="form-error">Не удалось загрузить текущий статус согласий: ' + safe(status.loadError) + '</p>'
     : "";
   const onboardingNotice = remoteReady && consentStatusNeedsAcceptance(status)
-    ? '<p class="muted">Перед первым использованием ScRl нужно сохранить оба отдельных согласия. После успешной проверки базы откроются остальные разделы.</p>'
+    ? '<p class="muted">Перед первым использованием ScRl нужно принять обязательные документы и сохранить согласия. После проверки базы откроются остальные разделы.</p>'
     : "";
   return '<p class="eyebrow">КОНФИДЕНЦИАЛЬНОСТЬ</p><h1>Данные и согласия</h1>' +
     onboardingNotice +
@@ -929,8 +934,8 @@ function privacyPage() {
     loadWarning +
     '<form id="privacyConsentForm" class="demo-form consent-form">' +
     '<label for="privacyBirthDate">Дата рождения</label><input id="privacyBirthDate" name="birthDate" type="date" max="' + today + '" value="' + safe(birthDate) + '"' + (birthDate ? ' readonly aria-readonly="true"' : "") + ' required>' +
-    '<label class="consent-check"><input type="checkbox" name="personalConsent" value="yes"' + personalChecked + ' required><span>Согласен(на) на обработку персональных данных для работы ScRl, безопасности, поддержки и рассмотрения споров.</span></label>' +
-    '<label class="consent-check"><input type="checkbox" name="aiConsent" value="yes"' + aiChecked + ' required><span>Отдельно соглашаюсь на ИИ-модерацию публикаций, услуг, аукционов, сообщений, отзывов, жалоб, профиля и других материалов ScRl с возможной передачей соответствующих текстов Groq.</span></label>' +
+    '<label class="consent-check"><input type="checkbox" name="allConsents" value="yes"' + allChecked + ' required><span>Я ознакомился(-ась) и принимаю обязательные документы ScRl, включая обработку персональных данных и ИИ-модерацию.</span></label>' +
+    '<nav class="consent-document-links" aria-label="Документы ScRl"><a href="legal/terms.html" target="_blank" rel="noopener">Правила сервиса</a><a href="legal/privacy.html" target="_blank" rel="noopener">Политика данных</a><a href="legal/ai-moderation.html" target="_blank" rel="noopener">ИИ-модерация</a><a href="legal/parent-exchange.html" target="_blank" rel="noopener">Согласие родителя для биржи</a></nav>' +
     '<button class="button button-primary" type="submit">Сохранить согласия</button></form>';
 }
 
@@ -2498,10 +2503,11 @@ async function submitRemote(form) {
 
   if (form.id === "privacyConsentForm") {
     const birthDate = String(fields.get("birthDate") || "").trim();
-    const personalConsent = ["yes", "on"].includes(String(fields.get("personalConsent") || ""));
-    const aiConsent = ["yes", "on"].includes(String(fields.get("aiConsent") || ""));
+    const allConsents = ["yes", "on"].includes(String(fields.get("allConsents") || ""));
+    const personalConsent = allConsents;
+    const aiConsent = allConsents;
     if (!birthDate || birthDate > new Date().toISOString().slice(0, 10)) throw new Error("Проверь дату рождения.");
-    if (!personalConsent || !aiConsent) throw new Error("Нужно принять оба отдельных согласия.");
+    if (!allConsents) throw new Error("Подтверди ознакомление с обязательными документами и согласиями ScRl.");
     await backend.saveSafetyData({
       birthDate, personalConsent, aiConsent,
       personalVersion: PERSONAL_DATA_CONSENT_VERSION, aiVersion: AI_MODERATION_CONSENT_VERSION
@@ -2938,6 +2944,10 @@ loginFormConfigs.forEach(config => {
       signButton.textContent = "Проверяем…";
     }
     try {
+      if (!el("loginAllConsents")?.checked) {
+        if (errorField) errorField.textContent = "Перед входом подтверди ознакомление с обязательными документами и согласиями ScRl.";
+        return;
+      }
       const email = mailField.value.trim().toLowerCase();
       const result = await ask("token?grant_type=password", {
         email,
@@ -3058,14 +3068,14 @@ reg.addEventListener("submit", async event => {
   const pass = el("regPass").value;
   const again = el("regAgain").value;
   const birthDate = String(el("regBirth")?.value || "").trim();
-  const personalConsent = Boolean(el("regPersonalConsent")?.checked);
-  const aiConsent = Boolean(el("regAiConsent")?.checked);
+  const allConsents = Boolean(el("regAllConsents")?.checked);
+  const personalConsent = allConsents;
+  const aiConsent = allConsents;
   if (!last || !first) return el("regErr").textContent = "Напиши фамилию и имя.";
   if (!mail) return el("regErr").textContent = "Введи электронную почту.";
   if (!birthDate) return el("regErr").textContent = "Укажи дату рождения.";
   if (birthDate > new Date().toISOString().slice(0, 10)) return el("regErr").textContent = "Дата рождения не может быть в будущем.";
-  if (!personalConsent) return el("regErr").textContent = "Нужно отдельно подтвердить обработку персональных данных.";
-  if (!aiConsent) return el("regErr").textContent = "Нужно отдельно подтвердить использование ИИ-модерации.";
+  if (!allConsents) return el("regErr").textContent = "Подтверди ознакомление с обязательными документами и согласиями ScRl.";
   if (pass.length < 8) return el("regErr").textContent = "Пароль должен быть не короче 8 символов.";
   if (pass !== again) return el("regErr").textContent = "Пароли не совпадают.";
   const name = [last, first, pat].filter(Boolean).join(" ");
