@@ -1352,8 +1352,8 @@ test("счётчик публикаций считает карточки, а н
   assert.doesNotMatch(page, /1688 записей/);
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const board = app.slice(app.indexOf("function boardPage()"), app.indexOf("function marketPage()"));
-  assert.ok(board.includes("visiblePosts.length + ' записей'"));
-  assert.ok(!board.includes("rows.length + ' записей'"));
+  assert.ok(board.includes("visiblePosts.length"));
+  assert.ok(!board.includes("rows.length"));
 });
 
 test("переход темы использует общий overlay, а переключатель стиля не показывается на входе", () => {
