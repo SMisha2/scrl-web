@@ -28,7 +28,6 @@ const PERSONAL_DATA_CONSENT_VERSION = "2026-11-17-v1";
 const AI_MODERATION_CONSENT_VERSION = "2026-11-17-v2";
 const key = "scrlDemo3";
 let pending = null;
-let themeTransitionTimer = null;
 let filter = { term: "", type: "all" };
 let adminFilter = { term: "", role: "all", locked: "all" };
 let marketFilter = { term: "", category: "all", sort: "new" };
@@ -936,7 +935,7 @@ function privacyPage() {
     : "";
   return '<p class="eyebrow">КОНФИДЕНЦИАЛЬНОСТЬ</p><h1>Данные и согласия</h1>' +
     onboardingNotice +
-    '<section class="match-box consent-panel"><h2>Какие данные обрабатываются</h2>'
+    '<section class="match-box consent-panel"><h2>Какие данные обрабатываются</h2>' +
     '<p>ScRl использует ФИО, электронную почту, дату рождения, класс, публикации, сообщения, отзывы и сведения об операциях для создания аккаунта, работы сервиса, безопасности, поддержки и разбора споров.</p>' +
     '<p>Дата рождения и журнал согласий хранятся отдельно от общего профиля и не показываются другим ученикам.</p>' +
     '<details><summary>Подробнее об ИИ-модерации</summary><p>Для автоматической проверки текстов публикаций, услуг, аукционов, сообщений, отзывов, имени профиля и жалоб соответствующий текст может передаваться Groq — внешнему поставщику ИИ. Не отправляй в тексты пароли, адреса, телефоны и другие лишние личные сведения.</p><p>ИИ может ошибаться. Спорные случаи отправляются администратору на ручную проверку; решения можно обжаловать.</p></details>' +
@@ -2893,26 +2892,7 @@ function applyTheme() {
 
 function switchTheme() {
   const current = document.documentElement.dataset.theme === "light" ? "light" : "dark";
-  const next = current === "dark" ? "light" : "dark";
-  const transition = el("themeTransition");
-  const reduceMotion = window.matchMedia &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  if (!transition || reduceMotion) {
-    paintWorldTheme(next);
-    return;
-  }
-
-  if (themeTransitionTimer) clearTimeout(themeTransitionTimer);
-  transition.classList.remove("to-light", "to-dark");
-  void transition.offsetWidth;
-  transition.classList.add(next === "light" ? "to-light" : "to-dark");
-  paintWorldTheme(next);
-
-  themeTransitionTimer = setTimeout(() => {
-    transition.classList.remove("to-light", "to-dark");
-    themeTransitionTimer = null;
-  }, 1750);
+  paintWorldTheme(current === "dark" ? "light" : "dark");
 }
 
 function applyStyle(style) {
@@ -3506,6 +3486,7 @@ if (window.__scrlTestMode) {
     notify,
     profilePage,
     settingsPage,
+    privacyPage,
     staffPage,
     adminPage,
     pulsePage,
