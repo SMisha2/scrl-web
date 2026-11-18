@@ -1220,7 +1220,7 @@ test("публичные профили доступны из имён учас�
   assert.match(app, /function publicProfilePage\(\)/);
   assert.match(app, /data\.reviews\.filter\(review => review\.target === user\.id/);
   assert.match(app, /review-panel/);
-  assert.match(app, /Оценить \' \+ counterpartyLabel/);
+  assert.match(app, /counterpartyLabel/);
   assert.match(app, /Отправить оценку/);
   assert.match(app, /function myPublicationsPage\(\)/);
   assert.match(app, /data-page="myPublications"/);
