@@ -311,8 +311,14 @@ test("обязательные согласия принимаются при р
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const { api } = boot();
 
-  assert.match(html, /id="regPersonalConsent"[^>]*required/);
-  assert.match(html, /id="regAiConsent"[^>]*required/);
+  assert.match(html, /id="loginAllConsents"[^>]*required/);
+  assert.match(html, /id="regAllConsents"[^>]*required/);
+  assert.match(html, /legal\/terms\.html/);
+  assert.match(html, /legal\/privacy\.html/);
+  assert.match(html, /legal\/ai-moderation\.html/);
+  assert.match(html, /legal\/parent-exchange\.html/);
+  assert.match(app, /name="allConsents"/);
+  assert.match(app, /loginAllConsents/);
   assert.match(app, /Не удалось проверить сохранённые согласия/);
   assert.match(app, /consentStatusNeedsAcceptance\(data\.safety\)/);
   assert.equal(api.consentStatusNeedsAcceptance({
@@ -873,7 +879,7 @@ test("фоновая сцена кэшируется service worker для по�
   const worker = fs.readFileSync(path.join(__dirname, "../sw.js"), "utf8");
   assert.match(app, /new URL\("\.\.\/sw\.js", appScriptUrl\)\.href/);
   assert.match(app, /не удалось зарегистрировать кэш фона/);
-  assert.match(worker, /scrl-world-backgrounds-v4/);
+  assert.match(worker, /scrl-world-backgrounds-v5/);
   assert.match(worker, /night\.png/);
   assert.match(worker, /day\.png/);
   assert.match(worker, /cache\.match\(cacheUrl, \{ ignoreSearch: true \}\)/);
