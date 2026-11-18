@@ -3435,6 +3435,7 @@ if (window.__scrlTestMode) {
     updateNotificationBell,
     notify,
     profilePage,
+    settingsPage,
     staffPage,
     adminPage,
     pulsePage,
