@@ -5,8 +5,8 @@ const path = require("node:path");
 const vm = require("node:vm");
 const core = require("../js/core.js");
 
-function boot() {
-  const store = new Map();
+function boot(initialLocalStorage = {}) {
+  const store = new Map(Object.entries(initialLocalStorage).map(([key, value]) => ["l:" + key, String(value)]));
   const els = new Map();
   const make = id => {
     if (els.has(id)) return els.get(id);
@@ -1294,22 +1294,30 @@ test("удаление публикаций использует защищён�
 });
 
 
+test("обычный стиль устанавливается по умолчанию даже при старом сохранённом Minecraft", () => {
+  const migrated = boot({ scrlStyle: "minecraft" });
+  assert.equal(migrated.api.activeStyle(), "classic");
+  assert.equal(migrated.localStorage.getItem("scrlStyle"), "classic");
+  assert.equal(migrated.localStorage.getItem("scrlStyleDefaultVersion"), "2");
+
+  const savedPreference = boot({ scrlStyle: "minecraft", scrlStyleDefaultVersion: "2" });
+  assert.equal(savedPreference.api.activeStyle(), "minecraft");
+});
+
 test("обычный тёмный стиль включён по умолчанию, а тема и стиль сохраняются независимо", () => {
-  const { api, localStorage, els } = boot();
+  const { api, localStorage } = boot();
   assert.equal(api.activeTheme(), "dark");
   assert.equal(api.activeStyle(), "classic");
   assert.match(api.settingsPage(), /Стиль сайта/);
   assert.match(api.settingsPage(), /Обычный/);
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
-  assert.ok(html.includes('id="authStyleBtn"'));
+  assert.ok(!html.includes('id="authStyleBtn"'));
   assert.ok(css.includes('html[data-style="classic"] body #worldScenery'));
   assert.ok(css.includes('html[data-style="minecraft"] body #worldScenery'));
   assert.ok(css.includes('input[type="checkbox"]:checked::after'));
-  assert.equal(els.get("authStyleBtn").textContent, "Стиль: обычный");
 
   api.applyStyle("minecraft");
-  assert.equal(els.get("authStyleBtn").textContent, "Стиль: Minecraft");
   assert.equal(api.activeStyle(), "minecraft");
   assert.equal(api.activeTheme(), "dark");
   assert.equal(localStorage.getItem("scrlStyle"), "minecraft");
