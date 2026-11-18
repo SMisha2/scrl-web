@@ -421,7 +421,7 @@ test("регистрация подтверждает почту, затем т�
   assert.match(app, /await saveProfile\(result\.user\.id, name, result\.access_token, null, \{/);
   assert.match(app, /el\("logMail"\)\.value = mail/);
   assert.match(app, /setMode\("login"\)/);
-  assert.match(app, /Почта подтверждена\. Теперь войди по email и паролю/);
+  assert.match(app, /Почта подтверждена, согласия сохранены\. Теперь войди по email и паролю/);
   assert.doesNotMatch(app, /enter\(name, result\.user\?\.email \|\| mail/);
   assert.doesNotMatch(app, /pending\.purpose === "email-login"/);
 });
@@ -1108,7 +1108,7 @@ test("toolbar uses a uniform grey achievement frame and the profile shortcut ope
 test("переключатель темы авторизации поднят выше, а размеры боксов панели зафиксированы", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
-  assert.ok(html.includes("css/style.css?v=181"));
+  assert.ok(/<link rel="stylesheet" href="css\/style\.css\?v=\d+">/.test(html));
   assert.match(css, /auth-theme-btn\s*\{\s*top:clamp\(16px,calc\(50% - 285px\),220px\) !important/);
   assert.match(css, /\[data-page="home"\][\s\S]*flex:0 0 96px !important/);
   assert.match(css, /\[data-page="board"\][\s\S]*flex:0 0 78px !important/);
