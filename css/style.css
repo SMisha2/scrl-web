@@ -7832,9 +7832,6 @@ html[data-theme="light"] body {
   background-image: none !important;
 }
 
-html[data-theme="light"] body #worldScenery {
-  display: none !important;
-}
 
 html[data-theme="light"] body #auth,
 html[data-theme="light"] body #app,
@@ -8253,9 +8250,6 @@ html[data-style="classic"] body h3 {
   text-shadow: none !important;
   line-height: 1.3 !important;
 }
-html[data-style="classic"] body #worldScenery {
-  display: none !important;
-}
 html[data-style="classic"] body #app .topbar,
 html[data-style="classic"] body #app .topbar-inner {
   box-shadow: 0 2px 12px rgba(20,30,40,.06) !important;
@@ -8296,3 +8290,12 @@ html[data-style="classic"] body .brand-mark,
 html[data-style="classic"] body .user-avatar {
   border-radius: 9px !important;
 }
+
+/* Single consent and legal links on authentication screens. */
+#auth .auth-consent-check--single { display:flex !important; align-items:flex-start !important; gap:9px !important; margin:0 0 10px !important; padding:9px 11px !important; border:1px solid rgba(145,160,175,.42) !important; border-radius:8px !important; background:rgba(110,130,150,.10) !important; color:inherit !important; font-size:12px !important; line-height:1.45 !important; text-transform:none !important; white-space:normal !important; }
+#auth .auth-consent-check--single input { flex:0 0 17px !important; width:17px !important; min-width:17px !important; height:17px !important; margin:1px 0 0 !important; padding:0 !important; }
+#auth .auth-consent-check--single span { display:block !important; color:inherit !important; text-transform:none !important; }
+#auth .auth-legal-links, #page .consent-document-links { display:flex !important; flex-wrap:wrap !important; gap:5px 12px !important; margin:8px 0 4px !important; font-size:10px !important; line-height:1.45 !important; }
+#auth .auth-legal-links span { opacity:.7; }
+#auth .auth-legal-links a, #page .consent-document-links a { color:inherit !important; text-decoration:underline !important; text-underline-offset:2px !important; }
+#auth .auth-consent-list--details { margin:6px 0 !important; padding:7px 9px !important; font-size:10px !important; line-height:1.4 !important; }
