@@ -950,7 +950,8 @@ function settingsPage() {
 }
 
 const pages = {
-  home: homePage,\n  settings: settingsPage,
+  home: homePage,
+  settings: settingsPage,
   privacy: privacyPage,
   wallet: walletPage,
   finance: financePage,
