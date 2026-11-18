@@ -36,6 +36,7 @@ let adminPreviewRole = "";
 let selectedPublicProfileId = "";
 let publicProfileReturnPage = "board";
 let activePageName = "home";
+let pendingPurchaseId = "";
 
 function msg(text) {
   toast.textContent = text;
@@ -1119,10 +1120,10 @@ function walletPage() {
     (row.delta > 0 ? "+" : "") + money(row.delta) + ' ' + safe(row.currency) + '</b></div>'
   ).join("");
   return '<p class="eyebrow">ЛИЧНЫЕ ФИНАНСЫ</p><h1>Кошелёк</h1>' +
-    '<div class="demo-stats"><div class="demo-stat"><span>Доступно <span class="currency-coin-frame currency-coin-frame--inline" aria-hidden="true"><img class="currency-coin-icon currency-coin-icon--inline" src="assets/coinn.png" alt=""></span> ScRl</span><b>' + money(user.scrl) + '</b><small>В резерве: ' + money(user.holdScrl) + '</small></div>' +
+    '<div class="demo-stats"><div class="demo-stat"><span>Доступно <span class="currency-coin-frame currency-coin-frame--inline currency-coin-frame--wallet" aria-hidden="true"><img class="currency-coin-icon currency-coin-icon--inline" src="assets/coinn.png" alt=""></span> ScRl</span><b>' + money(user.scrl) + '</b><small>В резерве: ' + money(user.holdScrl) + '</small></div>' +
     '<div class="demo-stat"><span>V-RUB</span><b>' + money(user.vrub) + '</b><small>В резерве: ' + money(user.holdVrub) + '</small></div></div>' +
     '<h2>История операций</h2><div class="data-list">' + (rows || '<p class="muted">Операций пока нет.</p>') + '</div>' +
-    '<p class="small muted demo-note">ScRl и V-RUB здесь — только учебные единицы. Настоящие платежи и вывод денег не подключены.</p>';
+    '<p class="small muted demo-note">Учебные единицы. Реальные платежи и вывод денег отключены.</p>';
 }
 
 function boardPage() {
@@ -1283,26 +1284,81 @@ function auctionsPage() {
 
 
 function ordersPage() {
-  const mine = data.deals.filter(d => d.buyer === me().id || d.seller === me().id);
-  const rows = mine.map(d => {
-    const controls = d.status === "work"
-      ? (d.seller === me().id ? '<button class="text-button" data-do="delivered" data-id="' + d.id + '">Отметить выполненным</button>' : '') +
-        '<button class="text-button" data-do="dispute" data-id="' + d.id + '">Открыть спор</button>'
-      : d.status === "ready" && d.buyer === me().id
-        ? '<button class="text-button" data-do="confirm" data-id="' + d.id + '">Подтвердить</button><button class="text-button" data-do="dispute" data-id="' + d.id + '">Спор</button>'
-        : d.status === "ready" && d.seller === me().id ? '<button class="text-button" data-do="dispute" data-id="' + d.id + '">Открыть спор</button>' : '';
-    const canMessage = ["work","ready","dispute"].includes(d.status);
-    const messages = (d.messages || []).map(m => '<div class="chat-line"><b>' + userProfileLink(m.user) + '</b><span>' + safe(m.text) + '</span><small>' + (m.status && m.status !== "active" ? "На проверке ИИ · " : "") + new Date(m.date).toLocaleString("ru-RU") + '</small></div>').join("");
-    return '<article class="demo-card"><div class="card-top"><span class="tag">' + statusName(d.status) + '</span><span class="muted small">№ ' + safe(d.id.slice(-6)) + '</span></div><h2>' + safe(d.title) + '</h2>' +
-      '<p class="muted">Покупатель: ' + userProfileLink(d.buyer) + ' · Исполнитель: ' + userProfileLink(d.seller) + '</p><div class="card-bottom"><b>' + money(d.amount) + ' ScRl' + (d.amount ? ' в резерве: ' + money(d.escrow) : '') + '</b><span class="actions">' + controls + '</span></div>' +
+  const mine = data.deals.filter(deal => deal.buyer === me().id || deal.seller === me().id);
+  const needsReview = mine.filter(deal =>
+    deal.status === "done" && !data.reviews.some(review => review.deal === deal.id && review.user === me().id)
+  );
+  const orderedDeals = [...needsReview, ...mine.filter(deal => !needsReview.includes(deal))];
+  const rows = orderedDeals.map(deal => {
+    const controls = deal.status === "work"
+      ? (deal.seller === me().id ? '<button class="text-button" data-do="delivered" data-id="' + safe(deal.id) + '">Отметить выполненным</button>' : '') +
+        '<button class="text-button" data-do="dispute" data-id="' + safe(deal.id) + '">Открыть спор</button>'
+      : deal.status === "ready" && deal.buyer === me().id
+        ? '<button class="text-button" data-do="confirm" data-id="' + safe(deal.id) + '">Подтвердить</button><button class="text-button" data-do="dispute" data-id="' + safe(deal.id) + '">Спор</button>'
+        : deal.status === "ready" && deal.seller === me().id ? '<button class="text-button" data-do="dispute" data-id="' + safe(deal.id) + '">Открыть спор</button>' : '';
+    const canMessage = ["work", "ready", "dispute"].includes(deal.status);
+    const messages = (deal.messages || []).map(message =>
+      '<div class="chat-line"><b>' + userProfileLink(message.user) + '</b><span>' + safe(message.text) +
+      '</span><small>' + (message.status && message.status !== "active" ? "На проверке ИИ · " : "") +
+      new Date(message.date).toLocaleString("ru-RU") + '</small></div>'
+    ).join("");
+    const counterpartyId = deal.buyer === me().id ? deal.seller : deal.buyer;
+    const counterpartyLabel = deal.buyer === me().id ? "исполнителя" : "заказчика";
+    const ownReview = data.reviews.find(review => review.deal === deal.id && review.user === me().id);
+    let reviewPanel = "";
+    if (deal.status === "done" && !ownReview) {
+      reviewPanel =
+        '<section class="review-panel" id="review-' + safe(deal.id) + '">' +
+          '<div class="review-panel-heading"><strong>Оценить ' + counterpartyLabel + '</strong>' +
+          '<span>' + userProfileLink(counterpartyId) + '</span></div>' +
+          '<p>Оценка появится в профиле участника.</p>' +
+          '<form class="review-form" data-form="review" data-id="' + safe(deal.id) + '">' +
+            '<label for="review-rating-' + safe(deal.id) + '">Оценка</label>' +
+            '<select id="review-rating-' + safe(deal.id) + '" name="rating" aria-label="Оценка от 1 до 5">' +
+              '<option value="5" selected>5 — Отлично</option><option value="4">4 — Хорошо</option>' +
+              '<option value="3">3 — Нормально</option><option value="2">2 — Плохо</option>' +
+              '<option value="1">1 — Очень плохо</option>' +
+            '</select>' +
+            '<label for="review-text-' + safe(deal.id) + '">Комментарий <span class="muted">(необязательно)</span></label>' +
+            '<textarea id="review-text-' + safe(deal.id) + '" name="text" rows="2" maxlength="300" placeholder="Как прошла сделка?"></textarea>' +
+            '<button class="button button-primary" type="submit">Отправить оценку</button>' +
+          '</form>' +
+        '</section>';
+    } else if (deal.status === "done" && ownReview) {
+      reviewPanel = '<p class="review-submitted">' +
+        (ownReview.status === "active" ? "Оценка уже отправлена." : "Отзыв отправлен и ожидает проверки.") +
+        '</p>';
+    }
+
+    return '<article class="demo-card order-card"><div class="card-top"><span class="tag">' +
+      statusName(deal.status) + '</span><span class="muted small">№ ' + safe(String(deal.id).slice(-6)) +
+      '</span></div><h2>' + safe(deal.title) + '</h2>' +
+      '<p class="muted order-participants">Покупатель: ' + userProfileLink(deal.buyer) +
+      ' · Исполнитель: ' + userProfileLink(deal.seller) + '</p>' +
+      '<div class="card-bottom"><b>' + money(deal.amount) + ' ScRl' +
+      (deal.amount ? ' · В резерве: ' + money(deal.escrow) : '') +
+      '</b><span class="actions">' + controls + '</span></div>' +
+      reviewPanel +
       '<div class="chat-box">' + (messages || '<p class="muted small">Сообщений пока нет.</p>') + '</div>' +
-      (canMessage ? '<form class="msg-form" data-form="message" data-id="' + d.id + '"><input name="text" maxlength="240" placeholder="Написать сообщение" required><button class="button button-secondary" type="submit">Отправить</button></form>' : '<p class="small muted">Переписка закрыта после завершения сделки.</p>') +
-      (d.status === "done" && !data.reviews.some(r => r.deal === d.id && r.user === me().id) ? '<form class="msg-form review-form" data-form="review" data-id="' + d.id + '"><label>Оцени собеседника по завершённому заказу</label><select name="rating" aria-label="Оценка от 1 до 5"><option value="5">5 — Отлично</option><option value="4">4 — Хорошо</option><option value="3">3 — Нормально</option><option value="2">2 — Плохо</option><option value="1">1 — Очень плохо</option></select><input name="text" maxlength="180" placeholder="Расскажи о своём опыте (необязательно)"><button class="button button-secondary" type="submit">Оставить оценку и отзыв</button></form>' : d.status === "done" ? '<p class="small muted">Ты уже оставил(-а) отзыв по этой сделке.</p>' : '') +
+      (canMessage
+        ? '<form class="msg-form" data-form="message" data-id="' + safe(deal.id) +
+          '"><input name="text" maxlength="240" placeholder="Написать сообщение" required><button class="button button-secondary" type="submit">Отправить</button></form>'
+        : '') +
       '</article>';
   }).join("");
-  return '<p class="eyebrow">СДЕЛКИ</p><h1>Мои заказы</h1><p class="muted">Здесь можно переписываться, отмечать выполнение и подтверждать оплату. Когда заказ завершён, оцени собеседника в карточке сделки. Оценку можно оставить только после завершения заказа.</p>' +
-    '<div class="demo-stats"><div class="demo-stat"><span>Активные</span><b>' + mine.filter(d => ["work","ready","dispute"].includes(d.status)).length + '</b></div><div class="demo-stat"><span>Завершённые</span><b>' + mine.filter(d => d.status === "done").length + '</b></div></div>' +
-    '<div class="demo-list">' + (rows || '<p class="muted">Пока нет заказов. Можно откликнуться на публикацию или заказать услугу.</p>') + '</div>';
+  return '<p class="eyebrow">СДЕЛКИ</p><h1>Мои заказы</h1>' +
+    (needsReview.length
+      ? '<section class="review-reminder"><strong>Осталось оценить: ' + needsReview.length +
+        '</strong><span>Завершённые заказы показаны первыми.</span></section>'
+      : '') +
+    '<div class="demo-stats"><div class="demo-stat"><span>Активные</span><b>' +
+      mine.filter(deal => ["work", "ready", "dispute"].includes(deal.status)).length +
+    '</b></div><div class="demo-stat"><span>Завершённые</span><b>' +
+      mine.filter(deal => deal.status === "done").length +
+    '</b></div><div class="demo-stat"><span>Нужно оценить</span><b>' + needsReview.length + '</b></div></div>' +
+    '<div class="demo-list">' +
+      (rows || '<p class="muted">Заказов пока нет. Закажи услугу в Маркете или откликнись на публикацию.</p>') +
+    '</div>';
 }
 
 function statusName(status) {
@@ -1341,16 +1397,16 @@ function profilePage() {
   const reviews = data.reviews.filter(r => r.target === user.id && (r.status || "active") === "active");
   const avg = reviews.length ? (reviews.reduce((sum,r) => sum + r.rating, 0) / reviews.length).toFixed(1) : "—";
   const roleChoice = sess()?.guest
-    ? '<label>Демо-роль</label><select name="role"><option value="student"' + (user.role === "student" ? " selected" : "") + '>Ученик</option><option value="teacher"' + (user.role === "teacher" ? " selected" : "") + '>Учитель</option><option value="admin"' + (user.role === "admin" ? " selected" : "") + '>Администратор</option></select><p class="small muted">Только просмотр разных экранов. Настоящую роль выдаёт администратор.</p>'
+    ? '<label>Демо-роль</label><select name="role"><option value="student"' + (user.role === "student" ? " selected" : "") + '>Ученик</option><option value="teacher"' + (user.role === "teacher" ? " selected" : "") + '>Учитель</option><option value="admin"' + (user.role === "admin" ? " selected" : "") + '>Администратор</option></select><p class="small muted">Демо-режим. Настоящую роль меняет администратор.</p>'
     : isAdminAccount()
-      ? '<label for="profileRole">Режим просмотра</label><select id="profileRole" name="role"><option value="admin"' + (user.role === "admin" ? " selected" : "") + '>Администратор</option><option value="student"' + (user.role === "student" ? " selected" : "") + '>Ученик</option><option value="teacher"' + (user.role === "teacher" ? " selected" : "") + '>Учитель</option><option value="parent"' + (user.role === "parent" ? " selected" : "") + '>Родитель (тест)</option></select><p class="small muted">Это только переключение интерфейса. Настоящая роль в базе остаётся «Администратор». Родитель — тестовый экран без данных учеников и без записи роли в базу. При новом входе режим сбрасывается.</p>'
+      ? '<label for="profileRole">Режим просмотра</label><select id="profileRole" name="role"><option value="admin"' + (user.role === "admin" ? " selected" : "") + '>Администратор</option><option value="student"' + (user.role === "student" ? " selected" : "") + '>Ученик</option><option value="teacher"' + (user.role === "teacher" ? " selected" : "") + '>Учитель</option><option value="parent"' + (user.role === "parent" ? " selected" : "") + '>Родитель (тест)</option></select><p class="small muted">Меняется только режим просмотра. Настоящая роль остаётся «Администратор».</p>'
       : '<p class="small muted">Роль: ' + roleName(user.role) + '. Изменить её может только администратор.</p>';
   const deleteSection = remoteReady && !sess()?.guest
-    ? '<section class="account-danger"><h2>Удаление аккаунта</h2><p>Каждый зарегистрированный участник — ученик, учитель или администратор — может удалить свой аккаунт. Действие необратимо: профиль будет обезличен, публикации и личные сообщения удалены, финансовая история сохранена без персональных данных. Остатки ScRl и V-RUB будут списаны; ScRl исключаются из доступного оборота. Финансовая история останется обезличенной. Перед удалением заверши активные сделки, заявки на бирже, аукционы и освободи все резервы.</p><form id="deleteAccountForm" class="demo-form account-delete-form"><label for="deleteAccountConfirm">Введи слово УДАЛИТЬ для подтверждения</label><input id="deleteAccountConfirm" name="confirmation" maxlength="7" autocomplete="off" required><button class="button button-danger" type="submit">Удалить аккаунт окончательно</button></form></section>'
+    ? '<section class="account-danger"><h2>Удаление аккаунта</h2><p>Это действие необратимо. Профиль и публикации будут удалены или обезличены, финансовая история сохранится без личных данных. Остатки ScRl и V-RUB спишутся. Перед удалением заверши сделки, аукционы и заявки с резервом.</p><form id="deleteAccountForm" class="demo-form account-delete-form"><label for="deleteAccountConfirm">Введи слово «УДАЛИТЬ» заглавными буквами</label><input id="deleteAccountConfirm" name="confirmation" maxlength="7" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="УДАЛИТЬ" required><button class="button button-danger" type="submit">Удалить аккаунт</button></form></section>'
     : '<section class="account-danger"><h2>Удаление аккаунта</h2><p>Удаление доступно только после входа в зарегистрированный аккаунт. В демо-режиме действие отключено.</p></section>';
   return '<p class="eyebrow">АККАУНТ</p><h1>Профиль</h1><div class="demo-stats"><div class="demo-stat"><span>Отзывы</span><b>' + reviews.length + '</b></div><div class="demo-stat"><span>Средняя оценка</span><b>' + avg + '</b></div></div>' +
     '<form id="profileForm" class="demo-form"><h2>Мои данные</h2><label>ФИО</label><input name="name" maxlength="100" value="' + safe(user.name) + '" required><label>Email</label><input value="' + safe(user.mail || "Email скрыт для других участников") + '" disabled><label>Класс</label><input name="room" maxlength="12" value="' + safe(user.room || "") + '"' + (!isAdminAccount() ? ' readonly aria-readonly="true" title="Класс меняет администратор"' : "") + '>' +
-    (!isAdminAccount() ? '<p class="small muted">Класс меняет администратор.</p>' : '') +
+    "" +
     roleChoice + '<button class="button button-primary" type="submit">Сохранить</button></form>' +
     deleteSection +
     '<h2>Мои отзывы</h2><div class="data-list">' + (reviews.map(r => '<div class="data-row"><span>' + safe(r.text || "Без текста") + '<small>' + r.rating + ' из 5 · ' + userProfileLink(r.user) + '</small></span></div>').join("") || '<p class="muted">Отзывов пока нет.</p>') + '</div>';
@@ -2065,12 +2121,89 @@ function endAuction(id) {
 }
 
 
-function action(btn) {
-  if (remoteReady && !window.__scrlTestMode) return actionRemote(btn);
 
-  if (me().blocked) throw new Error("Аккаунт заблокирован.");
+function closePurchaseConfirmation() {
+  const dialog = el("purchaseConfirmDialog");
+  if (dialog && typeof dialog.close === "function" && dialog.open) dialog.close();
+  else if (dialog) {
+    dialog.hidden = true;
+    if (typeof dialog.removeAttribute === "function") dialog.removeAttribute("open");
+  }
+  pendingPurchaseId = "";
+}
+
+function openPurchaseConfirmation(id) {
+  const item = data.listings.find(listing =>
+    listing.id === String(id) && listing.status === "active" && Number(listing.slots || 0) > 0
+  );
+  if (!item) throw new Error("Эта услуга уже недоступна.");
+  if (item.user === me().id) throw new Error("Нельзя заказать собственную услугу.");
+  const dialog = el("purchaseConfirmDialog");
+  if (!dialog) throw new Error("Окно подтверждения покупки недоступно.");
+  pendingPurchaseId = item.id;
+  const title = el("purchaseConfirmName");
+  const seller = el("purchaseConfirmSeller");
+  const price = el("purchaseConfirmPrice");
+  const balance = el("purchaseConfirmBalance");
+  const note = el("purchaseConfirmNote");
+  const confirmButton = el("purchaseConfirmButton");
+  const affordable = Number(me().scrl || 0) >= Number(item.price || 0);
+  if (title) title.textContent = item.title;
+  if (seller) seller.textContent = userName(item.user);
+  if (price) price.textContent = money(item.price) + " ScRl";
+  if (balance) balance.textContent = money(me().scrl) + " ScRl";
+  if (note) note.textContent = affordable
+    ? "Сумма будет зарезервирована до завершения заказа."
+    : "Недостаточно ScRl для этого заказа.";
+  if (confirmButton) confirmButton.disabled = !affordable;
+  if (typeof dialog.showModal === "function") dialog.showModal();
+  else {
+    dialog.hidden = false;
+    if (typeof dialog.setAttribute === "function") dialog.setAttribute("open", "");
+  }
+}
+
+function confirmPurchase() {
+  const id = pendingPurchaseId;
+  if (!id) return;
+  const item = data.listings.find(listing =>
+    listing.id === id && listing.status === "active" && Number(listing.slots || 0) > 0
+  );
+  if (!item) {
+    closePurchaseConfirmation();
+    msg("Эта услуга уже недоступна.");
+    return;
+  }
+  if (item.user === me().id) {
+    closePurchaseConfirmation();
+    msg("Нельзя заказать собственную услугу.");
+    return;
+  }
+  if (Number(me().scrl || 0) < Number(item.price || 0)) {
+    const note = el("purchaseConfirmNote");
+    if (note) note.textContent = "Недостаточно ScRl для этого заказа.";
+    return;
+  }
+  closePurchaseConfirmation();
+  try {
+    const result = action({ dataset: { id, do: "buy", confirmed: "true" } });
+    if (result && typeof result.catch === "function") {
+      result.catch(error => msg(error.message || "Не удалось оформить заказ."));
+    }
+  } catch (error) {
+    msg(error.message || "Не удалось оформить заказ.");
+  }
+}
+
+function action(btn) {
   const id = btn.dataset.id;
   const type = btn.dataset.do;
+  if (me().blocked) throw new Error("Аккаунт заблокирован.");
+  if (type === "buy" && btn.dataset.confirmed !== "true") {
+    openPurchaseConfirmation(id);
+    return;
+  }
+  if (remoteReady && !window.__scrlTestMode) return actionRemote(btn);
   if (me().role === "parent" && type !== "exit-parent-preview") throw new Error("В тестовом режиме родителя действия отключены.");
   if (type === "exit-parent-preview") {
     if (!isAdminAccount() || adminPreviewRole !== "parent") throw new Error("Нет доступа.");
@@ -2583,6 +2716,42 @@ async function actionRemote(btn) {
   }
 }
 
+async function saveReview(dealId, ratingValue, reviewText = "") {
+  if (me().blocked) throw new Error("Аккаунт заблокирован.");
+  const deal = data.deals.find(item =>
+    item.id === String(dealId) && item.status === "done" &&
+    (item.buyer === me().id || item.seller === me().id)
+  );
+  if (!deal) throw new Error("Оценить можно только завершённый заказ.");
+  if (data.reviews.some(review => review.deal === deal.id && review.user === me().id)) {
+    throw new Error("Ты уже оставил оценку по этому заказу.");
+  }
+  const rating = Number(ratingValue);
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    throw new Error("Выбери оценку от 1 до 5.");
+  }
+  const target = deal.buyer === me().id ? deal.seller : deal.buyer;
+  const text = String(reviewText || "").trim().slice(0, 300);
+  if (!getUser(target)) throw new Error("Не удалось найти участника сделки.");
+
+  if (remoteReady && !window.__scrlTestMode) {
+    await backend.addReview({ deal: deal.id, user: me().id, target, rating, text });
+    await refreshRemoteData();
+  } else {
+    data.reviews.unshift({
+      id: uid(), deal: deal.id, user: me().id, target, rating, text,
+      status: "active", date: Date.now()
+    });
+    notify(target, "Тебе оставили оценку.");
+    log("Оставлена оценка по сделке «" + deal.title + "».");
+    save();
+  }
+
+  setPage("orders");
+  msg("Оценка сохранена.");
+  return data.reviews.find(review => review.deal === deal.id && review.user === me().id) || null;
+}
+
 async function submitRemote(form) {
   if (me()?.blocked) throw new Error("Аккаунт заблокирован.");
   const fields = new FormData(form);
@@ -2738,7 +2907,7 @@ async function submitRemote(form) {
   }
   if (form.id === "deleteAccountForm") {
     const confirmation = String(fields.get("confirmation") || "").trim();
-    if (confirmation !== "УДАЛИТЬ") throw new Error("Введи слово УДАЛИТЬ без изменений.");
+    if (confirmation !== "УДАЛИТЬ") throw new Error("Введи УДАЛИТЬ заглавными буквами.");
     const button = form.querySelector('button[type="submit"]');
     if (button) { button.disabled = true; button.textContent = "Удаляем аккаунт…"; }
     try {
@@ -3325,6 +3494,22 @@ if (authBook && !window.__scrlTestMode) {
 }
 startPasswordRecoveryFromUrl();
 
+if (el("brandHome")) {
+  el("brandHome").addEventListener("click", event => {
+    if (event.preventDefault) event.preventDefault();
+    setPage("home");
+  });
+}
+const purchaseDialog = el("purchaseConfirmDialog");
+if (purchaseDialog) {
+  purchaseDialog.addEventListener("click", event => {
+    if (event.target === purchaseDialog) closePurchaseConfirmation();
+  });
+  purchaseDialog.addEventListener("close", () => { pendingPurchaseId = ""; });
+}
+if (el("purchaseConfirmCancel")) el("purchaseConfirmCancel").addEventListener("click", closePurchaseConfirmation);
+if (el("purchaseConfirmButton")) el("purchaseConfirmButton").addEventListener("click", confirmPurchase);
+
 document.querySelectorAll(".nav-tab").forEach(btn => btn.addEventListener("click", () => setPage(btn.dataset.page)));
 if (el("topbarBalance")) el("topbarBalance").addEventListener("click", () => setPage("wallet"));
 if (el("profileShortcut")) el("profileShortcut").addEventListener("click", () => setPage("profile"));
@@ -3504,18 +3689,24 @@ el("page").addEventListener("submit", async event => {
     return;
   }
   if (form.dataset.form === "review") {
-    const d = data.deals.find(x => x.id === form.dataset.id && x.status === "done");
     const fields = new FormData(form);
-    if (remoteReady && d && !data.reviews.some(r => r.deal === d.id && r.user === me().id)) {
-      const target = d.buyer === me().id ? d.seller : d.buyer;
-      backend.addReview({ deal: d.id, user: me().id, target, rating: Number(fields.get("rating")), text: String(fields.get("text") || "").trim() })
-        .then(refreshRemoteData).then(() => setPage("orders")).catch(err => msg(err.message || "Не удалось сохранить отзыв."));
-    } else if (d && !data.reviews.some(r => r.deal === d.id && r.user === me().id)) {
-      const target = d.buyer === me().id ? d.seller : d.buyer;
-      data.reviews.unshift({ id: uid(), deal: d.id, user: me().id, target, rating: Number(fields.get("rating")), text: String(fields.get("text") || "").trim(), date: Date.now() });
-      notify(target, "Тебе оставили отзыв.");
-      log("Оставлен отзыв по сделке «" + d.title + "».");
-      setPage("orders");
+    const button = form.querySelector('button[type="submit"]');
+    if (button) {
+      button.disabled = true;
+      button.textContent = "Отправляем…";
+    }
+    try {
+      await saveReview(
+        form.dataset.id,
+        Number(fields.get("rating")),
+        String(fields.get("text") || "")
+      );
+    } catch (error) {
+      msg(error.message || "Не удалось сохранить оценку.");
+      if (button) {
+        button.disabled = false;
+        button.textContent = "Отправить оценку";
+      }
     }
     return;
   }
@@ -3590,6 +3781,10 @@ if (window.__scrlTestMode) {
     change,
     placeExchangeOrder,
     buyExchangeOrder,
-    cancelExchangeOrder
+    cancelExchangeOrder,
+    saveReview,
+    openPurchaseConfirmation,
+    confirmPurchase,
+    pendingPurchaseId: () => pendingPurchaseId
   };
 }
