@@ -498,7 +498,8 @@ test("дневной и ночной фон — цельные изображе�
   assert.match(html, /world-layer--cave/);
   assert.doesNotMatch(html, /mcCaveCanvas|mcExplosionCanvas|worldTransition|world-torch-glow/);
   assert.doesNotMatch(app, /startCaveAssembly|startMinecraftExplosion|torch-pixel\.png|stone-flat\.png/);
-  assert.match(app, /function switchTheme\(\)[\s\S]*?paintWorldTheme\(current === "dark" \? "light" : "dark"\)/);
+  assert.match(app, /function switchTheme\(\)[\s\S]*?transition\.classList\.add\(next === "light" \? "to-light" : "to-dark"\)/);
+  assert.match(app, /paintWorldTheme\(next\)/);
 });
 
 
@@ -1351,8 +1352,8 @@ test("счётчик публикаций считает карточки, а н
   assert.doesNotMatch(page, /1688 записей/);
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const board = app.slice(app.indexOf("function boardPage()"), app.indexOf("function marketPage()"));
-  assert.match(board, /visiblePosts\.length \+ ' записей'/);
-  assert.doesNotMatch(board, /rows\.length \+ ' записей'/);
+  assert.ok(board.includes("visiblePosts.length + ' записей'"));
+  assert.ok(!board.includes("rows.length + ' записей'"));
 });
 
 test("переход темы использует общий overlay, а переключатель стиля не показывается на входе", () => {
