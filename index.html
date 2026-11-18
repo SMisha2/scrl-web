@@ -12,11 +12,11 @@
   <link rel="preload" href="assets/MinecraftRus.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/backgrounds/night.png" as="image" fetchpriority="high">
   <link rel="preload" href="assets/backgrounds/day.png" as="image" fetchpriority="low">
-  <link rel="stylesheet" href="css/style.css?v=204">
+  <link rel="stylesheet" href="css/style.css?v=205">
   <script src="js/config.js" defer></script>
   <script src="js/core.js" defer></script>
   <script src="js/backend.js?v=165" defer></script>
-  <script src="js/app.js?v=209" defer></script>
+  <script src="js/app.js?v=210" defer></script>
 </head>
 <body>
   <div id="worldScenery" class="world-scenery" aria-hidden="true">
@@ -148,7 +148,7 @@
     </div>
     <header class="topbar">
       <div class="topbar-inner">
-        <a class="brand" href="#" aria-label="ScRl — главная">
+        <a id="brandHome" class="brand" href="#home" aria-label="ScRl — главная">
           <span class="brand-logo-frame" aria-hidden="true"><img class="brand-logo" src="assets/crb,blb.png" alt=""></span>
         </a>
         <nav class="main-nav" aria-label="Основная навигация">
@@ -218,6 +218,24 @@
     </main>
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <dialog id="purchaseConfirmDialog" class="purchase-dialog" aria-labelledby="purchaseConfirmTitle">
+    <section class="purchase-dialog-card">
+      <p class="eyebrow">ПОДТВЕРЖДЕНИЕ ЗАКАЗА</p>
+      <h2 id="purchaseConfirmTitle">Оформить заказ?</h2>
+      <p id="purchaseConfirmName" class="purchase-confirm-name"></p>
+      <div class="purchase-confirm-details">
+        <div><span>Исполнитель</span><strong id="purchaseConfirmSeller"></strong></div>
+        <div><span>Стоимость</span><strong id="purchaseConfirmPrice"></strong></div>
+        <div><span>Доступно</span><strong id="purchaseConfirmBalance"></strong></div>
+      </div>
+      <p id="purchaseConfirmNote" class="purchase-confirm-note"></p>
+      <div class="purchase-dialog-actions">
+        <button id="purchaseConfirmCancel" class="button button-secondary" type="button">Отмена</button>
+        <button id="purchaseConfirmButton" class="button button-primary" type="button">Подтвердить</button>
+      </div>
+    </section>
+  </dialog>
 
 </body>
 </html>
