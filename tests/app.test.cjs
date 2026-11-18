@@ -67,8 +67,9 @@ test("страницы приложения запускаются в госте
   assert.equal(api.me().id, "u0");
   assert.match(api.boardPage(), /Доска/);
   assert.equal(api.marketPage, undefined);
-  assert.match(api.exchangePage(), /Продать ScRl/);
-  assert.match(api.exchangePage(), /Продать V-RUB/);
+  assert.match(api.exchangePage(), /ОГРАНИЧЕНИЕ ДОСТУПА/);
+  assert.match(api.exchangePage(), /Допуск к бирже/);
+  assert.doesNotMatch(api.exchangePage(), /Продать ScRl|Продать V-RUB|id="exchangeForm"/);
   assert.match(api.auctionsPage(), /Аукционы/);
   assert.equal(els.get("app").hidden, false);
 });
@@ -341,7 +342,7 @@ test("светлые поля привязаны напрямую к data-theme=
   assert.ok(css.includes('html[data-theme="light"] body textarea'));
   assert.ok(css.includes('border: 4px solid #111111 !important'));
   assert.ok(css.includes('background-color: #c4c4c4 !important'));
-  assert.ok(html.includes('css/style.css?v=181'));
+  assert.ok(/<link rel="stylesheet" href="css\/style\.css\?v=\d+">/.test(html));
 });
 
 
@@ -417,7 +418,7 @@ test("регистрация подтверждает почту, затем т�
   assert.match(app, /claimInitialAdminForEmail\(\)/);
   assert.doesNotMatch(app, /prompt\("Первый вход в ScRl/);
   assert.match(app, /ask\("verify", \{ email: mail, token, type: "email" \}\)/);
-  assert.match(app, /await saveProfile\(result\.user\.id, name, result\.access_token\)/);
+  assert.match(app, /await saveProfile\(result\.user\.id, name, result\.access_token, null, \{/);
   assert.match(app, /el\("logMail"\)\.value = mail/);
   assert.match(app, /setMode\("login"\)/);
   assert.match(app, /Почта подтверждена\. Теперь войди по email и паролю/);
@@ -479,7 +480,7 @@ test("uploaded day/night photos are rendered smoothly, not pixelated", () => {
   assert.match(tail, /transform: none !important/);
   assert.match(tail, /background-size: cover !important/);
   assert.match(tail, /transition: opacity 1\.15s ease !important/);
-  assert.ok(html.includes('css/style.css?v=181'));
+  assert.ok(/<link rel="stylesheet" href="css\/style\.css\?v=\d+">/.test(html));
 });
 
 
@@ -599,7 +600,7 @@ test("email confirmation accepts the eight-digit OTP configured in Supabase", ()
   assert.match(app, /\[0-9\]\{8\}/);
   assert.match(html, /id="code"[^>]*maxlength="8" pattern="\[0-9\]\{8\}"/);
   assert.match(html, /восьмизначный код/);
-  assert.ok(html.includes("js/app.js?v=189"));
+  assert.ok(/<script src="js\/app\.js\?v=\d+" defer><\/script>/.test(html));
 });
 
 
