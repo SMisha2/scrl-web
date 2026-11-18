@@ -1195,6 +1195,16 @@ test("password recovery uses the hidden zero page and leaves normal auth on page
   assert.match(app, /params\.get\("type"\) !== "recovery"/);
 });
 
+test("recovery link keeps its token and form ahead of any saved session", () => {
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  assert.match(app, /let passwordRecoveryRequested = false;/);
+  assert.match(app, /passwordRecoveryRequested = true;/);
+  assert.match(app, /if \(oldSess && !passwordRecoveryRequested\)/);
+  assert.match(app, /if \(!passwordRecoveryRequested\) setMode\("login"\);/);
+  assert.match(app, /passwordRecoveryToken = accessToken/);
+  assert.match(app, /clearSession\(\);[\s\S]*sessionStorage\.removeItem\("scrlRecoveryEmail"\)/);
+});
+
 test("visible profile names use surname and initials without changing stored full names", () => {
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   assert.match(app, /function shortProfileName\(value\)/);
