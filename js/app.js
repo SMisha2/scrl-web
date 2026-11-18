@@ -807,9 +807,9 @@ async function ask(path, body) {
   } catch (error) {
     console.error("ScRl auth network error:", requestUrl, error);
     if (error && error.name === "AbortError") {
-      throw new Error("Сервер авторизации ScRl не ответил за 18 секунд. Это сетевой таймаут, а не ошибка email или пароля. Проверь доступ к Supabase, VPN/прокси и попробуй другую сеть.");
+      throw new Error("Сервер долго не отвечает. Попробуй ещё раз.");
     }
-    throw new Error("Браузер не смог получить ответ от сервера авторизации ScRl. Проверь подключение к Supabase, VPN/прокси, DNS и блокировщики запросов. Ошибка email или пароля приходит отдельным ответом сервера.");
+    throw new Error("Не удалось подключиться к серверу. Попробуй ещё раз.");
   } finally {
     if (timeoutId !== null) clearTimeout(timeoutId);
   }
@@ -2909,13 +2909,6 @@ function applyStyle(style) {
     button.setAttribute("aria-label", "Стиль оформления сайта");
     button.title = normalized === "minecraft" ? "Сейчас стиль Minecraft" : "Сейчас обычный стиль";
   }
-  const authStyleButton = el("authStyleBtn");
-  if (authStyleButton) {
-    authStyleButton.textContent = normalized === "minecraft" ? "Стиль: Minecraft" : "Стиль: обычный";
-    authStyleButton.setAttribute("aria-pressed", String(normalized === "minecraft"));
-    authStyleButton.setAttribute("aria-label", normalized === "minecraft" ? "Выключить стиль Minecraft без фона" : "Включить стиль Minecraft с фоном");
-    authStyleButton.title = normalized === "minecraft" ? "Переключить на обычный стиль без фоновой сцены" : "Включить фоновую сцену Minecraft";
-  }
   return normalized;
 }
 
@@ -2929,8 +2922,19 @@ function switchStyle() {
 
 function applySavedStyle() {
   let savedStyle = "";
-  try { savedStyle = localStorage.getItem("scrlStyle") || ""; } catch {}
-  applyStyle(savedStyle);
+  let styleDefaultVersion = "";
+  try {
+    savedStyle = localStorage.getItem("scrlStyle") || "";
+    styleDefaultVersion = localStorage.getItem("scrlStyleDefaultVersion") || "";
+    // One-time migration: make the requested classic style the default for everyone.
+    // Later manual selections remain saved and are respected on subsequent visits.
+    if (styleDefaultVersion !== "2") {
+      savedStyle = "classic";
+      localStorage.setItem("scrlStyle", "classic");
+      localStorage.setItem("scrlStyleDefaultVersion", "2");
+    }
+  } catch {}
+  applyStyle(savedStyle || "classic");
 }
 
 applyTheme();
@@ -2938,7 +2942,6 @@ applySavedStyle();
 [el("themeBtn"), el("authThemeBtn")].forEach(button => {
   if (button) button.addEventListener("click", switchTheme);
 });
-if (el("authStyleBtn")) el("authStyleBtn").addEventListener("click", switchStyle);
 
 
 el("openRegistration").addEventListener("click", () => setMode("reg"));
