@@ -8636,3 +8636,89 @@ html[data-style="minecraft"][data-theme="light"] body > #app:not([hidden]) #page
   background-image:none !important;
   box-shadow:none !important;
 }
+
+/* Clickable dashboard cards and discoverable public profiles. */
+html body #page .home-overview-card {
+  box-sizing:border-box !important;
+  width:100% !important;
+  text-align:left !important;
+  font:inherit !important;
+  cursor:pointer !important;
+  transition:transform .16s ease,filter .16s ease,box-shadow .16s ease !important;
+}
+html body #page .home-overview-card:hover {
+  transform:translateY(-3px) !important;
+  filter:brightness(1.06) !important;
+  box-shadow:inset 2px 2px 0 var(--choice-frame-highlight),inset -2px -2px 0 var(--choice-frame-shadow),4px 5px 0 var(--choice-frame-shadow) !important;
+}
+html body #page .home-overview-card:focus-visible {
+  outline:3px solid #d6b65e !important;
+  outline-offset:4px !important;
+}
+html body #page .home-overview-action {
+  display:block !important;
+  margin-top:auto !important;
+  padding-top:13px !important;
+  color:inherit !important;
+  font-size:11px !important;
+  font-weight:800 !important;
+  opacity:.78 !important;
+}
+html body #page .profile-link {
+  display:inline !important;
+  min-height:0 !important;
+  margin:0 !important;
+  padding:0 !important;
+  border:0 !important;
+  color:var(--accent) !important;
+  background:transparent !important;
+  box-shadow:none !important;
+  font:inherit !important;
+  text-decoration:underline !important;
+  text-underline-offset:2px !important;
+  cursor:pointer !important;
+}
+html[data-theme="dark"] body #page .profile-link {
+  color:#c4d4e0 !important;
+}
+html body #page .profile-link:hover {
+  filter:brightness(1.22) !important;
+}
+html body #page .review-form {
+  margin-top:14px !important;
+  padding:12px !important;
+  border:1px solid var(--border) !important;
+  background:var(--surface2) !important;
+}
+html body #page .review-form label {
+  display:block !important;
+  margin:0 0 8px !important;
+  font-weight:700 !important;
+}
+html body #page .review-form select {
+  width:100% !important;
+  margin-bottom:8px !important;
+}
+
+/* Balance labels and values should be unmistakably dark in the light toolbar. */
+html[data-theme="light"] body #app .topbar .topbar-balance,
+html[data-theme="light"] body #app .topbar .topbar-balance .balance-group small,
+html[data-theme="light"] body #app .topbar .topbar-balance .balance-group strong,
+html[data-theme="light"] body #app .topbar .topbar-balance .balance-divider {
+  color:#26342b !important;
+  text-shadow:none !important;
+  font-weight:800 !important;
+}
+
+/* The active navigation tab in dark mode is charcoal grey, not black. */
+html[data-theme="dark"] body #app .topbar .nav-tab.is-active {
+  color:#f1f3f5 !important;
+  background:#41474e !important;
+  border-color:#707981 !important;
+  border-bottom-color:#818b94 !important;
+  text-shadow:none !important;
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,.08),inset -2px -2px 0 rgba(0,0,0,.20),2px 3px 0 rgba(0,0,0,.20) !important;
+}
+html[data-theme="dark"] body #app .topbar .nav-tab.is-active:hover {
+  background:#4a5158 !important;
+}
