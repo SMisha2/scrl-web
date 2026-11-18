@@ -270,20 +270,20 @@ test("учитель начисляет ScRl только ученику сво�
   }), /своего класса/);
 });
 
-test("светлая тема запускается по умолчанию и переключается на тёмную и обратно", () => {
+test("тёмная тема запускается по умолчанию и переключается на светлую и обратно", () => {
   const { api } = boot();
-  assert.equal(api.activeTheme(), "light");
-  api.switchTheme();
   assert.equal(api.activeTheme(), "dark");
   api.switchTheme();
   assert.equal(api.activeTheme(), "light");
+  api.switchTheme();
+  assert.equal(api.activeTheme(), "dark");
 });
 test("переключатель темы — двухпозиционный слайдер с доступным состоянием", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
-  assert.match(html, /id="themeBtn"[^>]*role="switch"[^>]*aria-checked="false"/);
-  assert.match(html, /id="authThemeBtn"[^>]*role="switch"[^>]*aria-checked="false"/);
+  assert.match(html, /id="themeBtn"[^>]*role="switch"[^>]*aria-checked="true"/);
+  assert.match(html, /id="authThemeBtn"[^>]*role="switch"[^>]*aria-checked="true"/);
   assert.equal((html.match(/class="theme-switch-track"/g) || []).length, 2);
   assert.ok(app.includes('button.setAttribute("aria-checked", String(normalized === "dark"))'));
   assert.ok(css.includes(".theme-switch-thumb"));
@@ -304,6 +304,34 @@ test("переключатель темы — двухпозиционный с�
 
 
 
+
+
+test("обязательные согласия принимаются при регистрации и проверяются перед доступом", () => {
+  const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  const { api } = boot();
+
+  assert.match(html, /id="regPersonalConsent"[^>]*required/);
+  assert.match(html, /id="regAiConsent"[^>]*required/);
+  assert.match(app, /Не удалось проверить сохранённые согласия/);
+  assert.match(app, /consentStatusNeedsAcceptance\(data\.safety\)/);
+  assert.equal(api.consentStatusNeedsAcceptance({
+    needsOnboarding: false,
+    hasPersonalDataConsent: true,
+    hasAiConsent: true
+  }), false);
+  assert.equal(api.consentStatusNeedsAcceptance({
+    needsOnboarding: false,
+    hasPersonalDataConsent: true,
+    hasAiConsent: false
+  }), true);
+  assert.equal(api.consentStatusNeedsAcceptance({
+    needsOnboarding: true,
+    hasPersonalDataConsent: true,
+    hasAiConsent: true
+  }), true);
+  assert.equal(api.consentStatusNeedsAcceptance(null), true);
+});
 
 test("книга авторизации содержит только две страницы без промежуточного разворота", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
@@ -1260,24 +1288,24 @@ test("удаление публикаций использует защищён�
 });
 
 
-test("стиль сайта Minecraft/Обычный независим от светлой и тёмной темы и сохраняется", () => {
+test("обычный тёмный стиль включён по умолчанию, а тема и стиль сохраняются независимо", () => {
   const { api, localStorage } = boot();
-  assert.equal(api.activeTheme(), "light");
-  assert.equal(api.activeStyle(), "minecraft");
+  assert.equal(api.activeTheme(), "dark");
+  assert.equal(api.activeStyle(), "classic");
   assert.match(api.settingsPage(), /Стиль сайта/);
   assert.match(api.settingsPage(), /Обычный/);
 
-  api.applyStyle("classic");
-  assert.equal(api.activeStyle(), "classic");
-  assert.equal(api.activeTheme(), "light");
-  assert.equal(localStorage.getItem("scrlStyle"), "classic");
-
-  api.switchTheme();
-  assert.equal(api.activeTheme(), "dark");
-  assert.equal(api.activeStyle(), "classic");
-
-  api.switchStyle();
+  api.applyStyle("minecraft");
   assert.equal(api.activeStyle(), "minecraft");
   assert.equal(api.activeTheme(), "dark");
   assert.equal(localStorage.getItem("scrlStyle"), "minecraft");
+
+  api.switchTheme();
+  assert.equal(api.activeTheme(), "light");
+  assert.equal(api.activeStyle(), "minecraft");
+
+  api.switchStyle();
+  assert.equal(api.activeStyle(), "classic");
+  assert.equal(api.activeTheme(), "light");
+  assert.equal(localStorage.getItem("scrlStyle"), "classic");
 });
