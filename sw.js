@@ -1,4 +1,4 @@
-const CACHE_NAME = "scrl-world-backgrounds-v4";
+const CACHE_NAME = "scrl-world-backgrounds-v5";
 const CACHE_PREFIX = "scrl-world-backgrounds-";
 const BACKGROUND_FILES = new Set(["night.png", "day.png"]);
 

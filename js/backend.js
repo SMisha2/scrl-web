@@ -101,7 +101,13 @@
   }
 
   async function authenticatedFetch(url, options, token) {
-    let response = await fetch(url, options);
+    let response;
+    try {
+      response = await fetch(url, options);
+    } catch (error) {
+      console.error("ScRl API network error:", url, error);
+      throw new Error("Не удалось связаться с сервером ScRl. Проверь интернет, VPN/прокси и блокировщики запросов на устройстве.");
+    }
     if (response.status !== 401) return response;
 
     const refreshedToken = await refreshAccessToken(token);

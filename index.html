@@ -1,22 +1,22 @@
 <!doctype html>
-<html lang="ru" data-theme="light" data-world="surface" data-style="minecraft">
+<html lang="ru" data-theme="dark" data-world="cave" data-style="classic">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#e8eee4">
+  <meta name="theme-color" content="#0b110d">
   <meta name="description" content="ScRl — уютное пространство школьной взаимопомощи.">
   <link rel="canonical" href="https://www.scrl.site/">
   <meta property="og:url" content="https://www.scrl.site/">
   <link rel="icon" type="image/png" href="assets/crb,blb.png">
   <title>ScRl</title>
   <link rel="preload" href="assets/MinecraftRus.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="assets/backgrounds/day.png" as="image" fetchpriority="high">
-  <link rel="preload" href="assets/backgrounds/night.png" as="image" fetchpriority="low">
-  <link rel="stylesheet" href="css/style.css?v=194">
+  <link rel="preload" href="assets/backgrounds/night.png" as="image" fetchpriority="high">
+  <link rel="preload" href="assets/backgrounds/day.png" as="image" fetchpriority="low">
+  <link rel="stylesheet" href="css/style.css?v=196">
   <script src="js/config.js" defer></script>
   <script src="js/core.js" defer></script>
-  <script src="js/backend.js?v=164" defer></script>
-  <script src="js/app.js?v=199" defer></script>
+  <script src="js/backend.js?v=165" defer></script>
+  <script src="js/app.js?v=201" defer></script>
 </head>
 <body>
   <div id="worldScenery" class="world-scenery" aria-hidden="true">
@@ -24,7 +24,7 @@
     <div class="world-layer world-layer--surface"></div>
   </div>
   <main id="auth" class="auth-screen">
-    <button id="authThemeBtn" class="auth-theme-btn theme-switch" type="button" role="switch" aria-checked="false" aria-label="Тёмная тема" title="Переключить на тёмную тему"><span class="theme-switch-track" aria-hidden="true"><span class="theme-switch-icon theme-switch-icon--light">☀</span><span class="theme-switch-icon theme-switch-icon--dark">☾</span><span class="theme-switch-thumb"></span></span></button>
+    <button id="authThemeBtn" class="auth-theme-btn theme-switch" type="button" role="switch" aria-checked="true" aria-label="Тёмная тема" title="Переключить на светлую тему"><span class="theme-switch-track" aria-hidden="true"><span class="theme-switch-icon theme-switch-icon--light">☀</span><span class="theme-switch-icon theme-switch-icon--dark">☾</span><span class="theme-switch-thumb"></span></span></button>
     <div class="auth-stage">
       <section class="auth-book" id="authBook" aria-label="Книга входа и регистрации">
         <div class="book-page-stack" aria-hidden="true"></div>
@@ -39,11 +39,13 @@
             <p class="auth-moderation-disclosure">При включённой ИИ-модерации Groq проверяет публикации и личные сообщения по сделкам. Текст передаётся внешнему сервису для проверки.</p>
           </div>
           <form id="loginForm" class="auth-form book-form">
+            <label class="auth-consent-check auth-consent-check--single" for="loginAllConsents"><input id="loginAllConsents" name="allConsents" type="checkbox" required><span>Я ознакомился(-ась) и принимаю обязательные документы и согласия ScRl.</span></label>
             <label for="logMail">Электронная почта:</label>
             <span class="mc-input-shell"><input id="logMail" name="email" type="email" autocomplete="username" aria-label="Электронная почта" required></span>
             <label for="logPass">Пароль:</label>
             <span class="mc-input-shell"><input id="logPass" name="password" type="password" autocomplete="current-password" aria-label="Пароль" required minlength="8"></span>
             <p class="form-error" id="logErr" aria-live="polite"></p>
+            <div class="auth-legal-links" aria-label="Документы ScRl"><span>Документы:</span> <a href="legal/terms.html" target="_blank" rel="noopener">Правила сервиса</a><a href="legal/privacy.html" target="_blank" rel="noopener">Политика данных</a><a href="legal/ai-moderation.html" target="_blank" rel="noopener">ИИ-модерация</a><a href="legal/parent-exchange.html" target="_blank" rel="noopener">Согласие родителя для биржи</a></div>
             <button class="book-inline-link" id="forgotPassword" type="button">Забыли пароль?</button>
           </form>
           <form id="forgotPasswordForm" class="auth-form book-form" hidden>
@@ -80,6 +82,7 @@
               <button class="switch-button" id="regTab" type="button">Регистрация</button>
             </div>
             <form id="regForm" class="auth-form book-form book-form--registration" hidden>
+              <label class="auth-consent-check auth-consent-check--single" for="regAllConsents"><input id="regAllConsents" name="allConsents" type="checkbox" required><span>Я ознакомился(-ась) и принимаю обязательные документы и согласия ScRl.</span></label>
               <div class="reg-name-grid" aria-label="ФИО">
                 <div class="reg-name-field">
                   <label for="regLast">Фамилия:</label>
@@ -102,15 +105,8 @@
               <span class="mc-input-shell"><input id="regPass" name="password" type="password" autocomplete="new-password" minlength="8" required></span>
               <label for="regAgain">Повторите пароль:</label>
               <span class="mc-input-shell"><input id="regAgain" name="passwordAgain" type="password" autocomplete="new-password" minlength="8" required></span>
-              <div class="auth-consent-list" aria-label="Согласия">
-                <label class="auth-consent-check" for="regPersonalConsent">
-                  <input id="regPersonalConsent" name="personalConsent" type="checkbox" required>
-                  <span>Согласен(на) на обработку персональных данных для работы ScRl, безопасности, поддержки и рассмотрения споров.</span>
-                </label>
-                <label class="auth-consent-check" for="regAiConsent">
-                  <input id="regAiConsent" name="aiConsent" type="checkbox" required>
-                  <span>Отдельно соглашаюсь на ИИ-модерацию публикаций, услуг, аукционов, сообщений, отзывов, жалоб, профиля и других материалов ScRl с возможной передачей соответствующих текстов Groq.</span>
-                </label>
+              <div class="auth-consent-list auth-consent-list--details" aria-label="Состав согласий">
+                <p>Единое подтверждение включает согласие на обработку персональных данных и ИИ-модерацию с возможной передачей проверяемого текста Groq. Согласие родителя для доступа к бирже оформляется отдельно, если оно требуется.</p>
               </div>
               <details class="auth-consent-details">
                 <summary>Подробнее о данных и ИИ</summary>
@@ -118,6 +114,7 @@
                 <p>Для автоматической проверки текст может передаваться Groq — внешнему поставщику ИИ. Аккаунт и база данных работают через Supabase. Спорные случаи могут просматриваться администрацией. ИИ может ошибаться; решения можно обжаловать. Не отправляй в тексты пароли, адреса и телефоны.</p>
               </details>
               <p class="form-error" id="regErr" aria-live="polite"></p>
+              <div class="auth-legal-links" aria-label="Документы ScRl"><span>Документы:</span> <a href="legal/terms.html" target="_blank" rel="noopener">Правила сервиса</a><a href="legal/privacy.html" target="_blank" rel="noopener">Политика данных</a><a href="legal/ai-moderation.html" target="_blank" rel="noopener">ИИ-модерация</a><a href="legal/parent-exchange.html" target="_blank" rel="noopener">Согласие родителя для биржи</a></div>
             </form>
             <form id="codeForm" class="auth-form book-form book-form--registration" hidden>
               <p class="code-info">Мы отправили восьмизначный код на <b id="codeMail"></b>.</p>
@@ -161,12 +158,13 @@
           <button class="nav-tab" type="button" data-page="auctions">Аукционы</button>
           <button class="nav-tab" type="button" data-page="activity">Активность</button>
           <div class="more-wrap">
-            <button id="moreBtn" class="more-btn" type="button" aria-expanded="false" aria-controls="extraMenu">ЕЩЁ <span aria-hidden="true">▾</span></button>
+            <button id="moreBtn" class="more-btn" type="button" aria-expanded="false" aria-controls="extraMenu">Ещё <span aria-hidden="true">▾</span></button>
             <div id="extraMenu" class="more-menu" hidden>
               <button type="button" data-page="wallet">Кошелёк</button>
               <button type="button" data-page="orders">Мои заказы</button>
               <button type="button" data-page="favorites">Избранное</button>
-              <button type="button" data-page="profile">Профиль</button>\n              <button type="button" data-page="settings">Настройки сайта</button>
+              <button type="button" data-page="profile">Профиль</button>
+              <button type="button" data-page="settings">Настройки сайта</button>
               <button type="button" data-page="privacy">Конфиденциальность и согласия</button>
               <button type="button" data-page="finance" data-role="admin" hidden>Платежи</button>
               <button type="button" data-page="assistant" data-role="admin" hidden>AI Moderator</button>
@@ -211,7 +209,7 @@
               </footer>
             </section>
           </div>
-          <button id="themeBtn" class="theme-btn theme-switch" type="button" role="switch" aria-checked="false" aria-label="Тёмная тема" title="Переключить на тёмную тему"><span class="theme-switch-track" aria-hidden="true"><span class="theme-switch-icon theme-switch-icon--light">☀</span><span class="theme-switch-icon theme-switch-icon--dark">☾</span><span class="theme-switch-thumb"></span></span></button>
+          <button id="themeBtn" class="theme-btn theme-switch" type="button" role="switch" aria-checked="true" aria-label="Тёмная тема" title="Переключить на светлую тему"><span class="theme-switch-track" aria-hidden="true"><span class="theme-switch-icon theme-switch-icon--light">☀</span><span class="theme-switch-icon theme-switch-icon--dark">☾</span><span class="theme-switch-thumb"></span></span></button>
         </div>
       </div>
     </header>
