@@ -793,16 +793,25 @@ function leave() {
 async function ask(path, body) {
   const url = String(cfg.url || "").replace(/\/$/, "");
   if (!url || !cfg.key) throw new Error("База аккаунтов пока не подключена. Регистрация и вход по email и паролю временно недоступны.");
+  const requestUrl = url + "/auth/v1/" + path;
+  const controller = typeof AbortController === "function" ? new AbortController() : null;
+  const timeoutId = controller ? setTimeout(() => controller.abort(), 18000) : null;
   let res;
   try {
-    res = await fetch(url + "/auth/v1/" + path, {
+    res = await fetch(requestUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: cfg.key },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      ...(controller ? { signal: controller.signal } : {})
     });
   } catch (error) {
-    console.error("ScRl auth network error:", error);
-    throw new Error("Не удалось связаться с сервером авторизации ScRl (Supabase). Проверь интернет на ПК, VPN/прокси и блокировщики запросов. Если ошибка повторяется, попробуй другую сеть.");
+    console.error("ScRl auth network error:", requestUrl, error);
+    if (error && error.name === "AbortError") {
+      throw new Error("Сервер авторизации ScRl не ответил за 18 секунд. Это сетевой таймаут, а не ошибка email или пароля. Проверь доступ к Supabase, VPN/прокси и попробуй другую сеть.");
+    }
+    throw new Error("Браузер не смог получить ответ от сервера авторизации ScRl. Проверь подключение к Supabase, VPN/прокси, DNS и блокировщики запросов. Ошибка email или пароля приходит отдельным ответом сервера.");
+  } finally {
+    if (timeoutId !== null) clearTimeout(timeoutId);
   }
   const result = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(result.msg || result.message || result.error_description || "Не получилось выполнить запрос.");
@@ -2900,6 +2909,13 @@ function applyStyle(style) {
     button.setAttribute("aria-label", "Стиль оформления сайта");
     button.title = normalized === "minecraft" ? "Сейчас стиль Minecraft" : "Сейчас обычный стиль";
   }
+  const authStyleButton = el("authStyleBtn");
+  if (authStyleButton) {
+    authStyleButton.textContent = normalized === "minecraft" ? "Стиль: Minecraft" : "Стиль: обычный";
+    authStyleButton.setAttribute("aria-pressed", String(normalized === "minecraft"));
+    authStyleButton.setAttribute("aria-label", normalized === "minecraft" ? "Выключить стиль Minecraft без фона" : "Включить стиль Minecraft с фоном");
+    authStyleButton.title = normalized === "minecraft" ? "Переключить на обычный стиль без фоновой сцены" : "Включить фоновую сцену Minecraft";
+  }
   return normalized;
 }
 
@@ -2922,6 +2938,7 @@ applySavedStyle();
 [el("themeBtn"), el("authThemeBtn")].forEach(button => {
   if (button) button.addEventListener("click", switchTheme);
 });
+if (el("authStyleBtn")) el("authStyleBtn").addEventListener("click", switchStyle);
 
 
 el("openRegistration").addEventListener("click", () => setMode("reg"));
