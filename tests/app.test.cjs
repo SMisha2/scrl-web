@@ -287,9 +287,15 @@ test("переключатель темы — двухпозиционный с�
   assert.equal((html.match(/class="theme-switch-track"/g) || []).length, 2);
   assert.ok(app.includes('button.setAttribute("aria-checked", String(normalized === "dark"))'));
   assert.ok(css.includes(".theme-switch-thumb"));
-  assert.ok(css.includes("translateX(30px)"));
-  assert.ok(css.includes("translateX(26px)"));
+  assert.ok(css.includes("top: 50% !important"));
+  assert.ok(css.includes("translate(32px,-50%) !important"));
+  assert.ok(css.includes("translate(28px,-50%) !important"));
+  assert.ok(css.includes("translate(26px,-50%) !important"));
   assert.ok(css.includes(".theme-switch-thumb::after"));
+  assert.match(html, /id="themeTransition" class="world-transition"/);
+  assert.match(app, /transition\.classList\.add\(next === "light" \? "to-light" : "to-dark"\)/);
+  assert.match(css, /scrl-transition-orbit/);
+  assert.match(css, /html\[data-theme="dark"\] body \.topbar-balance \.balance-group strong/);
 });
 
 
@@ -1330,4 +1336,29 @@ test("обычный тёмный стиль включён по умолчан�
   assert.equal(api.activeStyle(), "classic");
   assert.equal(api.activeTheme(), "light");
   assert.equal(localStorage.getItem("scrlStyle"), "classic");
+});
+
+
+test("счётчик публикаций считает карточки, а не длину HTML-разметки", () => {
+  const { api } = boot();
+  const owner = api.me().id;
+  api.data.posts = [
+    { id: "count-post-1", user: owner, type: "offer", title: "Первый тест", desc: "Описание", category: "Учёба", price: 0, status: "active", date: 2 },
+    { id: "count-post-2", user: owner, type: "need", title: "Второй тест", desc: "Описание", category: "Математика", price: 0, status: "active", date: 1 }
+  ];
+  const page = api.boardPage();
+  assert.match(page, /<span class="muted small">2 записей<\/span>/);
+  assert.doesNotMatch(page, /1688 записей/);
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  const board = app.slice(app.indexOf("function boardPage()"), app.indexOf("function marketPage()"));
+  assert.match(board, /visiblePosts\.length \+ ' записей'/);
+  assert.doesNotMatch(board, /rows\.length \+ ' записей'/);
+});
+
+test("переход темы использует общий overlay, а переключатель стиля не показывается на входе", () => {
+  const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  assert.match(html, /id="themeTransition"/);
+  assert.ok(!html.includes('id="authStyleBtn"'));
+  assert.ok(!html.includes('id="styleModeToggle"'));
+  assert.match(html, /id="authThemeBtn"/);
 });
