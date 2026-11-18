@@ -1051,7 +1051,7 @@ function boardPage() {
     !getUser(post.user)?.blocked
   )
     .filter(post => filter.type === "all" || post.type === filter.type)
-    .filter(post => (post.title + " " + post.desc + " " + post.category).toLowerCase().includes(filter.term.toLowerCase()))
+    .filter(post => (post.title + " " + post.desc + " " + post.category).toLowerCase().includes(filter.term.toLowerCase()));
   const rows = visiblePosts.map(post => {
       const fav = isFav("post", post.id);
       const moderationTag = post.status === "review"
@@ -1070,7 +1070,7 @@ function boardPage() {
   const cats = data.posts.filter(p => p.user === me().id && p.type === "need").map(p => p.category);
   const matches = data.posts.filter(p => p.user !== me().id && p.type === "offer" && p.status === "active" && !getUser(p.user)?.blocked && cats.includes(p.category)).sort((a,b) => a.price-b.price).slice(0,3);
   const hints = matches.map(p => '<div class="data-row"><span><b>' + safe(p.title) + '</b><small>' + safe(userName(p.user)) + ' · ' + safe(p.category) + '</small></span><b>' + (p.price ? money(p.price) + ' ScRl' : 'Бесплатно') + '</b></div>').join("");
-  return '<p class="eyebrow">ВЗАИМОПОМОЩЬ</p><h1>Доска</h1><p class="muted"></p>' +
+  return '<p class="eyebrow">ВЗАИМОПОМОЩЬ</p><h1>Доска</h1>' +
     '<section class="match-box"><h2>Подходящие предложения</h2>' + (hints || '<p class="muted small">Создай запрос — здесь появятся предложения по такой же теме.</p>') + '</section>' +
     '<form id="boardFilter" class="filter-row"><input name="term" id="boardTerm" value="' + safe(filter.term) + '" placeholder="Поиск по публикациям">' +
     '<select name="type"><option value="all"' + (filter.type === "all" ? " selected" : "") + '>Все</option><option value="need"' + (filter.type === "need" ? " selected" : "") + '>Мне нужно</option><option value="offer"' + (filter.type === "offer" ? " selected" : "") + '>Я могу</option></select>' +
