@@ -1219,8 +1219,9 @@ test("публичные профили доступны из имён учас�
   assert.match(app, /data-view-user=/);
   assert.match(app, /function publicProfilePage\(\)/);
   assert.match(app, /data\.reviews\.filter\(review => review\.target === user\.id/);
-  assert.match(app, /Оцени собеседника по завершённому заказу/);
-  assert.match(app, /Оставить оценку и отзыв/);
+  assert.match(app, /review-panel/);
+  assert.match(app, /Оценить \' \+ counterpartyLabel/);
+  assert.match(app, /Отправить оценку/);
   assert.match(app, /function myPublicationsPage\(\)/);
   assert.match(app, /data-page="myPublications"/);
   assert.match(api.myPublicationsPage(), /Мои публикации/);
@@ -1419,4 +1420,53 @@ test("обязательное подтверждение согласий со�
   assert.doesNotMatch(html, /data-page="privacy"/);
   assert.doesNotMatch(app, /link\("privacy"/);
   assert.match(app, /consentStatusNeedsAcceptance\(data\.safety\)/);
+});
+
+
+test("завершённый заказ показывает заметную форму оценки и отзыв сохраняется", async () => {
+  const { api } = boot();
+  const deal = {
+    id: "review-visible-test", title: "Тестовый заказ", buyer: api.me().id,
+    seller: "u1", amount: 10, escrow: 0, status: "done", messages: [], date: Date.now()
+  };
+  api.data.deals.unshift(deal);
+  const page = api.ordersPage();
+  assert.match(page, /Осталось оценить: 1/);
+  assert.match(page, /review-panel/);
+  assert.match(page, /Оценить исполнителя/);
+  assert.match(page, /Отправить оценку/);
+  await api.saveReview(deal.id, 5, "Всё прошло отлично");
+  const saved = api.data.reviews.find(review => review.deal === deal.id);
+  assert.equal(saved.user, api.me().id);
+  assert.equal(saved.target, "u1");
+  assert.equal(saved.rating, 5);
+  assert.equal(saved.text, "Всё прошло отлично");
+  assert.match(api.ordersPage(), /Оценка уже отправлена/);
+  await assert.rejects(() => api.saveReview(deal.id, 4, ""), /уже оставил оценку/);
+});
+
+test("покупка услуги всегда требует отдельного подтверждения", () => {
+  const { api, els } = boot();
+  const before = api.data.deals.length;
+  api.action({ dataset: { id: "l1", do: "buy" } });
+  assert.equal(api.data.deals.length, before);
+  assert.equal(api.pendingPurchaseId(), "l1");
+  assert.equal(els.get("purchaseConfirmDialog").hidden, false);
+  assert.equal(els.get("purchaseConfirmButton").disabled, false);
+  api.confirmPurchase();
+  assert.equal(api.data.deals.length, before + 1);
+  assert.equal(els.get("purchaseConfirmDialog").hidden, true);
+});
+
+test("логотип ведёт на главную, монета в кошельке увеличена, слово удаления показано без капса всего предложения", () => {
+  const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
+  assert.match(html, /id="brandHome" class="brand" href="#home"/);
+  assert.match(html, /id="purchaseConfirmButton"[^>]*>Подтвердить/);
+  assert.match(app, /Введи слово «УДАЛИТЬ» заглавными буквами/);
+  assert.match(app, /placeholder="УДАЛИТЬ"/);
+  assert.match(app, /currency-coin-frame--wallet/);
+  assert.match(css, /account-delete-form label,[\s\S]*?text-transform:none !important/);
+  assert.match(css, /currency-coin-frame--wallet[\s\S]*?width:36px/);
 });
