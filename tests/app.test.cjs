@@ -498,8 +498,8 @@ test("дневной и ночной фон — цельные изображе�
   assert.match(html, /world-layer--cave/);
   assert.doesNotMatch(html, /mcCaveCanvas|mcExplosionCanvas|worldTransition|world-torch-glow/);
   assert.doesNotMatch(app, /startCaveAssembly|startMinecraftExplosion|torch-pixel\.png|stone-flat\.png/);
-  assert.match(app, /function switchTheme\(\)[\s\S]*?transition\.classList\.add\(next === "light" \? "to-light" : "to-dark"\)/);
-  assert.match(app, /paintWorldTheme\(next\)/);
+  assert.match(app, /function switchTheme\(\)[\s\S]*?paintWorldTheme\(current === "dark" \? "light" : "dark"\)/);
+  assert.doesNotMatch(app, /themeTransition|transition\.classList/);
 });
 
 
@@ -1356,10 +1356,28 @@ test("счётчик публикаций считает карточки, а н
   assert.ok(!board.includes("rows.length"));
 });
 
-test("переход темы использует общий overlay, а переключатель стиля не показывается на входе", () => {
+test("переход темы ограничен фоном и учитывает стиль оформления", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
-  assert.match(html, /id="themeTransition"/);
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
+  assert.ok(!html.includes('id="themeTransition"'));
+  assert.ok(!app.includes("themeTransition"));
+  assert.match(css, /html\[data-style="classic"\]\[data-theme="light"\][\s\S]*?background-color/);
+  assert.match(css, /html\[data-style="classic"\]\[data-theme="dark"\][\s\S]*?background-color/);
+  assert.match(css, /html\[data-style="minecraft"\] body \.world-layer[\s\S]*?transition: opacity 1\.15s ease/);
   assert.ok(!html.includes('id="authStyleBtn"'));
   assert.ok(!html.includes('id="styleModeToggle"'));
   assert.match(html, /id="authThemeBtn"/);
+});
+
+test("страница «Данные и согласия» возвращает весь контент и форму", () => {
+  const { api } = boot();
+  const page = api.privacyPage();
+  assert.match(page, /Какие данные обрабатываются/);
+  assert.match(page, /ScRl использует ФИО/);
+  assert.match(page, /privacyConsentForm/);
+  assert.match(page, /privacyBirthDate/);
+  assert.match(page, /name="allConsents"/);
+  assert.match(page, /Сохранить согласия/);
+  assert.match(page, /legal\/privacy\.html/);
 });
