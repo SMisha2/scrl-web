@@ -12,11 +12,11 @@
   <link rel="preload" href="assets/MinecraftRus.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/backgrounds/night.png" as="image" fetchpriority="high">
   <link rel="preload" href="assets/backgrounds/day.png" as="image" fetchpriority="low">
-  <link rel="stylesheet" href="css/style.css?v=203">
+  <link rel="stylesheet" href="css/style.css?v=204">
   <script src="js/config.js" defer></script>
   <script src="js/core.js" defer></script>
   <script src="js/backend.js?v=165" defer></script>
-  <script src="js/app.js?v=207" defer></script>
+  <script src="js/app.js?v=208" defer></script>
 </head>
 <body>
   <div id="worldScenery" class="world-scenery" aria-hidden="true">
@@ -50,13 +50,13 @@
           </form>
           <form id="forgotPasswordForm" class="auth-form book-form" hidden>
             <p class="code-info">Введи адрес почты, привязанный к аккаунту. Мы отправим на него безопасную ссылку для восстановления.</p>
+            <p class="code-info">Открой ссылку восстановления из письма и задай новый пароль.</p>
             <label for="forgotMail">Электронная почта:</label>
             <span class="mc-input-shell"><input id="forgotMail" name="email" type="email" autocomplete="email" maxlength="120" required></span>
             <p class="form-error" id="forgotPasswordErr" aria-live="polite"></p>
             <button class="book-inline-link" id="backFromRecovery" type="button">Назад ко входу</button>
           </form>
           <form id="resetPasswordForm" class="auth-form book-form" hidden>
-            <p class="code-info">Открой ссылку восстановления из письма и задай новый пароль.</p>
             <label for="resetPass">Новый пароль:</label>
             <span class="mc-input-shell"><input id="resetPass" name="newPassword" type="password" autocomplete="new-password" minlength="8" required></span>
             <label for="resetPassAgain">Повтори пароль:</label>
@@ -165,7 +165,6 @@
               <button type="button" data-page="favorites">Избранное</button>
               <button type="button" data-page="profile">Профиль</button>
               <button type="button" data-page="settings">Настройки сайта</button>
-              <button type="button" data-page="privacy">Конфиденциальность и согласия</button>
               <button type="button" data-page="finance" data-role="admin" hidden>Платежи</button>
               <button type="button" data-page="assistant" data-role="admin" hidden>AI Moderator</button>
               <button type="button" data-page="staff" data-role="teacher admin" hidden>Кабинет учителя</button>
