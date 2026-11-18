@@ -292,9 +292,10 @@ test("переключатель темы — двухпозиционный с�
   assert.ok(css.includes("translate(28px,-50%) !important"));
   assert.ok(css.includes("translate(26px,-50%) !important"));
   assert.ok(css.includes(".theme-switch-thumb::after"));
-  assert.match(html, /id="themeTransition" class="world-transition"/);
-  assert.match(app, /transition\.classList\.add\(next === "light" \? "to-light" : "to-dark"\)/);
-  assert.match(css, /scrl-transition-orbit/);
+  assert.doesNotMatch(html, /id="themeTransition"/);
+  assert.doesNotMatch(app, /themeTransition|transition\.classList/);
+  assert.match(css, /html\[data-style="classic"\]\[data-theme="dark"\][\s\S]*?background-color/);
+  assert.match(css, /html\[data-style="minecraft"\] body \.world-layer[\s\S]*?transition: opacity 1\.15s ease/);
   assert.match(css, /html\[data-theme="dark"\] body \.topbar-balance \.balance-group strong/);
 });
 
