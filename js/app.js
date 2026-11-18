@@ -927,8 +927,30 @@ function privacyPage() {
     '<button class="button button-primary" type="submit">Сохранить согласия</button></form>';
 }
 
+function settingsPage() {
+  const style = activeStyle();
+  const minecraft = style === "minecraft";
+  return '<p class="eyebrow">ПЕРСОНАЛИЗАЦИЯ</p>' +
+    '<h1>Настройки</h1>' +
+    '<p class="muted settings-intro">Настрой внешний вид ScRl под себя. Изменения сохраняются на этом устройстве.</p>' +
+    '<section class="settings-card">' +
+      '<div class="settings-card-copy"><span class="settings-icon" aria-hidden="true">🎨</span><div><h2>Стиль сайта</h2><p>Выбери, как будет выглядеть весь ScRl. Это отдельная настройка и она не меняет светлую или тёмную тему.</p></div></div>' +
+      '<div class="style-choice-row"><span class="style-choice-label' + (minecraft ? ' is-selected' : '') + '">⛏ Minecraft</span>' +
+        '<button id="styleModeToggle" class="style-mode-toggle" type="button" role="switch" aria-checked="' + String(minecraft) + '" aria-label="Стиль оформления сайта" data-style-toggle>' +
+          '<span class="style-mode-toggle-thumb"></span></button>' +
+        '<span class="style-choice-label' + (!minecraft ? ' is-selected' : '') + '">Обычный</span></div>' +
+      '<p class="settings-current-style" aria-live="polite">Сейчас выбран: <strong>' + (minecraft ? 'Minecraft' : 'Обычный') + '</strong></p>' +
+      '<p class="settings-footnote">Переключатель солнца и луны сверху по-прежнему отвечает только за светлую и тёмную тему.</p>' +
+    '</section>' +
+    '<section class="settings-card settings-shortcuts"><h2>Быстрый переход</h2><p>Нужные разделы собраны здесь, чтобы их было проще найти.</p><div class="settings-shortcut-list">' +
+      link("profile", "Профиль и мои данные") +
+      link("privacy", "Конфиденциальность и согласия") +
+      link("notices", "Уведомления") +
+    '</div></section>';
+}
+
 const pages = {
-  home: homePage,
+  home: homePage,\n  settings: settingsPage,
   privacy: privacyPage,
   wallet: walletPage,
   finance: financePage,
@@ -2842,7 +2864,39 @@ function switchTheme() {
   paintWorldTheme(current === "dark" ? "light" : "dark");
 }
 
+function applyStyle(style) {
+  const normalized = style === "classic" ? "classic" : "minecraft";
+  const root = document.documentElement;
+  root.dataset.style = normalized;
+  if (document.body) document.body.dataset.style = normalized;
+  try { localStorage.setItem("scrlStyle", normalized); } catch {}
+
+  const button = el("styleModeToggle");
+  if (button) {
+    button.setAttribute("role", "switch");
+    button.setAttribute("aria-checked", String(normalized === "minecraft"));
+    button.setAttribute("aria-label", "Стиль оформления сайта");
+    button.title = normalized === "minecraft" ? "Сейчас стиль Minecraft" : "Сейчас обычный стиль";
+  }
+  return normalized;
+}
+
+function activeStyle() {
+  return document.documentElement.dataset.style === "classic" ? "classic" : "minecraft";
+}
+
+function switchStyle() {
+  return applyStyle(activeStyle() === "minecraft" ? "classic" : "minecraft");
+}
+
+function applySavedStyle() {
+  let savedStyle = "";
+  try { savedStyle = localStorage.getItem("scrlStyle") || ""; } catch {}
+  applyStyle(savedStyle);
+}
+
 applyTheme();
+applySavedStyle();
 [el("themeBtn"), el("authThemeBtn")].forEach(button => {
   if (button) button.addEventListener("click", switchTheme);
 });
@@ -3273,6 +3327,13 @@ if (document.addEventListener) {
 el("page").addEventListener("click", event => {
   const target = event.target;
   if (!target.closest) return;
+  const styleToggle = target.closest("[data-style-toggle]");
+  if (styleToggle) {
+    switchStyle();
+    setPage("settings");
+    msg(activeStyle() === "minecraft" ? "Включён стиль Minecraft." : "Включён обычный стиль.");
+    return;
+  }
   const pageBtn = target.closest("[data-page]");
   if (pageBtn) {
     setPage(pageBtn.dataset.page);
@@ -3346,7 +3407,7 @@ if (oldSess) {
 
 if (window.__scrlTestMode) {
   window.scrlTest = {
-    activeTheme: () => document.documentElement.dataset.theme,
+    activeTheme: () => document.documentElement.dataset.theme,\n    activeStyle,\n    applyStyle,\n    switchStyle,
     switchTheme,
     applyTheme,
     get data() { return data; },
