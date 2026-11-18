@@ -1201,7 +1201,7 @@ test("recovery link keeps its token and form ahead of any saved session", () => 
   assert.match(app, /passwordRecoveryRequested = true;/);
   assert.match(app, /if \(oldSess && !passwordRecoveryRequested\)/);
   assert.match(app, /if \(!passwordRecoveryRequested\) setMode\("login"\);/);
-  assert.match(app, /passwordRecoveryToken = accessToken/);
+  assert.match(app, /setPasswordRecoveryPage\(accessToken\)/);
   assert.match(app, /clearSession\(\);[\s\S]*sessionStorage\.removeItem\("scrlRecoveryEmail"\)/);
 });
 
