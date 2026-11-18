@@ -8109,3 +8109,190 @@ html[data-theme="light"] body ::selection {
   #auth .auth-consent-details { font-size:10px !important; }
   #page .consent-panel { padding:12px !important; }
 }
+
+
+
+/* User-facing settings: a separate visual style switch (Minecraft / classic). */
+.settings-intro {
+  max-width: 680px;
+  margin: 8px 0 22px;
+}
+.settings-card {
+  max-width: 760px;
+  margin: 16px 0;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.settings-card-copy {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+}
+.settings-card-copy h2,
+.settings-shortcuts h2 { margin: 0 0 5px; }
+.settings-card-copy p,
+.settings-shortcuts > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.settings-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--accent-soft);
+  font-size: 19px;
+}
+.style-choice-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 24px auto 12px;
+}
+.style-choice-label {
+  min-width: 104px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+  transition: color .18s ease, font-weight .18s ease;
+}
+.style-choice-label.is-selected {
+  color: var(--text);
+  font-weight: 750;
+}
+.style-mode-toggle {
+  position: relative;
+  display: inline-flex;
+  width: 62px;
+  min-width: 62px;
+  height: 34px;
+  align-items: center;
+  padding: 3px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  cursor: pointer;
+  transition: background .2s ease, border-color .2s ease;
+}
+.style-mode-toggle:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  outline-offset: 3px;
+}
+.style-mode-toggle-thumb {
+  display: block;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 1px 4px rgba(0,0,0,.2);
+  transform: translateX(0);
+  transition: transform .2s ease;
+}
+.style-mode-toggle[aria-checked="false"] .style-mode-toggle-thumb {
+  transform: translateX(28px);
+}
+.settings-current-style {
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+.settings-current-style strong { color: var(--text); }
+.settings-footnote {
+  max-width: 560px;
+  margin: 12px auto 0;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+}
+.settings-shortcuts { padding-top: 17px; }
+.settings-shortcut-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 15px;
+}
+@media (max-width: 560px) {
+  .settings-card { padding: 15px; }
+  .settings-card-copy { gap: 10px; }
+  .style-choice-row { gap: 7px; }
+  .style-choice-label { min-width: 0; flex: 1 1 0; font-size: 11px; }
+  .style-mode-toggle { flex: 0 0 62px; }
+  .settings-shortcut-list { display: grid; grid-template-columns: 1fr; }
+  .settings-shortcut-list .button { width: 100%; }
+}
+
+/* Classic style: restore a clean, conventional interface without changing light/dark mode. */
+html[data-style="classic"] body,
+html[data-style="classic"] body * {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif !important;
+  letter-spacing: normal !important;
+  text-rendering: auto !important;
+  -webkit-font-smoothing: antialiased !important;
+}
+html[data-style="classic"] body {
+  font-size: 14px !important;
+  line-height: 1.55 !important;
+  image-rendering: auto !important;
+}
+html[data-style="classic"] body button,
+html[data-style="classic"] body input,
+html[data-style="classic"] body select,
+html[data-style="classic"] body textarea {
+  font: inherit !important;
+}
+html[data-style="classic"] body h1,
+html[data-style="classic"] body h2,
+html[data-style="classic"] body h3 {
+  text-shadow: none !important;
+  line-height: 1.3 !important;
+}
+html[data-style="classic"] body #worldScenery {
+  display: none !important;
+}
+html[data-style="classic"] body #app .topbar,
+html[data-style="classic"] body #app .topbar-inner {
+  box-shadow: 0 2px 12px rgba(20,30,40,.06) !important;
+}
+html[data-style="classic"] body #app .topbar .nav-tab {
+  border-radius: 7px !important;
+  border-bottom-width: 0 !important;
+  padding: 8px 10px !important;
+}
+html[data-style="classic"] body #app .topbar .nav-tab.is-active {
+  background: var(--accent-soft) !important;
+}
+html[data-style="classic"] body #page .demo-card,
+html[data-style="classic"] body #page .demo-stat,
+html[data-style="classic"] body #page .demo-form,
+html[data-style="classic"] body #page .settings-card,
+html[data-style="classic"] body #page .data-row,
+html[data-style="classic"] body #page .home-overview-card,
+html[data-style="classic"] body #page .match-box,
+html[data-style="classic"] body #page .chat-box {
+  border-radius: 10px !important;
+  box-shadow: 0 2px 12px rgba(20,30,40,.055) !important;
+}
+html[data-style="classic"] body #page .button,
+html[data-style="classic"] body #app .more-menu button,
+html[data-style="classic"] body #app .more-btn,
+html[data-style="classic"] body #app .theme-switch {
+  border-radius: 7px !important;
+  box-shadow: none !important;
+}
+html[data-style="classic"] body input,
+html[data-style="classic"] body select,
+html[data-style="classic"] body textarea {
+  border-radius: 7px !important;
+  clip-path: none !important;
+}
+html[data-style="classic"] body .brand-mark,
+html[data-style="classic"] body .user-avatar {
+  border-radius: 9px !important;
+}

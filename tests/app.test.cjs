@@ -1258,3 +1258,26 @@ test("удаление публикаций использует защищён�
   assert.match(migration, /public\.posts/);
   assert.match(migration, /public\.listings/);
 });
+
+
+test("стиль сайта Minecraft/Обычный независим от светлой и тёмной темы и сохраняется", () => {
+  const { api, localStorage } = boot();
+  assert.equal(api.activeTheme(), "light");
+  assert.equal(api.activeStyle(), "minecraft");
+  assert.match(api.settingsPage(), /Стиль сайта/);
+  assert.match(api.settingsPage(), /Обычный/);
+
+  api.applyStyle("classic");
+  assert.equal(api.activeStyle(), "classic");
+  assert.equal(api.activeTheme(), "light");
+  assert.equal(localStorage.getItem("scrlStyle"), "classic");
+
+  api.switchTheme();
+  assert.equal(api.activeTheme(), "dark");
+  assert.equal(api.activeStyle(), "classic");
+
+  api.switchStyle();
+  assert.equal(api.activeStyle(), "minecraft");
+  assert.equal(api.activeTheme(), "dark");
+  assert.equal(localStorage.getItem("scrlStyle"), "minecraft");
+});
