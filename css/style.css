@@ -8502,3 +8502,78 @@ html[data-style="minecraft"] body .world-layer {
     transition: none !important;
   }
 }
+
+/* Minecraft scene and high-contrast consent/balance fixes. */
+html[data-style="minecraft"][data-theme="light"] {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+html[data-style="minecraft"][data-theme="light"] body,
+html[data-style="minecraft"][data-theme="light"] body > #auth.auth-screen,
+html[data-style="minecraft"][data-theme="light"] body > #app:not([hidden]) {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* The explanatory consent copy must stay readable on the registration page. */
+html[data-theme="dark"] body #auth .auth-form .auth-consent-list--details {
+  color: #f0f3e9 !important;
+  border-color: #66766a !important;
+  background: #29352e !important;
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.055), inset -2px -2px 0 rgba(0,0,0,.18) !important;
+}
+html[data-theme="dark"] body #auth .auth-form .auth-consent-list--details p {
+  color: #f0f3e9 !important;
+  background: transparent !important;
+}
+html[data-theme="light"] body #auth .auth-form .auth-consent-list--details {
+  color: #344638 !important;
+  border-color: #a8b89f !important;
+  background: #eaf1e4 !important;
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.7), inset -2px -2px 0 rgba(69,91,62,.10) !important;
+}
+html[data-theme="light"] body #auth .auth-form .auth-consent-list--details p {
+  color: #344638 !important;
+  background: transparent !important;
+}
+
+/* Clear currency labels and figures in the Minecraft toolbar, in both themes. */
+html[data-style="minecraft"][data-theme="light"] body #app .topbar .topbar-balance {
+  color: #243a2a !important;
+  background: #e5eddf !important;
+  border-color: #81977a !important;
+}
+html[data-style="minecraft"][data-theme="light"] body #app .topbar .topbar-balance .balance-group small {
+  color: #405a44 !important;
+  font-weight: 800 !important;
+  text-shadow: none !important;
+}
+html[data-style="minecraft"][data-theme="light"] body #app .topbar .topbar-balance .balance-group strong {
+  color: #1f3424 !important;
+  font-weight: 800 !important;
+  text-shadow: none !important;
+}
+html[data-style="minecraft"][data-theme="light"] body #app .topbar .topbar-balance .balance-divider {
+  color: #637b66 !important;
+  opacity: 1 !important;
+}
+html[data-style="minecraft"][data-theme="dark"] body #app .topbar .topbar-balance {
+  color: #f5f5e9 !important;
+  background: #35483a !important;
+  border-color: #91a78f !important;
+}
+html[data-style="minecraft"][data-theme="dark"] body #app .topbar .topbar-balance .balance-group small {
+  color: #e4eedf !important;
+  font-weight: 800 !important;
+  text-shadow: 0 1px 1px rgba(0,0,0,.55) !important;
+}
+html[data-style="minecraft"][data-theme="dark"] body #app .topbar .topbar-balance .balance-group strong {
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.62) !important;
+}
+html[data-style="minecraft"][data-theme="dark"] body #app .topbar .topbar-balance .balance-divider {
+  color: #e5eee0 !important;
+  opacity: 1 !important;
+}
