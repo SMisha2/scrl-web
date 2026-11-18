@@ -733,6 +733,9 @@ async function enterRemote(name, mail, token, id, refreshToken = "") {
         msg("Подтверждённая почта назначена первым администратором ScRl.");
       }
     }
+    if (!data.safety || data.safety.loadError) {
+      throw new Error("Не удалось проверить сохранённые согласия. Для защиты аккаунта вход временно остановлен. Проверь подключение и попробуй снова.");
+    }
     const user = getUser(id);
     if (!user) throw new Error("Профиль не найден в общей базе. Повтори вход.");
     const latestSession = sess();
@@ -913,8 +916,12 @@ function privacyPage() {
   const loadWarning = status.loadError
     ? '<p class="form-error">Не удалось загрузить текущий статус согласий: ' + safe(status.loadError) + '</p>'
     : "";
+  const onboardingNotice = remoteReady && consentStatusNeedsAcceptance(status)
+    ? '<p class="muted">Перед первым использованием ScRl нужно сохранить оба отдельных согласия. После успешной проверки базы откроются остальные разделы.</p>'
+    : "";
   return '<p class="eyebrow">КОНФИДЕНЦИАЛЬНОСТЬ</p><h1>Данные и согласия</h1>' +
-    '<section class="match-box consent-panel"><h2>Какие данные обрабатываются</h2>' +
+    onboardingNotice +
+    '<section class="match-box consent-panel"><h2>Какие данные обрабатываются</h2>'
     '<p>ScRl использует ФИО, электронную почту, дату рождения, класс, публикации, сообщения, отзывы и сведения об операциях для создания аккаунта, работы сервиса, безопасности, поддержки и разбора споров.</p>' +
     '<p>Дата рождения и журнал согласий хранятся отдельно от общего профиля и не показываются другим ученикам.</p>' +
     '<details><summary>Подробнее об ИИ-модерации</summary><p>Для автоматической проверки текстов публикаций, услуг, аукционов, сообщений, отзывов, имени профиля и жалоб соответствующий текст может передаваться Groq — внешнему поставщику ИИ. Не отправляй в тексты пароли, адреса, телефоны и другие лишние личные сведения.</p><p>ИИ может ошибаться. Спорные случаи отправляются администратору на ручную проверку; решения можно обжаловать.</p></details>' +
@@ -1595,6 +1602,13 @@ function updateModerationNotice() {
   }
 }
 
+function consentStatusNeedsAcceptance(status = data.safety) {
+  return !status ||
+    status.needsOnboarding === true ||
+    status.hasPersonalDataConsent !== true ||
+    status.hasAiConsent !== true;
+}
+
 function setPage(name) {
   closeExpiredAuctions();
   let page = pages[name] ? name : "home";
@@ -1606,9 +1620,7 @@ function setPage(name) {
   if (page === "pulse" && role !== "teacher" && role !== "admin") page = "home";
   if (page === "finance" && role !== "admin") page = "home";
   if (page === "assistant" && role !== "admin") page = "home";
-  if (remoteReady && page !== "privacy" &&
-      (!data.safety || data.safety.needsOnboarding === true ||
-       data.safety.hasPersonalDataConsent !== true || data.safety.hasAiConsent !== true)) {
+  if (remoteReady && page !== "privacy" && consentStatusNeedsAcceptance(data.safety)) {
     page = "privacy";
   }
   document.querySelectorAll(".nav-tab").forEach(btn => {
@@ -2495,6 +2507,9 @@ async function submitRemote(form) {
       personalVersion: PERSONAL_DATA_CONSENT_VERSION, aiVersion: AI_MODERATION_CONSENT_VERSION
     });
     await refreshRemoteData();
+    if (!data.safety || data.safety.loadError || consentStatusNeedsAcceptance(data.safety)) {
+      throw new Error("База данных пока не подтвердила сохранение обоих согласий. Проверь подключение и попробуй ещё раз.");
+    }
     setPage("home");
     msg("Согласия сохранены.");
     return;
@@ -2856,7 +2871,7 @@ function paintWorldTheme(theme) {
 function applyTheme() {
   let savedTheme = "";
   try { savedTheme = localStorage.getItem("scrlTheme") || ""; } catch {}
-  const normalized = savedTheme === "dark" ? "dark" : "light";
+  const normalized = savedTheme === "light" ? "light" : "dark";
   paintWorldTheme(normalized);
 }
 
@@ -2866,7 +2881,7 @@ function switchTheme() {
 }
 
 function applyStyle(style) {
-  const normalized = style === "classic" ? "classic" : "minecraft";
+  const normalized = style === "minecraft" ? "minecraft" : "classic";
   const root = document.documentElement;
   root.dataset.style = normalized;
   if (document.body) document.body.dataset.style = normalized;
@@ -2883,7 +2898,7 @@ function applyStyle(style) {
 }
 
 function activeStyle() {
-  return document.documentElement.dataset.style === "classic" ? "classic" : "minecraft";
+  return document.documentElement.dataset.style === "minecraft" ? "minecraft" : "classic";
 }
 
 function switchStyle() {
@@ -3414,6 +3429,7 @@ if (window.__scrlTestMode) {
     switchStyle,
     switchTheme,
     applyTheme,
+    consentStatusNeedsAcceptance,
     get data() { return data; },
     me,
     getUser,
