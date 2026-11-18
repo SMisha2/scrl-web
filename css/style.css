@@ -8396,3 +8396,144 @@ html[data-theme="light"] body #page .consent-check input[type="checkbox"]:checke
   border-color: #4e684a !important;
   background: #66835d !important;
 }
+
+
+/* Final alignment and contrast pass. */
+html body button,
+html body input,
+html body select,
+html body textarea,
+html body .button,
+html body .text-button,
+html body .nav-tab,
+html body .more-btn,
+html body .logout-button,
+html body .notification-bell,
+html body .topbar-balance,
+html body .theme-switch {
+  box-sizing: border-box !important;
+}
+html body .button,
+html body .nav-tab,
+html body .more-btn,
+html body .logout-button,
+html body .notification-bell,
+html body .topbar-balance {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: middle !important;
+  line-height: 1.2 !important;
+}
+html body .actions { align-items: center !important; }
+
+/* Keep the switch thumb mathematically centered in its track at every breakpoint. */
+html body .theme-switch,
+html body .theme-switch-track,
+html body .theme-switch-thumb { box-sizing: border-box !important; }
+html body .theme-switch-thumb {
+  top: 50% !important;
+  left: 3px !important;
+  transform: translate(0,-50%) !important;
+}
+html[data-theme="dark"] body .theme-switch-thumb {
+  transform: translate(32px,-50%) !important;
+}
+@media (max-width: 900px) {
+  html[data-theme="dark"] body .theme-switch-thumb {
+    transform: translate(28px,-50%) !important;
+  }
+}
+@media (max-width: 620px) {
+  html body .theme-switch-thumb {
+    top: 50% !important;
+    left: 2px !important;
+    width: 24px !important;
+    height: 24px !important;
+  }
+  html[data-theme="dark"] body .theme-switch-thumb {
+    transform: translate(26px,-50%) !important;
+  }
+}
+
+/* High-contrast balance readout in the dark toolbar. */
+html[data-theme="dark"] body .topbar-balance {
+  color: #fff9ed !important;
+  background: #35463b !important;
+  border-color: #91a78f !important;
+}
+html[data-theme="dark"] body .topbar-balance .balance-group small {
+  color: #e6efdf !important;
+}
+html[data-theme="dark"] body .topbar-balance .balance-group strong {
+  color: #ffffff !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.58) !important;
+}
+html[data-theme="dark"] body .topbar-balance .balance-divider {
+  color: #edf3e8 !important;
+  opacity: .9 !important;
+}
+
+/* The existing cave/forest transition is now driven by the theme switch. */
+html body .world-transition {
+  isolation: isolate !important;
+  transition: opacity .28s ease, visibility 0s linear .28s !important;
+}
+html body .world-transition.to-light,
+html body .world-transition.to-dark {
+  transition: opacity .12s ease !important;
+}
+html body .transition-flash { z-index: 2 !important; }
+html body .transition-glow { z-index: 1 !important; }
+html body .transition-rings { z-index: 3 !important; }
+html body .transition-rings::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: -30% !important;
+  border: 2px dashed rgba(255,244,207,.88) !important;
+  border-radius: 50% !important;
+  box-shadow: 0 0 20px rgba(255,218,143,.38) !important;
+  opacity: 0 !important;
+}
+html body .transition-rings::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 22% !important;
+  border-radius: 50% !important;
+  background: radial-gradient(circle,rgba(255,255,237,.95),rgba(255,192,104,.3) 48%,transparent 74%) !important;
+  filter: blur(4px) !important;
+  opacity: 0 !important;
+}
+html body .world-transition.to-light .transition-rings::before {
+  animation: scrl-transition-orbit 1.35s cubic-bezier(.14,.75,.22,1) both !important;
+}
+html body .world-transition.to-dark .transition-rings::before {
+  border-color: rgba(255,166,103,.9) !important;
+  box-shadow: 0 0 20px rgba(255,132,68,.42) !important;
+  animation: scrl-transition-orbit 1.12s cubic-bezier(.14,.75,.22,1) reverse both !important;
+}
+html body .world-transition.to-light .transition-rings::after {
+  animation: scrl-transition-core .9s ease-out both !important;
+}
+html body .world-transition.to-dark .transition-rings::after {
+  background: radial-gradient(circle,rgba(255,207,151,.8),rgba(218,102,49,.24) 48%,transparent 74%) !important;
+  animation: scrl-transition-core .7s ease-in both !important;
+}
+@keyframes scrl-transition-orbit {
+  0% { opacity: 0; transform: rotate(-90deg) scale(.25); }
+  18% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(190deg) scale(1.3); }
+}
+@keyframes scrl-transition-core {
+  0% { opacity: 0; transform: scale(.2); }
+  22% { opacity: .95; }
+  100% { opacity: 0; transform: scale(2.2); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html body .world-transition *,
+  html body .world-transition *::before,
+  html body .world-transition *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
