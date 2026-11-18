@@ -3408,7 +3408,10 @@ if (oldSess) {
 
 if (window.__scrlTestMode) {
   window.scrlTest = {
-    activeTheme: () => document.documentElement.dataset.theme,\n    activeStyle,\n    applyStyle,\n    switchStyle,
+    activeTheme: () => document.documentElement.dataset.theme,
+    activeStyle,
+    applyStyle,
+    switchStyle,
     switchTheme,
     applyTheme,
     get data() { return data; },
