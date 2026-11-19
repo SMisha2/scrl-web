@@ -1482,3 +1482,15 @@ test("отзывы объясняют условия публикации и п�
   assert.match(css, /review-eligibility-note/);
   assert.match(css, /@media \(max-width: 560px\)[\s\S]*?order-card/);
 });
+
+
+test("после сохранения согласий статус перечитывается свежим запросом, а ошибки отзыва видны в форме", () => {
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  assert.match(app, /if \(options\.force && remoteRefreshInFlight\)/);
+  assert.match(app, /refreshRemoteData\(\{ force: true \}\)/);
+  assert.match(app, /review-feedback/);
+  assert.match(app, /role="alert"/);
+  assert.match(html, /после входа потребуется заполнить обязательную форму/);
+  assert.match(app, /Галочка на экране входа сама по себе не записывает согласие в базу/);
+});
