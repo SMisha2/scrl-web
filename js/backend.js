@@ -152,7 +152,9 @@
         ? (payload.message || payload.msg || payload.error_description || payload.details || payload.hint)
         : payload;
       if (response.status === 401) throw new Error("Сессия истекла. Войди в ScRl заново.");
-      if (response.status === 403) throw new Error("Недостаточно прав для этой операции.");
+      // Keep the actual PostgREST/RLS rejection details instead of hiding them
+      // behind a generic 403 message.
+      if (response.status === 403) throw new Error(String(message || "Недостаточно прав для этой операции."));
       throw new Error(String(message || "Ошибка сервера ScRl (" + response.status + ")."));
     }
     return payload;
