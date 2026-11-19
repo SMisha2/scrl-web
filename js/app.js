@@ -31,6 +31,7 @@ const key = "scrlDemo3";
 let pending = null;
 let filter = { term: "", type: "all" };
 let adminFilter = { term: "", role: "all", locked: "all", page: 1 };
+let adminPublicationFilter = { term: "", kind: "all", status: "all" };
 let marketFilter = { term: "", category: "all", sort: "new" };
 let adminPreviewRole = "";
 let selectedPublicProfileId = "";
@@ -1619,19 +1620,71 @@ function adminPage() {
         : '<span class="admin-user-protected">' + controls + '</span>') +
       '</article>';
   }).join("");
-  const queue = reports.map(r => {
-    if (r.kind === "deal") return '<div class="data-row"><span><b>' + safe(r.reason) + '</b><small>Спор · ' + new Date(r.date).toLocaleString("ru-RU") + '</small></span><span class="actions"><button class="text-button" data-do="refunddeal" data-id="' + r.id + '">Вернуть</button><button class="text-button" data-do="paydeal" data-id="' + r.id + '">Выплатить</button><button class="text-button" data-do="splitdeal" data-id="' + r.id + '">50/50</button></span></div>';
-    return '<div class="data-row"><span><b>' + safe(r.reason) + '</b><small>' + safe(r.reasonCode || r.kind) + ' · ' + safe(r.details || "") + ' · ' + new Date(r.date).toLocaleString("ru-RU") + '</small></span>' +
-      '<span class="actions"><button class="text-button" data-do="keep" data-id="' + r.id + '">Оставить</button><button class="text-button" data-do="hide" data-id="' + r.id + '">Скрыть</button></span></div>';
+  const queue = reports.map(report => {
+    const reportDate = new Date(report.date).toLocaleString("ru-RU");
+    if (report.kind === "deal") {
+      const deal = data.deals.find(item => item.id === report.target);
+      const canResolve = Boolean(deal && deal.status === "dispute");
+      const dealContext = deal
+        ? '<small>Заказ: ' + safe(deal.title) + ' · Покупатель: ' + userProfileLink(deal.buyer) +
+          ' · Исполнитель: ' + userProfileLink(deal.seller) + ' · Сумма: ' + money(deal.amount) +
+          ' ScRl · В резерве: ' + money(deal.escrow) + '</small>'
+        : '<small>Связанная сделка больше не найдена.</small>';
+      const actions = canResolve
+        ? '<span class="actions"><button class="text-button" data-do="refunddeal" data-id="' +
+          safe(report.id) + '" title="Вернуть удержанную сумму покупателю">Вернуть покупателю</button>' +
+          '<button class="text-button" data-do="paydeal" data-id="' + safe(report.id) +
+          '" title="Перевести удержанную сумму исполнителю">Выплатить исполнителю</button>' +
+          '<button class="text-button" data-do="splitdeal" data-id="' + safe(report.id) +
+          '" title="Разделить удержанную сумму поровну">Разделить 50/50</button></span>'
+        : '<span class="small muted">Решение уже недоступно</span>';
+      return '<article class="data-row admin-queue-row admin-dispute-row"><span><b>' +
+        safe(report.reason || "Спор по сделке") + '</b><small>Спор · ' + reportDate +
+        ' · Инициатор: ' + userProfileLink(report.user) + '</small>' + dealContext +
+        '</span>' + actions + '</article>';
+    }
+    const target = report.kind === "post"
+      ? data.posts.find(item => item.id === report.target)
+      : report.kind === "listing"
+        ? data.listings.find(item => item.id === report.target)
+        : null;
+    const targetContext = target
+      ? '<small>' + safe(target.title) + ' · Автор: ' + userProfileLink(target.user) + '</small>'
+      : "";
+    return '<article class="data-row admin-queue-row"><span><b>' + safe(report.reason) +
+      '</b><small>' + safe(report.reasonCode || report.kind) + ' · ' + reportDate +
+      ' · Отправитель: ' + userProfileLink(report.user) + '</small>' + targetContext +
+      (report.details ? '<small>' + safe(report.details) + '</small>' : '') +
+      '</span><span class="actions"><button class="text-button" data-do="keep" data-id="' +
+      safe(report.id) + '">Оставить</button><button class="text-button" data-do="hide" data-id="' +
+      safe(report.id) + '">Скрыть</button></span></article>';
   }).join("");
-  const publicationRows = [
-    ...data.posts.map(post => ({ kind: "post", id: post.id, title: post.title, owner: post.user, status: post.status })),
-    ...(data.listings || []).map(item => ({ kind: "listing", id: item.id, title: item.title, owner: item.user, status: item.status }))
-  ].map(item =>
-    '<article class="data-row"><span><b>' + safe(item.title) + '</b><small>' +
-    (item.kind === "post" ? "Доска" : "Услуга") + ' · ' + safe(userName(item.owner)) + ' · ' + safe(item.status || "без статуса") +
-    '</small></span><button class="text-button admin-danger-action" data-do="admin-delete-publication" data-kind="' + item.kind +
-    '" data-id="' + safe(item.id) + '">Удалить</button></article>'
+  const allPublications = [
+    ...data.posts.map(post => ({
+      kind: "post", id: post.id, title: post.title, owner: post.user,
+      status: post.status, category: post.category
+    })),
+    ...(data.listings || []).map(item => ({
+      kind: "listing", id: item.id, title: item.title, owner: item.user,
+      status: item.status, category: item.category
+    }))
+  ];
+  const publicationSearch = String(adminPublicationFilter.term || "").trim().toLocaleLowerCase("ru");
+  const filteredPublications = allPublications.filter(item =>
+    (adminPublicationFilter.kind === "all" || item.kind === adminPublicationFilter.kind) &&
+    (adminPublicationFilter.status === "all" || item.status === adminPublicationFilter.status) &&
+    [item.title, userName(item.owner), item.status, item.category, item.kind]
+      .join(" ").toLocaleLowerCase("ru").includes(publicationSearch)
+  );
+  const publicationFiltersActive = Boolean(
+    publicationSearch || adminPublicationFilter.kind !== "all" || adminPublicationFilter.status !== "all"
+  );
+  const publicationRows = filteredPublications.map(item =>
+    '<article class="data-row admin-publication-row"><span><b>' + safe(item.title) + '</b><small>' +
+    (item.kind === "post" ? "Доска" : "Услуга") + ' · ' + safe(userName(item.owner)) + ' · ' +
+    safe(item.category || "Без категории") + ' · ' + safe(publicationStatusName(item.status)) +
+    '</small></span><button class="text-button admin-danger-action" data-do="admin-delete-publication" data-kind="' +
+    item.kind + '" data-id="' + safe(item.id) + '">Удалить</button></article>'
   ).join("");
   const exchangeConsentRows = (data.exchangeConsentRequests || []).map(item =>
     '<article class="data-row"><span><b>' + safe(item.full_name || "Участник") + '</b><small>' +
@@ -1659,9 +1712,11 @@ function adminPage() {
   const consentCount = (data.exchangeConsentRequests || []).length;
   const aiCaseCount = (data.moderation?.adminCases || []).length;
   const aiAppealCount = (data.moderation?.adminAppeals || []).length;
+  const reviewPublicationCount = allPublications.filter(item => item.status === "review").length;
   const prioritySection = consentCount ? "admin-parent-consents"
     : reports.length ? "admin-reports"
     : aiCaseCount || aiAppealCount ? "admin-moderation"
+    : reviewPublicationCount ? "admin-publications"
     : "admin-members";
   const userPager = people.length > peoplePageSize
     ? '<nav class="admin-pagination" aria-label="Страницы участников">' +
@@ -1687,6 +1742,7 @@ function adminPage() {
   if (reports.length) hints.push({ section: "admin-reports", text: "Разобрать жалобы и споры: " + reports.length });
   if (aiCaseCount) hints.push({ section: "admin-moderation", text: "Проверить дела ИИ-модерации: " + aiCaseCount });
   if (aiAppealCount) hints.push({ section: "admin-moderation", text: "Рассмотреть апелляции: " + aiAppealCount });
+  if (reviewPublicationCount) hints.push({ section: "admin-publications", text: "Публикаций на проверке: " + reviewPublicationCount });
   if (missing.length) hints.push({ section: "admin-publications", text: "Нет предложений в категориях: " + missing.join(", ") });
   if (!hints.length) hints.push({ section: "admin-members", text: "Срочных задач нет. Все инструменты доступны ниже." });
   return '<header class="admin-hero"><div><p class="eyebrow">ПАНЕЛЬ УПРАВЛЕНИЯ</p><h1>Администрирование</h1><p>Все инструменты ScRl — в одном месте.</p></div><div class="admin-shortcuts">' + link("pulse", "Аналитика") + link("finance", "Платежи") + link("assistant", "ИИ-помощник") + '</div></header>' +
@@ -1705,18 +1761,22 @@ function adminPage() {
         safe(item.text) + '<span aria-hidden="true">→</span></button>'
       ).join("") + '</div>' +
       '<button class="button button-secondary" type="button" data-do="scan">Перепроверить публикации</button></section>' +
-    '<details id="admin-parent-consents" class="admin-section admin-section--parent-consents"' + (prioritySection === "admin-parent-consents" ? " open" : "") + '><summary><span>Согласия родителей для биржи</span><small>' + (data.exchangeConsentRequests || []).length + ' ожидают проверки</small></summary><div class="admin-section-body"><p class="muted small">Перед одобрением проверь возраст 14+ по школьным данным и лично удостоверься в согласии родителя или законного представителя через прямой либо официальный канал. Не сохраняй сканы документов, телефоны и лишние персональные данные. Система фиксирует дату и администратора, а также краткое описание способа проверки.</p><div class="data-list">' + (exchangeConsentRows || '<p class="muted">Ожидающих заявок нет.</p>') + '</div></div></details>' +
+    '<details id="admin-parent-consents" class="admin-section admin-section--parent-consents"' + (prioritySection === "admin-parent-consents" ? " open" : "") + '><summary><span>Согласия родителей для биржи</span><small>' + (data.exchangeConsentRequests || []).length + ' ожидают проверки</small></summary><div class="admin-section-body"><p class="muted small">Перед одобрением проверь возраст участника (14+) и согласие родителя или законного представителя. Не сохраняй копии документов и лишние личные данные.</p><details class="admin-help"><summary>Как правильно проверить заявку</summary><p class="muted small">Удостоверься в согласии через прямой или официальный канал и сверяй возраст по школьным данным. В поле подтверждения запиши только способ проверки, без ФИО, телефонов, email и других персональных данных. Система сохранит дату и администратора.</p></details><div class="data-list">' + (exchangeConsentRows || '<p class="muted">Ожидающих заявок нет.</p>') + '</div></div></details>' +
     '<details id="admin-members" class="admin-section admin-section--members"' + (prioritySection === "admin-members" ? " open" : "") + '><summary><span>Участники</span><small>' + people.length + ' · поиск, роли и доступ</small></summary><div class="admin-section-body">' +
     '<form id="adminFilter" class="filter-row"><input name="term" value="' + safe(adminFilter.term) + '" placeholder="Имя, email, класс или ID"><select name="role"><option value="all"' + (adminFilter.role === "all" ? " selected" : "") + '>Все роли</option><option value="student"' + (adminFilter.role === "student" ? " selected" : "") + '>Ученики</option><option value="teacher"' + (adminFilter.role === "teacher" ? " selected" : "") + '>Учителя</option><option value="admin"' + (adminFilter.role === "admin" ? " selected" : "") + '>Администраторы</option></select><select name="locked"><option value="all"' + (adminFilter.locked === "all" ? " selected" : "") + '>Любой статус</option><option value="yes"' + (adminFilter.locked === "yes" ? " selected" : "") + '>Заблокированные</option><option value="no"' + (adminFilter.locked === "no" ? " selected" : "") + '>Активные</option></select><button class="button button-secondary" type="submit">Найти</button></form>' +
     '<div class="data-list admin-users-list">' + (users || '<p class="muted">Никого не найдено.</p>') + '</div>' + userPager + '</div></details>' +
-    '<details id="admin-publications" class="admin-section admin-section--publications"><summary><span>Публикации</span><small>' + (data.posts.length + (data.listings || []).length) + ' · можно удалить любую</small></summary><div class="admin-section-body"><div class="data-list">' +
-    (publicationRows || '<p class="muted">Публикаций нет.</p>') + '</div></div></details>' +
+    '<details id="admin-publications" class="admin-section admin-section--publications"' + (publicationFiltersActive || prioritySection === "admin-publications" ? " open" : "") + '><summary><span>Публикации</span><small>' + allPublications.length + ' всего · ' + filteredPublications.length + ' показано</small></summary><div class="admin-section-body">' +
+    '<form id="adminPublicationFilter" class="filter-row admin-publication-filter"><input name="term" value="' + safe(adminPublicationFilter.term) + '" placeholder="Название, автор или категория">' +
+    '<select name="kind"><option value="all"' + (adminPublicationFilter.kind === "all" ? " selected" : "") + '>Все типы</option><option value="post"' + (adminPublicationFilter.kind === "post" ? " selected" : "") + '>Доска</option><option value="listing"' + (adminPublicationFilter.kind === "listing" ? " selected" : "") + '>Услуги</option></select>' +
+    '<select name="status"><option value="all"' + (adminPublicationFilter.status === "all" ? " selected" : "") + '>Все статусы</option><option value="active"' + (adminPublicationFilter.status === "active" ? " selected" : "") + '>Активные</option><option value="review"' + (adminPublicationFilter.status === "review" ? " selected" : "") + '>На проверке</option><option value="hidden"' + (adminPublicationFilter.status === "hidden" ? " selected" : "") + '>Скрытые</option><option value="sold"' + (adminPublicationFilter.status === "sold" ? " selected" : "") + '>Проданные</option><option value="removed"' + (adminPublicationFilter.status === "removed" ? " selected" : "") + '>Снятые</option></select>' +
+    '<button class="button button-secondary" type="submit">Применить</button></form>' +
+    '<div class="data-list">' + (publicationRows || '<p class="muted">По выбранным фильтрам ничего не найдено.</p>') + '</div></div></details>' +
     '<details id="admin-economy" class="admin-section"><summary><span>Экономика ScRl</span><small>балансы, покрытие и курс</small></summary><div class="admin-section-body">' +
     '<div class="demo-stats"><div class="demo-stat"><span>ScRl в обороте и резерве</span><b>' + money(cover.tokens) + '</b></div><div class="demo-stat"><span>V-RUB всего</span><b>' + money(cover.vrub) + '</b></div><div class="demo-stat"><span>Обеспеченный лимит</span><b>' + money(cover.limit) + '</b></div><div class="demo-stat"><span>Покрытие</span><b>' + money(cover.ratio * 100) + '%</b></div></div>' +
     '<p class="muted small">Текущий курс: ' + rateMoney(currentRate()) + ' V-RUB за ScRl · комиссия по покрытию: ' + money(data.fee * 100) + '% · сожжено: ' + money(data.burned) + ' ScRl.</p>' +
     '<div class="rate-bars">' + chart + '</div><form id="economyForm" class="demo-form"><h2>Целевой курс</h2><label>V-RUB за 1 ScRl</label><input name="rate" type="number" min="0.001" max="1" step="0.001" value="' + data.rate + '" required><button class="button button-primary" type="submit">Сохранить курс</button></form></div></details>' +
     '<details id="admin-moderation" class="admin-section moderation-admin"' + (prioritySection === "admin-moderation" ? " open" : "") + '><summary><span>ИИ-модерация</span><small>' + (data.moderation?.adminCases || []).length + ' дел · ' + (data.moderation?.adminAppeals || []).length + ' апелляций</small></summary><div class="admin-section-body">' +
-    '<p class="moderation-status-line"><b>Статус:</b> ' + safe(aiStatusText) + '</p><p class="muted small">На проверку попадают публикации, услуги, аукционы, сделки, личные сообщения, отзывы, имена профилей, жалобы и основания начислений. Отмеченные объявления и жалобы видят только администраторы — учителям эта очередь не передаётся. Критические блокировки применяются только при высокой уверенности; неоднозначные материалы остаются на ручной проверке.</p>' +
+    '<p class="moderation-status-line"><b>Статус:</b> ' + safe(aiStatusText) + '</p><details class="admin-help"><summary>Что проверяет ИИ и как работает очередь</summary><p class="muted small">На проверку попадают публикации, услуги, аукционы, сделки, личные сообщения, отзывы, имена профилей, жалобы и основания начислений. Отмеченные материалы видят администраторы — учителям эта очередь не передаётся. Критические блокировки применяются только при высокой уверенности; неоднозначные материалы остаются на ручной проверке.</p></details>' +
     '<h3>Дела на проверке · ' + (data.moderation?.adminCases || []).length + '</h3><div class="data-list">' + (aiCases || '<p class="muted">Открытых AI-дел нет.</p>') + '</div>' +
     '<h3>Апелляции · ' + (data.moderation?.adminAppeals || []).length + '</h3><div class="data-list">' + (aiAppeals || '<p class="muted">Ожидающих апелляций нет.</p>') + '</div></div></details>' +
     '<details id="admin-reports" class="admin-section"' + (prioritySection === "admin-reports" ? " open" : "") + '><summary><span>Жалобы и споры</span><small>' + reports.length + ' открыто</small></summary><div class="admin-section-body"><div class="data-list">' + (queue || '<p class="muted">Очередь пуста.</p>') + '</div></div></details>' +
@@ -2869,6 +2929,13 @@ async function submitRemote(form) {
     adminFilter.role = String(fields.get("role") || "all");
     adminFilter.locked = String(fields.get("locked") || "all");
     adminFilter.page = 1;
+    setPage("admin");
+    return;
+  }
+  if (form.id === "adminPublicationFilter") {
+    adminPublicationFilter.term = String(fields.get("term") || "").trim();
+    adminPublicationFilter.kind = String(fields.get("kind") || "all");
+    adminPublicationFilter.status = String(fields.get("status") || "all");
     setPage("admin");
     return;
   }
