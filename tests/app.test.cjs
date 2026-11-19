@@ -1505,3 +1505,17 @@ test("ИИ-модерация корректно обрабатывает вре
   assert.match(moderation, /Содержимое не отправлено/);
   assert.match(app, /доступность Groq проверяется при отправке/);
 });
+
+
+test("админ-панель содержит быстрые переходы ко всем разделам и удобный поиск", () => {
+ const { api, localStorage } = boot();
+ promoteBootUserToAdmin(api, localStorage);
+ const page = api.adminPage();
+ for (const id of ["admin-parent-consents","admin-members","admin-publications","admin-economy","admin-moderation","admin-reports","admin-audit"]) {
+   assert.match(page, new RegExp('id="' + id + '"'));
+   assert.match(page, new RegExp('data-admin-jump="' + id + '"'));
+ }
+ assert.match(page,/Быстрый переход/);
+ assert.match(page,/ПАНЕЛЬ УПРАВЛЕНИЯ/);
+ assert.match(page,/Применить/);
+});
