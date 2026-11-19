@@ -3117,6 +3117,13 @@ async function submit(form) {
     setPage("admin");
     return;
   }
+  if (form.id === "adminPublicationFilter") {
+    adminPublicationFilter.term = String(fields.get("term") || "").trim();
+    adminPublicationFilter.kind = String(fields.get("kind") || "all");
+    adminPublicationFilter.status = String(fields.get("status") || "all");
+    setPage("admin");
+    return;
+  }
   if (form.id === "economyForm") {
     if (me().role !== "admin") throw new Error("Нет доступа.");
     const rate = Number(fields.get("rate"));
