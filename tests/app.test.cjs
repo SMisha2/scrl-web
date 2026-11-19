@@ -1519,3 +1519,56 @@ test("админ-панель содержит быстрые переходы �
  assert.match(page,/ПАНЕЛЬ УПРАВЛЕНИЯ/);
  assert.match(page,/Найти/);
 });
+
+
+test("админка открывает в первую очередь очередь с ожидающими заявками", () => {
+  const { api, localStorage } = boot();
+  promoteBootUserToAdmin(api, localStorage);
+  api.data.exchangeConsentRequests = [{
+    user_id: "u1", full_name: "Алина", room: "9А", age_years: 15,
+    requested_at: Date.now()
+  }];
+  const page = api.adminPage();
+  assert.match(page, /<details id="admin-parent-consents" class="admin-section admin-section--parent-consents" open>/);
+  assert.doesNotMatch(page, /<details id="admin-members" class="admin-section admin-section--members" open>/);
+  assert.match(page, /Проверить заявки на биржу: 1/);
+  assert.match(page, /data-admin-jump="admin-parent-consents"/);
+});
+
+test("список участников админки разбивается на страницы без потери поиска и действий", () => {
+  const { api, localStorage } = boot();
+  promoteBootUserToAdmin(api, localStorage);
+  for (let i = 0; i < 67; i++) {
+    api.data.users.push({
+      id: "admin-page-user-" + i, name: "Тестовый участник " + i,
+      mail: "page-" + i + "@example.test", role: "student",
+      room: "9А", scrl: 0, vrub: 0, holdScrl: 0, holdVrub: 0,
+      blocked: false
+    });
+  }
+  const firstPage = api.adminPage();
+  assert.match(firstPage, /Страница 1 из 3/);
+  assert.match(firstPage, /data-admin-page="next"/);
+  assert.match(firstPage, /Тестовый участник 0/);
+  assert.doesNotMatch(firstPage, /Тестовый участник 66/);
+
+  api.changeAdminUsersPage("next");
+  const secondPage = api.adminPage();
+  assert.match(secondPage, /Страница 2 из 3/);
+  assert.match(secondPage, /Тестовый участник 30/);
+
+  api.changeAdminUsersPage("next");
+  const thirdPage = api.adminPage();
+  assert.match(thirdPage, /Страница 3 из 3/);
+  assert.match(thirdPage, /Тестовый участник 66/);
+  assert.match(thirdPage, /data-admin-page="prev"/);
+});
+
+test("асинхронные формы и кнопки защищены от повторной отправки", () => {
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  assert.match(app, /form\.dataset\.submitting === "true"/);
+  assert.match(app, /btn\.dataset\.busy === "true"/);
+  assert.match(app, /Переписка по этому заказу уже недоступна/);
+  assert.match(app, /await backend\.sendMessage\(deal\.id, messageText\)/);
+  assert.match(app, /finally \{\s*if \(form\.isConnected !== false\)/);
+});
