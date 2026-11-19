@@ -1101,6 +1101,7 @@ function publicProfilePage() {
     '<div class="demo-stats"><div class="demo-stat"><span>Оценка</span><b>' + average + '</b><small>' + reviews.length + ' отзывов</small></div><div class="demo-stat"><span>Активные публикации</span><b>' + (posts.length + listings.length) + '</b></div></div>' +
     '<h2>Публикации и услуги</h2><div class="demo-list">' + (publicationRows || '<p class="muted">Активных публикаций пока нет.</p>') + '</div>' +
     '<h2>Отзывы</h2><div class="data-list">' + (reviewRows || '<p class="muted">Пока никто не оставил отзыв.</p>') + '</div>' +
+    '<p class="small muted review-eligibility-note">Оставить оценку можно после завершённой сделки с этим участником. Так отзывы подтверждаются реальным опытом, а не случайными оценками.</p>' +
     '<button class="button button-secondary" type="button" data-page="' + safe(publicProfileReturnPage) + '">Назад</button>';
 }
 
@@ -2735,8 +2736,17 @@ async function saveReview(dealId, ratingValue, reviewText = "") {
   if (!getUser(target)) throw new Error("Не удалось найти участника сделки.");
 
   if (remoteReady && !window.__scrlTestMode) {
-    await backend.addReview({ deal: deal.id, user: me().id, target, rating, text });
-    await refreshRemoteData();
+    try {
+      await backend.addReview({ deal: deal.id, user: me().id, target, rating, text });
+      await refreshRemoteData();
+    } catch (error) {
+      const reason = String(error && error.message || "");
+      if (reason.includes("Сначала прими актуальное согласие")) {
+        setPage("privacy");
+        throw new Error("Чтобы оставить отзыв, подтверди актуальные согласия в открывшемся разделе и попробуй ещё раз.");
+      }
+      throw error;
+    }
   } else {
     data.reviews.unshift({
       id: uid(), deal: deal.id, user: me().id, target, rating, text,
