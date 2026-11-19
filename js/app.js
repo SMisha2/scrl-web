@@ -30,7 +30,7 @@ const AI_MODERATION_CONSENT_VERSION = "2026-11-17-v2";
 const key = "scrlDemo3";
 let pending = null;
 let filter = { term: "", type: "all" };
-let adminFilter = { term: "", role: "all", locked: "all" };
+let adminFilter = { term: "", role: "all", locked: "all", page: 1 };
 let marketFilter = { term: "", category: "all", sort: "new" };
 let adminPreviewRole = "";
 let selectedPublicProfileId = "";
@@ -1567,17 +1567,40 @@ function staffPage() {
 }
 
 
+function changeAdminUsersPage(direction) {
+  if (me().role !== "admin") return;
+  const search = String(adminFilter.term || "").trim().toLocaleLowerCase("ru");
+  const count = data.users.filter(u =>
+    (adminFilter.role === "all" || u.role === adminFilter.role) &&
+    (adminFilter.locked === "all" || (adminFilter.locked === "yes" ? u.blocked : !u.blocked)) &&
+    [u.name, u.mail, u.room, u.id, u.deleted ? "удалён удален" : "", u.blocked ? "заблокирован" : "активен"]
+      .join(" ").toLocaleLowerCase("ru").includes(search)
+  ).length;
+  const maxPage = Math.max(1, Math.ceil(count / 30));
+  const currentPage = Math.min(maxPage, Math.max(1, Number(adminFilter.page) || 1));
+  adminFilter.page = direction === "next"
+    ? Math.min(maxPage, currentPage + 1)
+    : Math.max(1, currentPage - 1);
+  setPage("admin");
+}
+
 function adminPage() {
   const user = me();
   if (user.role !== "admin") return '<h1>Нет доступа</h1>';
   const reports = data.reports.filter(r => r.status === "open");
-  const search = adminFilter.term.toLowerCase();
+  const search = String(adminFilter.term || "").trim().toLocaleLowerCase("ru");
   const people = data.users.filter(u =>
     (adminFilter.role === "all" || u.role === adminFilter.role) &&
     (adminFilter.locked === "all" || (adminFilter.locked === "yes" ? u.blocked : !u.blocked)) &&
-    [u.name, u.mail, u.room].join(" ").toLowerCase().includes(search)
+    [u.name, u.mail, u.room, u.id, u.deleted ? "удалён удален" : "", u.blocked ? "заблокирован" : "активен"]
+      .join(" ").toLocaleLowerCase("ru").includes(search)
   );
-  const users = people.map(u => {
+  const peoplePageSize = 30;
+  const peoplePageCount = Math.max(1, Math.ceil(people.length / peoplePageSize));
+  const peoplePage = Math.min(peoplePageCount, Math.max(1, Number(adminFilter.page) || 1));
+  adminFilter.page = peoplePage;
+  const visiblePeople = people.slice((peoplePage - 1) * peoplePageSize, peoplePage * peoplePageSize);
+  const users = visiblePeople.map(u => {
     const canManage = u.id !== user.id && !u.deleted && !String(u.name || "").includes("Удалённый");
     const controls = canManage
       ? (u.role === "admin"
@@ -1633,6 +1656,22 @@ function adminPage() {
     '<span class="actions"><button class="text-button" data-do="mod-appeal-accept" data-id="' + safe(item.id) + '">Удовлетворить</button>' +
     '<button class="text-button" data-do="mod-appeal-reject" data-id="' + safe(item.id) + '">Отклонить</button></span></article>'
   ).join("");
+  const consentCount = (data.exchangeConsentRequests || []).length;
+  const aiCaseCount = (data.moderation?.adminCases || []).length;
+  const aiAppealCount = (data.moderation?.adminAppeals || []).length;
+  const prioritySection = consentCount ? "admin-parent-consents"
+    : reports.length ? "admin-reports"
+    : aiCaseCount || aiAppealCount ? "admin-moderation"
+    : "admin-members";
+  const userPager = people.length > peoplePageSize
+    ? '<nav class="admin-pagination" aria-label="Страницы участников">' +
+      '<button type="button" data-admin-page="prev"' + (peoplePage <= 1 ? ' disabled' : '') + '>Назад</button>' +
+      '<span>Страница ' + peoplePage + ' из ' + peoplePageCount + ' · показано ' +
+      ((peoplePage - 1) * peoplePageSize + 1) + '–' + Math.min(peoplePage * peoplePageSize, people.length) +
+      ' из ' + people.length + '</span>' +
+      '<button type="button" data-admin-page="next"' + (peoplePage >= peoplePageCount ? ' disabled' : '') + '>Дальше</button>' +
+      '</nav>'
+    : "";
   const cover = refreshFee();
   const chartValues = data.trades.slice(0, 12).reverse().map(t => Number(t.price));
   const chartMin = Math.min(...(chartValues.length ? chartValues : [data.rate]));
@@ -1644,28 +1683,43 @@ function adminPage() {
   const offers = data.posts.filter(p => p.status === "active" && p.type === "offer");
   const missing = [...new Set(needs.map(p => p.category))].filter(cat => !offers.some(p => p.category === cat));
   const hints = [];
-  if (reports.length) hints.push("Проверь " + reports.length + " жалоб и споров.");
-  if (missing.length) hints.push("Нет предложений в категориях: " + missing.join(", ") + ".");
-  if (!reports.length && !missing.length) hints.push("Открытых проблем по демо-данным нет.");
+  if (consentCount) hints.push({ section: "admin-parent-consents", text: "Проверить заявки на биржу: " + consentCount });
+  if (reports.length) hints.push({ section: "admin-reports", text: "Разобрать жалобы и споры: " + reports.length });
+  if (aiCaseCount) hints.push({ section: "admin-moderation", text: "Проверить дела ИИ-модерации: " + aiCaseCount });
+  if (aiAppealCount) hints.push({ section: "admin-moderation", text: "Рассмотреть апелляции: " + aiAppealCount });
+  if (missing.length) hints.push({ section: "admin-publications", text: "Нет предложений в категориях: " + missing.join(", ") });
+  if (!hints.length) hints.push({ section: "admin-members", text: "Срочных задач нет. Все инструменты доступны ниже." });
   return '<header class="admin-hero"><div><p class="eyebrow">ПАНЕЛЬ УПРАВЛЕНИЯ</p><h1>Администрирование</h1><p>Все инструменты ScRl — в одном месте.</p></div><div class="admin-shortcuts">' + link("pulse", "Аналитика") + link("finance", "Платежи") + link("assistant", "ИИ-помощник") + '</div></header>' +
-    '<nav class="admin-jump-nav" aria-label="Разделы администрирования"><b>Быстрый переход</b><button type="button" data-admin-jump="admin-parent-consents">Согласия</button><button type="button" data-admin-jump="admin-members">Участники</button><button type="button" data-admin-jump="admin-publications">Публикации</button><button type="button" data-admin-jump="admin-economy">Экономика</button><button type="button" data-admin-jump="admin-moderation">ИИ-модерация</button><button type="button" data-admin-jump="admin-reports">Жалобы</button><button type="button" data-admin-jump="admin-audit">Журнал</button></nav>' +
-    '<div class="demo-stats admin-overview"><div class="demo-stat"><span>Участники</span><b>' + data.users.length + '</b></div><div class="demo-stat"><span>Открытые жалобы и споры</span><b>' + reports.length + '</b></div><div class="demo-stat"><span>На проверке ИИ</span><b>' + (data.moderation?.adminCases || []).length + '</b></div><div class="demo-stat"><span>Апелляции</span><b>' + (data.moderation?.adminAppeals || []).length + '</b></div></div>' +
-    '<section class="match-box admin-guidance"><h2>Что требует внимания</h2>' + hints.map(x => '<div class="data-row">' + safe(x) + '</div>').join("") + '<button class="button button-secondary" data-do="scan">Перепроверить публикации</button></section>' +
-    '<details id="admin-parent-consents" class="admin-section admin-section--parent-consents"><summary><span>Согласия родителей для биржи</span><small>' + (data.exchangeConsentRequests || []).length + ' ожидают проверки</small></summary><div class="admin-section-body"><p class="muted small">Перед одобрением проверь возраст 14+ по школьным данным и лично удостоверься в согласии родителя или законного представителя через прямой либо официальный канал. Не сохраняй сканы документов, телефоны и лишние персональные данные. Система фиксирует дату и администратора, а также краткое описание способа проверки.</p><div class="data-list">' + (exchangeConsentRows || '<p class="muted">Ожидающих заявок нет.</p>') + '</div></div></details>' +
-    '<details id="admin-members" class="admin-section admin-section--members" open><summary><span>Участники</span><small>' + people.length + ' · поиск, роли и доступ</small></summary><div class="admin-section-body">' +
-    '<form id="adminFilter" class="filter-row"><input name="term" value="' + safe(adminFilter.term) + '" placeholder="Поиск по имени или классу"><select name="role"><option value="all"' + (adminFilter.role === "all" ? " selected" : "") + '>Все роли</option><option value="student"' + (adminFilter.role === "student" ? " selected" : "") + '>Ученики</option><option value="teacher"' + (adminFilter.role === "teacher" ? " selected" : "") + '>Учителя</option><option value="admin"' + (adminFilter.role === "admin" ? " selected" : "") + '>Администраторы</option></select><select name="locked"><option value="all"' + (adminFilter.locked === "all" ? " selected" : "") + '>Любой статус</option><option value="yes"' + (adminFilter.locked === "yes" ? " selected" : "") + '>Заблокированные</option><option value="no"' + (adminFilter.locked === "no" ? " selected" : "") + '>Активные</option></select><button class="button button-secondary" type="submit">Найти</button></form>' +
-    '<div class="data-list admin-users-list">' + (users || '<p class="muted">Никого не найдено.</p>') + '</div></div></details>' +
+    '<nav class="admin-jump-nav" aria-label="Разделы администрирования"><b>Быстрый переход</b>' +
+      '<button type="button" data-admin-jump="admin-parent-consents">Согласия · ' + consentCount + '</button>' +
+      '<button type="button" data-admin-jump="admin-members">Участники · ' + people.length + '</button>' +
+      '<button type="button" data-admin-jump="admin-publications">Публикации · ' + (data.posts.length + (data.listings || []).length) + '</button>' +
+      '<button type="button" data-admin-jump="admin-economy">Экономика</button>' +
+      '<button type="button" data-admin-jump="admin-moderation">ИИ · ' + (aiCaseCount + aiAppealCount) + '</button>' +
+      '<button type="button" data-admin-jump="admin-reports">Жалобы · ' + reports.length + '</button>' +
+      '<button type="button" data-admin-jump="admin-audit">Журнал</button></nav>' +
+    '<div class="demo-stats admin-overview"><div class="demo-stat"><span>Участники</span><b>' + data.users.length + '</b></div><div class="demo-stat"><span>Жалобы и споры</span><b>' + reports.length + '</b></div><div class="demo-stat"><span>Дела ИИ</span><b>' + aiCaseCount + '</b></div><div class="demo-stat"><span>Апелляции</span><b>' + aiAppealCount + '</b></div></div>' +
+    '<section class="match-box admin-guidance"><h2>Что требует внимания</h2>' +
+      '<div class="admin-guidance-list">' + hints.map(item =>
+        '<button class="admin-guidance-item" type="button" data-admin-jump="' + safe(item.section) + '">' +
+        safe(item.text) + '<span aria-hidden="true">→</span></button>'
+      ).join("") + '</div>' +
+      '<button class="button button-secondary" type="button" data-do="scan">Перепроверить публикации</button></section>' +
+    '<details id="admin-parent-consents" class="admin-section admin-section--parent-consents"' + (prioritySection === "admin-parent-consents" ? " open" : "") + '><summary><span>Согласия родителей для биржи</span><small>' + (data.exchangeConsentRequests || []).length + ' ожидают проверки</small></summary><div class="admin-section-body"><p class="muted small">Перед одобрением проверь возраст 14+ по школьным данным и лично удостоверься в согласии родителя или законного представителя через прямой либо официальный канал. Не сохраняй сканы документов, телефоны и лишние персональные данные. Система фиксирует дату и администратора, а также краткое описание способа проверки.</p><div class="data-list">' + (exchangeConsentRows || '<p class="muted">Ожидающих заявок нет.</p>') + '</div></div></details>' +
+    '<details id="admin-members" class="admin-section admin-section--members"' + (prioritySection === "admin-members" ? " open" : "") + '><summary><span>Участники</span><small>' + people.length + ' · поиск, роли и доступ</small></summary><div class="admin-section-body">' +
+    '<form id="adminFilter" class="filter-row"><input name="term" value="' + safe(adminFilter.term) + '" placeholder="Имя, email, класс или ID"><select name="role"><option value="all"' + (adminFilter.role === "all" ? " selected" : "") + '>Все роли</option><option value="student"' + (adminFilter.role === "student" ? " selected" : "") + '>Ученики</option><option value="teacher"' + (adminFilter.role === "teacher" ? " selected" : "") + '>Учителя</option><option value="admin"' + (adminFilter.role === "admin" ? " selected" : "") + '>Администраторы</option></select><select name="locked"><option value="all"' + (adminFilter.locked === "all" ? " selected" : "") + '>Любой статус</option><option value="yes"' + (adminFilter.locked === "yes" ? " selected" : "") + '>Заблокированные</option><option value="no"' + (adminFilter.locked === "no" ? " selected" : "") + '>Активные</option></select><button class="button button-secondary" type="submit">Найти</button></form>' +
+    '<div class="data-list admin-users-list">' + (users || '<p class="muted">Никого не найдено.</p>') + '</div>' + userPager + '</div></details>' +
     '<details id="admin-publications" class="admin-section admin-section--publications"><summary><span>Публикации</span><small>' + (data.posts.length + (data.listings || []).length) + ' · можно удалить любую</small></summary><div class="admin-section-body"><div class="data-list">' +
     (publicationRows || '<p class="muted">Публикаций нет.</p>') + '</div></div></details>' +
     '<details id="admin-economy" class="admin-section"><summary><span>Экономика ScRl</span><small>балансы, покрытие и курс</small></summary><div class="admin-section-body">' +
     '<div class="demo-stats"><div class="demo-stat"><span>ScRl в обороте и резерве</span><b>' + money(cover.tokens) + '</b></div><div class="demo-stat"><span>V-RUB всего</span><b>' + money(cover.vrub) + '</b></div><div class="demo-stat"><span>Обеспеченный лимит</span><b>' + money(cover.limit) + '</b></div><div class="demo-stat"><span>Покрытие</span><b>' + money(cover.ratio * 100) + '%</b></div></div>' +
     '<p class="muted small">Текущий курс: ' + rateMoney(currentRate()) + ' V-RUB за ScRl · комиссия по покрытию: ' + money(data.fee * 100) + '% · сожжено: ' + money(data.burned) + ' ScRl.</p>' +
     '<div class="rate-bars">' + chart + '</div><form id="economyForm" class="demo-form"><h2>Целевой курс</h2><label>V-RUB за 1 ScRl</label><input name="rate" type="number" min="0.001" max="1" step="0.001" value="' + data.rate + '" required><button class="button button-primary" type="submit">Сохранить курс</button></form></div></details>' +
-    '<details id="admin-moderation" class="admin-section moderation-admin"><summary><span>ИИ-модерация</span><small>' + (data.moderation?.adminCases || []).length + ' дел · ' + (data.moderation?.adminAppeals || []).length + ' апелляций</small></summary><div class="admin-section-body">' +
+    '<details id="admin-moderation" class="admin-section moderation-admin"' + (prioritySection === "admin-moderation" ? " open" : "") + '><summary><span>ИИ-модерация</span><small>' + (data.moderation?.adminCases || []).length + ' дел · ' + (data.moderation?.adminAppeals || []).length + ' апелляций</small></summary><div class="admin-section-body">' +
     '<p class="moderation-status-line"><b>Статус:</b> ' + safe(aiStatusText) + '</p><p class="muted small">На проверку попадают публикации, услуги, аукционы, сделки, личные сообщения, отзывы, имена профилей, жалобы и основания начислений. Отмеченные объявления и жалобы видят только администраторы — учителям эта очередь не передаётся. Критические блокировки применяются только при высокой уверенности; неоднозначные материалы остаются на ручной проверке.</p>' +
     '<h3>Дела на проверке · ' + (data.moderation?.adminCases || []).length + '</h3><div class="data-list">' + (aiCases || '<p class="muted">Открытых AI-дел нет.</p>') + '</div>' +
     '<h3>Апелляции · ' + (data.moderation?.adminAppeals || []).length + '</h3><div class="data-list">' + (aiAppeals || '<p class="muted">Ожидающих апелляций нет.</p>') + '</div></div></details>' +
-    '<details id="admin-reports" class="admin-section"><summary><span>Жалобы и споры</span><small>' + reports.length + ' открыто</small></summary><div class="admin-section-body"><div class="data-list">' + (queue || '<p class="muted">Очередь пуста.</p>') + '</div></div></details>' +
+    '<details id="admin-reports" class="admin-section"' + (prioritySection === "admin-reports" ? " open" : "") + '><summary><span>Жалобы и споры</span><small>' + reports.length + ' открыто</small></summary><div class="admin-section-body"><div class="data-list">' + (queue || '<p class="muted">Очередь пуста.</p>') + '</div></div></details>' +
     '<details id="admin-audit" class="admin-section"><summary><span>Журнал действий</span><small>последние 20 записей</small></summary><div class="admin-section-body"><div class="data-list">' + data.audit.slice(0,20).map(a => '<div class="data-row"><span>' + safe(a.text) + '<small>' + new Date(a.date).toLocaleString("ru-RU") + '</small></span><b>' + safe(userName(a.user)) + '</b></div>').join("") + '</div></div></details>' +
     '<p class="small muted demo-note">Назначение ролей, блокировка, удаление, модерация и финансовые решения проверяются сервером. Удаление сохраняет только обезличенную финансовую историю.</p>';
 }
@@ -2814,6 +2868,7 @@ async function submitRemote(form) {
     adminFilter.term = String(fields.get("term") || "").trim();
     adminFilter.role = String(fields.get("role") || "all");
     adminFilter.locked = String(fields.get("locked") || "all");
+    adminFilter.page = 1;
     setPage("admin");
     return;
   }
@@ -2991,6 +3046,7 @@ async function submit(form) {
     adminFilter.term = String(fields.get("term") || "").trim();
     adminFilter.role = String(fields.get("role") || "all");
     adminFilter.locked = String(fields.get("locked") || "all");
+    adminFilter.page = 1;
     setPage("admin");
     return;
   }
@@ -3658,6 +3714,11 @@ el("page").addEventListener("click", event => {
     openPublicProfile(profileTarget.dataset.viewUser);
     return;
   }
+  const adminPageButton = target.closest("[data-admin-page]");
+  if (adminPageButton) {
+    if (!adminPageButton.disabled) changeAdminUsersPage(adminPageButton.dataset.adminPage);
+    return;
+  }
   const adminJump = target.closest("[data-admin-jump]");
   if (adminJump) {
     const section = el(adminJump.dataset.adminJump);
@@ -3679,10 +3740,20 @@ el("page").addEventListener("click", event => {
     return;
   }
   const btn = target.closest("[data-do]");
-  if (!btn) return;
+  if (!btn || btn.disabled || btn.dataset.busy === "true") return;
   try {
     const result = action(btn);
-    if (result && typeof result.catch === "function") result.catch(err => msg(err.message || "Не получилось выполнить действие."));
+    if (result && typeof result.then === "function") {
+      btn.dataset.busy = "true";
+      btn.disabled = true;
+      btn.setAttribute("aria-busy", "true");
+      result.catch(err => msg(err.message || "Не получилось выполнить действие.")).finally(() => {
+        if (btn.isConnected === false) return;
+        delete btn.dataset.busy;
+        btn.disabled = false;
+        btn.removeAttribute("aria-busy");
+      });
+    }
   } catch (err) {
     msg(err.message || "Не получилось выполнить действие.");
   }
@@ -3690,56 +3761,71 @@ el("page").addEventListener("click", event => {
 
 el("page").addEventListener("submit", async event => {
   const form = event.target;
-  if (!form.matches("form")) return;
+  if (!form || typeof form.matches !== "function" || !form.matches("form")) return;
   event.preventDefault();
-  if (form.dataset.form === "message") {
-    const d = data.deals.find(x => x.id === form.dataset.id);
-    const text = String(new FormData(form).get("text") || "").trim();
-    if (remoteReady && d && text && (d.buyer === me().id || d.seller === me().id)) {
-      backend.sendMessage(d.id, text).then(async result => {
+  if (form.dataset.submitting === "true") return;
+
+  form.dataset.submitting = "true";
+  const submitButton = form.querySelector('button[type="submit"]');
+  const originalButtonText = submitButton ? submitButton.textContent : "";
+  const feedback = form.querySelector(".review-feedback");
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = "Отправляем…";
+  }
+
+  try {
+    if (form.dataset.form === "message") {
+      const deal = data.deals.find(item => item.id === form.dataset.id);
+      const messageText = String(new FormData(form).get("text") || "").trim();
+      const isParticipant = deal && (deal.buyer === me().id || deal.seller === me().id);
+      if (!deal || !isParticipant || !["work", "ready", "dispute"].includes(deal.status)) {
+        throw new Error("Переписка по этому заказу уже недоступна.");
+      }
+      if (!messageText) throw new Error("Напиши сообщение перед отправкой.");
+
+      if (remoteReady && !window.__scrlTestMode) {
+        const result = await backend.sendMessage(deal.id, messageText);
         await refreshRemoteData();
         setPage("orders");
-        msg(result && result.moderation && (result.moderation.decision === "flag" || result.moderation.decision === "hide")
+        msg(result && result.moderation &&
+          (result.moderation.decision === "flag" || result.moderation.decision === "hide")
           ? "Сообщение отправлено и скрыто от собеседника до проверки."
           : "Сообщение отправлено.");
-      }).catch(err => msg(err.message || "Не удалось отправить сообщение."));
-    } else if (d && text && (d.buyer === me().id || d.seller === me().id)) {
-      d.messages.push({ user: me().id, text, date: Date.now() });
-      notify(d.buyer === me().id ? d.seller : d.buyer, "Новое сообщение по сделке «" + d.title + "».");
-      log("Отправлено сообщение по сделке «" + d.title + "».");
-      setPage("orders");
+      } else {
+        if (!Array.isArray(deal.messages)) deal.messages = [];
+        deal.messages.push({ user: me().id, text: messageText, date: Date.now() });
+        notify(deal.buyer === me().id ? deal.seller : deal.buyer, "Новое сообщение по сделке «" + deal.title + "».");
+        log("Отправлено сообщение по сделке «" + deal.title + "».");
+        setPage("orders");
+        msg("Сообщение отправлено.");
+      }
+      return;
     }
-    return;
-  }
-  if (form.dataset.form === "review") {
-    const fields = new FormData(form);
-    const button = form.querySelector('button[type="submit"]');
-    if (button) {
-      button.disabled = true;
-      button.textContent = "Отправляем…";
-    }
-    try {
+
+    if (form.dataset.form === "review") {
+      const fields = new FormData(form);
       await saveReview(
         form.dataset.id,
         Number(fields.get("rating")),
         String(fields.get("text") || "")
       );
-    } catch (error) {
-      const message = error.message || "Не удалось сохранить оценку.";
-      const feedback = form.querySelector(".review-feedback");
-      if (feedback && activePageName !== "privacy") feedback.textContent = message;
-      msg(message);
-      if (button) {
-        button.disabled = false;
-        button.textContent = "Отправить оценку";
+      return;
+    }
+
+    await submit(form);
+  } catch (error) {
+    const message = error.message || "Проверь заполненные поля.";
+    if (feedback) feedback.textContent = message;
+    msg(message);
+  } finally {
+    if (form.isConnected !== false) {
+      delete form.dataset.submitting;
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = originalButtonText;
       }
     }
-    return;
-  }
-  try {
-    await submit(form);
-  } catch (err) {
-    msg(err.message || "Проверь заполненные поля.");
   }
 });
 
@@ -3811,6 +3897,7 @@ if (window.__scrlTestMode) {
     saveReview,
     openPurchaseConfirmation,
     confirmPurchase,
-    pendingPurchaseId: () => pendingPurchaseId
+    pendingPurchaseId: () => pendingPurchaseId,
+    changeAdminUsersPage
   };
 }
