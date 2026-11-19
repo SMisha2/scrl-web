@@ -811,7 +811,7 @@ test("админ-панель сохраняет инструменты в ко�
   const { api, localStorage } = boot();
   promoteBootUserToAdmin(api, localStorage);
   const page = api.adminPage();
-  assert.match(page, /<details class="admin-section admin-section--members" open>/);
+  assert.match(page, /<details id="admin-members" class="admin-section admin-section--members" open>/);
   assert.match(page, /Экономика ScRl/);
   assert.match(page, /ИИ-модерация/);
   assert.match(page, /Жалобы и споры/);
@@ -1517,5 +1517,5 @@ test("админ-панель содержит быстрые переходы �
  }
  assert.match(page,/Быстрый переход/);
  assert.match(page,/ПАНЕЛЬ УПРАВЛЕНИЯ/);
- assert.match(page,/Применить/);
+ assert.match(page,/Найти/);
 });
