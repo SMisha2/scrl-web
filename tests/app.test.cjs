@@ -1572,3 +1572,63 @@ test("асинхронные формы и кнопки защищены от п
   assert.match(app, /await backend\.sendMessage\(deal\.id, messageText\)/);
   assert.match(app, /finally \{\s*if \(form\.isConnected !== false\)/);
 });
+
+
+test("администратор фильтрует публикации по названию, типу и статусу", async () => {
+  const { api, localStorage } = boot();
+  promoteBootUserToAdmin(api, localStorage);
+  api.data.posts.unshift(
+    { id: "filter-post-hidden", user: "u1", type: "need", title: "Скрытая контрольная публикация", desc: "Описание", category: "Учёба", price: 2, status: "hidden", date: Date.now() },
+    { id: "filter-post-active", user: "u2", type: "offer", title: "Активная контрольная публикация", desc: "Описание", category: "Дизайн", price: 3, status: "active", date: Date.now() }
+  );
+  api.data.listings.unshift({
+    id: "filter-listing-hidden", user: "u3", title: "Скрытая контрольная услуга",
+    desc: "Описание", category: "Творчество", price: 5, slots: 1, status: "hidden", date: Date.now()
+  });
+
+  const before = api.adminPage();
+  assert.match(before, /id="adminPublicationFilter"/);
+  await api.submit({
+    id: "adminPublicationFilter",
+    fields: { term: "контрольная", kind: "post", status: "hidden" }
+  });
+  const filtered = api.adminPage();
+  assert.match(filtered, /filter-post-hidden/);
+  assert.doesNotMatch(filtered, /filter-post-active/);
+  assert.doesNotMatch(filtered, /filter-listing-hidden/);
+  assert.match(filtered, /1 всего · 1 показано/);
+});
+
+test("в очереди споров администратор видит стороны и сумму сделки до финансового решения", () => {
+  const { api, localStorage } = boot();
+  promoteBootUserToAdmin(api, localStorage);
+  const deal = {
+    id: "admin-dispute-context", title: "Заказ с открытым спором",
+    buyer: "u1", seller: "u2", amount: 42, escrow: 42,
+    status: "dispute", messages: [], date: Date.now()
+  };
+  api.data.deals.unshift(deal);
+  api.data.reports.unshift({
+    id: "admin-dispute-report", kind: "deal", target: deal.id,
+    user: "u1", reason: "Покупатель открыл спор", status: "open", date: Date.now()
+  });
+  const page = api.adminPage();
+  assert.match(page, /Заказ с открытым спором/);
+  assert.match(page, /Покупатель:/);
+  assert.match(page, /Исполнитель:/);
+  assert.match(page, /42 ScRl/);
+  assert.match(page, /Вернуть покупателю/);
+  assert.match(page, /Выплатить исполнителю/);
+  assert.match(page, /Разделить 50\/50/);
+
+  deal.status = "done";
+  const refreshed = api.adminPage();
+  assert.match(refreshed, /Решение уже недоступно/);
+  assert.doesNotMatch(refreshed, /data-do="refunddeal" data-id="admin-dispute-report"/);
+});
+
+test("личные публикации и уведомления доступны через меню «Ещё»", () => {
+  const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  assert.match(html, /data-page="myPublications">Мои публикации/);
+  assert.match(html, /data-page="notices">Уведомления/);
+});
