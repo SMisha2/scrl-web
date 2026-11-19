@@ -1625,8 +1625,8 @@ function adminPage() {
     '<button class="text-button" data-do="mod-case-keep" data-id="' + safe(item.id) + '">Оставить скрытым</button></span></article>'
   ).join("");
   const aiStatusText = data.moderation?.aiEnabled === true
-    ? "Включена · Groq отвечает"
-    : "Ожидает новый ключ Groq и разрешение на внешнюю проверку";
+    ? "Настроена · доступность Groq проверяется при отправке"
+    : "Не настроена: нужен действующий ключ Groq и разрешение на внешнюю проверку";
   const aiAppeals = (data.moderation?.adminAppeals || []).map(item =>
     '<article class="data-row"><span><b>' + safe(item.user) + ' · Апелляция</b><small>' +
     safe(item.reason) + ' · ' + new Date(item.created_at).toLocaleString("ru-RU") + '</small></span>' +
