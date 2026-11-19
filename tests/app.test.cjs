@@ -1494,3 +1494,14 @@ test("после сохранения согласий статус перечи
   assert.match(html, /после входа потребуется заполнить обязательную форму/);
   assert.match(app, /Галочка на экране входа сама по себе не записывает согласие в базу/);
 });
+
+
+test("ИИ-модерация корректно обрабатывает временные ограничения и исчерпанный лимит Groq", () => {
+  const moderation = fs.readFileSync(path.join(__dirname, "../supabase/functions/scrl-moderation/index.ts"), "utf8");
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  assert.match(moderation, /retry-after/);
+  assert.match(moderation, /status===429/);
+  assert.match(moderation, /У ИИ-провайдера исчерпан лимит/);
+  assert.match(moderation, /Содержимое не отправлено/);
+  assert.match(app, /доступность Groq проверяется при отправке/);
+});
