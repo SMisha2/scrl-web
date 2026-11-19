@@ -1589,7 +1589,7 @@ test("администратор фильтрует публикации по н
   const before = api.adminPage();
   assert.match(before, /id="adminPublicationFilter"/);
   await api.submit({
-    id: "adminPublicationFilter",
+    id: "adminPublicationFilter", dataset: {},
     fields: { term: "контрольная", kind: "post", status: "hidden" }
   });
   const filtered = api.adminPage();
@@ -1627,8 +1627,9 @@ test("в очереди споров администратор видит ст�
   assert.doesNotMatch(refreshed, /data-do="refunddeal" data-id="admin-dispute-report"/);
 });
 
-test("личные публикации и уведомления доступны через меню «Ещё»", () => {
+test("мои публикации доступны через меню «Ещё», а уведомления остаются в колокольчике", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   assert.match(html, /data-page="myPublications">Мои публикации/);
-  assert.match(html, /data-page="notices">Уведомления/);
+  assert.match(html, /id="notificationBell"/);
+  assert.doesNotMatch(html, /<button type="button" data-page="notices"/);
 });
