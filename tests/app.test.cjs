@@ -1471,3 +1471,14 @@ test("логотип ведёт на главную, монета в кошел�
   assert.match(css, /account-delete-form label,[\s\S]*?text-transform:none !important/);
   assert.match(css, /currency-coin-frame--wallet[\s\S]*?width:36px/);
 });
+
+
+test("отзывы объясняют условия публикации и помогают принять актуальные согласия", () => {
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
+  assert.match(app, /Оставить оценку можно после завершённой сделки с этим участником/);
+  assert.match(app, /setPage\("privacy"\)/);
+  assert.match(app, /подтверди актуальные согласия в открывшемся разделе/);
+  assert.match(css, /review-eligibility-note/);
+  assert.match(css, /@media \(max-width: 560px\)[\s\S]*?order-card/);
+});
