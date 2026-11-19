@@ -1596,7 +1596,7 @@ test("администратор фильтрует публикации по н
   assert.match(filtered, /filter-post-hidden/);
   assert.doesNotMatch(filtered, /filter-post-active/);
   assert.doesNotMatch(filtered, /filter-listing-hidden/);
-  assert.match(filtered, /1 всего · 1 показано/);
+  assert.match(filtered, /8 всего · 1 показано/);
 });
 
 test("в очереди споров администратор видит стороны и сумму сделки до финансового решения", () => {
