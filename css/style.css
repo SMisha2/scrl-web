@@ -8942,3 +8942,25 @@ html body #page .review-eligibility-note {
     justify-self: stretch !important;
   }
 }
+
+
+/* Clear inline feedback for review submission and mandatory consent onboarding. */
+html body #page .review-feedback {
+  display: block;
+  min-height: 0;
+  margin: 0;
+  color: var(--danger, #b43d3d);
+  font-size: 13px;
+  line-height: 1.45;
+}
+html body #page .review-feedback:empty { display: none; }
+html body #page .review-panel .review-form {
+  display: grid;
+  gap: 9px;
+}
+html body #page .consent-panel > p + p {
+  margin-top: 10px;
+}
+@media (max-width: 560px) {
+  html body #page .review-feedback { font-size: 12px; }
+}
