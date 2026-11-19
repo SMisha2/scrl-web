@@ -255,3 +255,19 @@ test("a refresh-token race in another tab keeps the newer shared session", async
     id: "user-3", token: "fresh-from-other-tab", refreshToken: "refresh-rotated"
   });
 });
+
+test("403 from database preserves the actual rejection reason", async () => {
+  const { api } = loadBackend({
+    fetch: async () => ({
+      ok: false,
+      status: 403,
+      async text() {
+        return JSON.stringify({ message: "Сначала прими актуальное согласие на обработку персональных данных и ИИ-проверку." });
+      }
+    })
+  });
+  await assert.rejects(
+    () => api.markNotificationsRead(),
+    /Сначала прими актуальное согласие на обработку персональных данных и ИИ-проверку/
+  );
+});

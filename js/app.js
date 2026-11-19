@@ -844,6 +844,11 @@ let remoteRefreshInFlight = null;
 async function refreshRemoteData(options = {}) {
   const session = sess();
   if (!remoteReady || !session?.token) return data;
+  if (options.force && remoteRefreshInFlight) {
+    const previous = remoteRefreshInFlight;
+    try { await previous; } catch {}
+    if (remoteRefreshInFlight === previous) remoteRefreshInFlight = null;
+  }
   if (!remoteRefreshInFlight) {
     const pending = backend.load(session.token, session.id, session.mail)
       .then(nextData => {
@@ -951,7 +956,7 @@ function privacyPage() {
     '<p>ScRl использует ФИО, электронную почту, дату рождения, класс, публикации, сообщения, отзывы и сведения об операциях для создания аккаунта, работы сервиса, безопасности, поддержки и разбора споров.</p>' +
     '<p>Дата рождения и журнал согласий хранятся отдельно от общего профиля и не показываются другим ученикам.</p>' +
     '<details><summary>Подробнее об ИИ-модерации</summary><p>Для автоматической проверки текстов публикаций, услуг, аукционов, сообщений, отзывов, имени профиля и жалоб соответствующий текст может передаваться Groq — внешнему поставщику ИИ. Не отправляй в тексты пароли, адреса, телефоны и другие лишние личные сведения.</p><p>ИИ может ошибаться. Спорные случаи отправляются администратору на ручную проверку; решения можно обжаловать.</p></details>' +
-    '<p class="small muted">Согласия сохраняются с датой и версией текста. Для изменения уже сохранённой даты рождения обратись к администратору.</p></section>' +
+    '<p class="small muted">Согласия сохраняются в аккаунте с датой и версией текста. Галочка на экране входа сама по себе не записывает согласие в базу. После сохранения ScRl заново проверит данные на сервере; пока проверка не пройдёт, остальные разделы останутся закрыты.</p></section>' +
     loadWarning +
     '<form id="privacyConsentForm" class="demo-form consent-form">' +
     '<label for="privacyBirthDate">Дата рождения</label><input id="privacyBirthDate" name="birthDate" type="date" max="' + today + '" value="' + safe(birthDate) + '"' + (birthDate ? ' readonly aria-readonly="true"' : "") + ' required>' +
@@ -1314,6 +1319,7 @@ function ordersPage() {
           '<span>' + userProfileLink(counterpartyId) + '</span></div>' +
           '<p>Оценка появится в профиле участника.</p>' +
           '<form class="review-form" data-form="review" data-id="' + safe(deal.id) + '">' +
+            '<p class="review-feedback" aria-live="polite" role="alert"></p>' +
             '<label for="review-rating-' + safe(deal.id) + '">Оценка</label>' +
             '<select id="review-rating-' + safe(deal.id) + '" name="rating" aria-label="Оценка от 1 до 5">' +
               '<option value="5" selected>5 — Отлично</option><option value="4">4 — Хорошо</option>' +
@@ -2777,7 +2783,7 @@ async function submitRemote(form) {
       birthDate, personalConsent, aiConsent,
       personalVersion: PERSONAL_DATA_CONSENT_VERSION, aiVersion: AI_MODERATION_CONSENT_VERSION
     });
-    await refreshRemoteData();
+    await refreshRemoteData({ force: true });
     if (!data.safety || data.safety.loadError || consentStatusNeedsAcceptance(data.safety)) {
       throw new Error("База данных пока не подтвердила сохранение обоих согласий. Проверь подключение и попробуй ещё раз.");
     }
@@ -3712,7 +3718,10 @@ el("page").addEventListener("submit", async event => {
         String(fields.get("text") || "")
       );
     } catch (error) {
-      msg(error.message || "Не удалось сохранить оценку.");
+      const message = error.message || "Не удалось сохранить оценку.";
+      const feedback = form.querySelector(".review-feedback");
+      if (feedback && activePageName !== "privacy") feedback.textContent = message;
+      msg(message);
       if (button) {
         button.disabled = false;
         button.textContent = "Отправить оценку";
