@@ -168,20 +168,56 @@ async function classify(kind:string,payload:Record<string,unknown>,analysisViews
     "# OUTPUT",
     "Верни строго один JSON-объект: decision ('allow'|'flag'|'hide'|'ban'), severity ('none'|'low'|'medium'|'high'|'critical'), confidence (число 0..1), categories (массив только из перечисленных категорий), reason (нейтральное объяснение по-русски, до 240 символов). Не включай цитаты и лишние персональные данные в reason."
   ].join("\n");
-  const response=await fetch("https://api.groq.com/openai/v1/chat/completions",{
-    method:"POST",
-    headers:{Authorization:"Bearer "+key,"Content-Type":"application/json"},
-    body:JSON.stringify({model:MODEL,temperature:0,reasoning_effort:"low",max_completion_tokens:700,response_format:{type:"json_object"},messages:[
-      {role:"system",content:system},
-      {role:"user",content:JSON.stringify(kind==="report"
-        ? {context:"Жалоба; текст может цитировать чужое нарушение. Не считай жалобщика автором цитаты.",report:payload,analysis_views:analysisViews}
-        : {content_type:kind,submitted_content:payload,analysis_views:analysisViews})}
-    ]}),
-    signal:AbortSignal.timeout(22000)
-  });
-  if(!response.ok) {
-    console.error("Groq moderation status:",response.status);
-    throw new Response(JSON.stringify({error:"ИИ-проверка временно недоступна. Отправка остановлена, попробуй позже."}),{status:503});
+  const requestBody=JSON.stringify({model:MODEL,temperature:0,reasoning_effort:"low",max_completion_tokens:700,response_format:{type:"json_object"},messages:[
+    {role:"system",content:system},
+    {role:"user",content:JSON.stringify(kind==="report"
+      ? {context:"Жалоба; текст может цитировать чужое нарушение. Не считай жалобщика автором цитаты.",report:payload,analysis_views:analysisViews}
+      : {content_type:kind,submitted_content:payload,analysis_views:analysisViews})}
+  ]});
+  let response:Response|null=null;
+  let providerError:any=null;
+  for(let attempt=0;attempt<2;attempt++) {
+    response=await fetch("https://api.groq.com/openai/v1/chat/completions",{
+      method:"POST",
+      headers:{Authorization:"Bearer "+key,"Content-Type":"application/json"},
+      body:requestBody,
+      signal:AbortSignal.timeout(22000)
+    });
+    if(response.ok) break;
+    const status=response.status;
+    providerError=await response.json().catch(()=>null);
+    const providerMessage=String(providerError?.error?.message||providerError?.message||"");
+    const providerCode=String(providerError?.error?.code||providerError?.error?.type||"");
+    const quotaExhausted=status===402 ||
+      /insufficient_quota|billing|quota.{0,30}(exhaust|exceed)|(?:exhaust|exceed).{0,30}quota/i.test(providerCode+" "+providerMessage);
+    if(quotaExhausted) {
+      console.error("Groq moderation quota exhausted:",status);
+      throw new Response(JSON.stringify({error:"У ИИ-провайдера исчерпан лимит или требуется оплата. Администратору нужно проверить лимит Groq или заменить GROQ_API_KEY. Содержимое не отправлено."}),{status:503});
+    }
+    if(status===429) {
+      const rawRetry=response.headers.get("retry-after")||"";
+      const seconds=Number(rawRetry);
+      const retryAt=Number.isFinite(seconds)&&rawRetry.trim()
+        ? seconds*1000
+        : (Date.parse(rawRetry)-Date.now());
+      const waitMs=rawRetry.trim()&&Number.isFinite(retryAt)&&retryAt>=0
+        ? retryAt
+        : 1000;
+      if(attempt===0&&waitMs<=4000) {
+        await new Promise(resolve=>setTimeout(resolve,Math.max(250,waitMs)));
+        continue;
+      }
+      console.error("Groq moderation rate limited:",status);
+      throw new Response(JSON.stringify({error:"ИИ-провайдер ограничил частоту запросов (429). Подожди немного и повтори. Если ошибка повторяется, администратору нужно проверить лимиты Groq или заменить ключ. Содержимое не отправлено."}),{status:503});
+    }
+    console.error("Groq moderation provider error:",status);
+    const error=status===401||status===403
+      ? "Ключ Groq недействителен или не имеет доступа. Администратору нужно проверить GROQ_API_KEY."
+      : "ИИ-провайдер временно недоступен ("+status+"). Попробуй позже.";
+    throw new Response(JSON.stringify({error:error+" Содержимое не отправлено."}),{status:503});
+  }
+  if(!response||!response.ok) {
+    throw new Response(JSON.stringify({error:"ИИ-провайдер не ответил. Содержимое не отправлено."}),{status:503});
   }
   const envelope=await response.json().catch(()=>null);
   let parsed:any;
