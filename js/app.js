@@ -49,7 +49,7 @@ function msg(text) {
 function installMinecraftBookCursors() {
   if (window.__scrlTestMode || !document.body || !document.querySelectorAll) return;
   if (window.CSS && typeof window.CSS.supports === "function" &&
-      window.CSS.supports("caret-shape", "underscore")) return;
+      window.CSS.supports("caret-shape", "bar")) return;
 
   document.querySelectorAll("#authBook .mc-input-shell input").forEach(input => {
     const shell = input.parentElement;
@@ -66,7 +66,7 @@ function installMinecraftBookCursors() {
 
     const cursor = document.createElement("span");
     cursor.className = "mc-writing-cursor";
-    cursor.textContent = "_";
+    cursor.textContent = "|";
     cursor.setAttribute("aria-hidden", "true");
     cursor.hidden = true;
 
@@ -1199,7 +1199,8 @@ function currentRate() {
 
 function exchangePage() {
   const safety = data.safety || {};
-  if (safety.canUseExchange !== true) {
+  const adminAccess = isAdminAccount() || me().role === "admin";
+  if (!adminAccess && safety.canUseExchange !== true) {
     const age = Number(safety.ageYears);
     const status = String(safety.parentExchangeStatus || "not_requested");
     let explanation = "";
@@ -1399,8 +1400,8 @@ function noticesPage() {
   }).join("");
   return '<p class="eyebrow">УВЕДОМЛЕНИЯ</p><h1>Уведомления</h1>' +
     '<div class="notification-page-actions">' +
-      '<button class="button button-secondary" data-do="readall"' + (unread ? "" : " disabled") + '>Прочитать всё</button>' +
-      '<button class="button button-secondary" data-do="clearall"' + (items.length ? "" : " disabled") + '>Прочитать и очистить</button>' +
+      '<button type="button" class="button button-secondary" data-notice-action="read">Прочитать всё</button>' +
+      '<button type="button" class="button button-secondary" data-notice-action="clear">Прочитать и удалить</button>' +
     '</div>' +
     '<div class="demo-list">' + (rows || '<p class="muted">Уведомлений пока нет.</p>') + '</div>';
 }
@@ -3817,6 +3818,28 @@ el("page").addEventListener("click", event => {
     switchStyle();
     setPage("settings");
     msg(activeStyle() === "minecraft" ? "Включён стиль Minecraft." : "Включён обычный стиль.");
+    return;
+  }
+  const noticeButton = target.closest("[data-notice-action]");
+  if (noticeButton) {
+    event.preventDefault();
+    if (noticeButton.disabled || noticeButton.dataset.busy === "true") return;
+    const type = noticeButton.dataset.noticeAction === "clear" ? "clearall" : "readall";
+    try {
+      const result = action({ dataset: { do: type } });
+      if (result && typeof result.then === "function") {
+        noticeButton.disabled = true;
+        noticeButton.dataset.busy = "true";
+        result.catch(error => msg(error.message || "Не удалось обновить уведомления."))
+          .finally(() => {
+            if (noticeButton.isConnected === false) return;
+            noticeButton.disabled = false;
+            delete noticeButton.dataset.busy;
+          });
+      }
+    } catch (error) {
+      msg(error.message || "Не удалось обновить уведомления.");
+    }
     return;
   }
   const pageBtn = target.closest("[data-page]");

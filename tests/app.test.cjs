@@ -776,6 +776,40 @@ function promoteBootUserToAdmin(api, localStorage) {
   assert.equal(api.isAdminAccount(), true);
 }
 
+test("администратор может пользоваться биржей без допуска участника", () => {
+  const { api, localStorage } = boot();
+  promoteBootUserToAdmin(api, localStorage);
+  api.data.safety = { canUseExchange: false, ageYears: 13, parentExchangeStatus: "not_requested" };
+  const page = api.exchangePage();
+  assert.match(page, /id="sellScrlForm"/);
+  assert.match(page, /id="sellVrubForm"/);
+  assert.doesNotMatch(page, /ОГРАНИЧЕНИЕ ДОСТУПА/);
+});
+
+test("кнопки уведомлений имеют отдельный обработчик и не отключаются автоматически", () => {
+  const { api, els } = boot();
+  api.notify("u0", "Событие для проверки.");
+  const page = api.noticesPage();
+  assert.match(page, /type="button"[^>]*data-notice-action="read"/);
+  assert.match(page, /type="button"[^>]*data-notice-action="clear"/);
+  const handler = els.get("page").listeners.click;
+  const readButton = { dataset: { noticeAction: "read" }, disabled: false, isConnected: true };
+  handler({
+    target: { closest(selector) { return selector === "[data-notice-action]" ? readButton : null; } },
+    preventDefault() {}
+  });
+  assert.equal(api.data.notices.find(item => item.user === "u0").seen, true);
+});
+
+test("форма входа и регистрации использует вертикальный курсор", () => {
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
+  assert.match(app, /cursor\.textContent = "\\|"/);
+  assert.match(app, /caret-shape", "bar"/);
+  assert.match(css, /caret-shape:bar !important/);
+  assert.doesNotMatch(css, /caret-shape:underscore/);
+});
+
 test("ученик видит обычные разделы, но не может открыть кабинет учителя и администратора", () => {
   const { api, els } = boot();
   assert.equal(api.me().role, "student");

@@ -6934,7 +6934,7 @@ html body .theme-switch::after { content:none !important; display:none !importan
   html[data-theme="dark"] body .theme-switch-thumb { transform:translateX(26px) !important; }
 }
 
-/* The underscore caret is a single overlay positioned from the browser's measured text layout. */
+/* The vertical-bar fallback caret is positioned from the browser's measured text layout. */
 .mc-caret-measure {
   position:fixed !important;
   z-index:-1 !important;
@@ -6989,7 +6989,7 @@ html[data-theme="dark"] body .mc-writing-cursor { color:#edf4e9 !important; }
 }
 
 
-/* Last-match override: native vertical caret is hidden so only the measured underscore remains. */
+/* Native caret stays hidden only where the measured vertical-bar fallback is used. */
 html body #auth #authBook .mc-input-shell input,
 html body #auth #authBook #codeForm input#code { caret-color:transparent !important; }
 
@@ -7108,12 +7108,12 @@ html[data-theme="dark"] body #app .app-loading-spinner {
 @media (prefers-reduced-motion:reduce) { html body #app .app-loading-spinner { animation:none !important; } }
 
 
-/* Use a native underscore at the actual insertion point on browsers that support it. */
-@supports (caret-shape: underscore) {
+/* Use the native vertical bar caret wherever the browser supports it. */
+@supports (caret-shape: bar) {
   html body #auth #authBook .mc-input-shell input,
   html body #auth #authBook #codeForm input#code {
     caret-color:#344b36 !important;
-    caret-shape:underscore !important;
+    caret-shape:bar !important;
   }
   html[data-theme="dark"] body #auth #authBook .mc-input-shell input,
   html[data-theme="dark"] body #auth #authBook #codeForm input#code {
@@ -9239,4 +9239,32 @@ html[data-theme="dark"] body .topbar-balance .balance-group strong,
 html[data-theme="dark"] body .topbar-balance .balance-divider {
   color:#26372b !important;
   text-shadow:none !important;
+}
+
+
+/* Notification count stays high-contrast in the light theme. */
+html[data-theme="light"] body #app .notification-bell .notification-count {
+  color:#fff8e8 !important;
+  background:#9b342b !important;
+  border-color:#fff8e8 !important;
+  text-shadow:0 1px 1px rgba(40,12,8,.55) !important;
+}
+
+/* Keep the auth caret a vertical bar in all styles and input states. */
+html body #auth #authBook .mc-input-shell input,
+html body #auth #authBook #codeForm input#code {
+  caret-color:transparent !important;
+}
+@supports (caret-shape: bar) {
+  html body #auth #authBook .mc-input-shell input,
+  html body #auth #authBook #codeForm input#code {
+    caret-color:#344b36 !important;
+    caret-shape:bar !important;
+  }
+  html[data-theme="dark"] body #auth #authBook .mc-input-shell input,
+  html[data-theme="dark"] body #auth #authBook #codeForm input#code {
+    caret-color:#edf4e9 !important;
+  }
+  html body .mc-caret-measure,
+  html body .mc-writing-cursor { display:none !important; }
 }
