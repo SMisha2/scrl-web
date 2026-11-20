@@ -165,19 +165,17 @@ test("own post deletion uses the authenticated owner/admin RPC", async () => {
 });
 
 
-test("reading uses the existing RPC and clearing deletes only the signed-in user's notifications", async () => {
-  const { api, calls } = loadBackend({
-    session: { id: "user-1", token: "signed-user-jwt" }
-  });
+test("reading and clearing notifications use the user-scoped notification RPC", async () => {
+  const { api, calls } = loadBackend();
   await api.markNotificationsRead();
   await api.clearNotifications();
   assert.equal(calls.length, 2);
-  assert.match(calls[0].url, /rpc\/scrl_mark_notifications_read$/);
-  assert.deepEqual(JSON.parse(calls[0].options.body), {});
-  assert.match(calls[1].url, /rest\/v1\/notifications\?user_id=eq\.user-1$/);
-  assert.equal(calls[1].options.method, "DELETE");
+  assert.match(calls[0].url, /rpc\/scrl_manage_my_notifications$/);
+  assert.deepEqual(JSON.parse(calls[0].options.body), { p_action: "read" });
+  assert.match(calls[1].url, /rpc\/scrl_manage_my_notifications$/);
+  assert.deepEqual(JSON.parse(calls[1].options.body), { p_action: "clear" });
+  assert.equal(calls[0].options.headers.Authorization, "Bearer signed-user-jwt");
   assert.equal(calls[1].options.headers.Authorization, "Bearer signed-user-jwt");
-  assert.equal(calls[1].options.headers.Prefer, "return=minimal");
 });
 
 test("an expired REST session is refreshed and the failed request is retried", async () => {
