@@ -2751,6 +2751,20 @@ async function actionRemote(btn) {
     msg("Уведомления прочитаны и очищены.");
     return;
   }
+  if (type === "readall") {
+    await backend.markNotificationsRead();
+    await refreshRemoteData();
+    setPage("notices");
+    msg("Все уведомления отмечены прочитанными.");
+    return;
+  }
+  if (type === "clearall") {
+    await backend.clearNotifications();
+    await refreshRemoteData();
+    setPage("notices");
+    msg("Уведомления прочитаны и очищены.");
+    return;
+  }
   if (type === "block") {
     if (me().role !== "admin") throw new Error("Нет доступа.");
     const target = getUser(id);
