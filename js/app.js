@@ -599,10 +599,6 @@ function updateNotificationBell() {
   count.hidden = unread === 0;
   bell.classList.toggle("has-unread", unread > 0);
   bell.setAttribute("aria-label", unread ? "Уведомления. Непрочитанных: " + unread : "Уведомления");
-  const summary = el("notificationSummary");
-  if (summary) summary.textContent = unread ? unread + " непрочитано" : (items.length ? "Всё прочитано" : "Пока тихо");
-  const markAll = el("markAllNotices");
-  if (markAll) markAll.disabled = unread === 0;
   const visible = items.slice(0, 6);
   list.innerHTML = visible.length ? visible.map(item => {
     const date = new Date(item.date || item.created_at || Date.now());
@@ -3768,18 +3764,8 @@ if (el("notificationBell")) {
 }
 if (el("notificationPanel")) {
   el("notificationPanel").addEventListener("click", event => {
-    const control = event.target.closest("[data-do], [data-notification-page]");
+    const control = event.target.closest("[data-notification-page]");
     if (!control) return;
-    if (control.dataset.do === "readall") {
-      try {
-        const result = action(control);
-        if (result && typeof result.catch === "function") result.catch(error => msg(error.message || "Не удалось обновить уведомления."));
-      } catch (error) {
-        msg(error.message || "Не удалось обновить уведомления.");
-      }
-      closeNotificationPanel();
-      return;
-    }
     if (control.dataset.notificationPage !== undefined) {
       setPage("notices");
       closeNotificationPanel();

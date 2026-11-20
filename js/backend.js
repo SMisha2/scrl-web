@@ -555,10 +555,16 @@
       return rpc("scrl_scan_publications", {});
     },
     markNotificationsRead() {
-      return rpc("scrl_manage_my_notifications", { p_action: "read" });
+      return rpc("scrl_mark_notifications_read", {});
     },
     clearNotifications() {
-      return rpc("scrl_manage_my_notifications", { p_action: "clear" });
+      const current = storedSession();
+      if (!current || !current.id) throw new Error("Не удалось определить аккаунт для очистки уведомлений.");
+      const userId = encodeURIComponent(String(current.id));
+      return request("/rest/v1/notifications?user_id=eq." + userId, {
+        method: "DELETE",
+        prefer: "return=minimal"
+      });
     },
     logSelf(message) {
       return rpc("scrl_log_self", { p_message: message });

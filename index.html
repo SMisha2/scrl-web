@@ -12,11 +12,11 @@
   <link rel="preload" href="assets/MinecraftRus.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/backgrounds/night.png" as="image" fetchpriority="high">
   <link rel="preload" href="assets/backgrounds/day.png" as="image" fetchpriority="low">
-  <link rel="stylesheet" href="css/style.css?v=210">
+  <link rel="stylesheet" href="css/style.css?v=211">
   <script src="js/config.js" defer></script>
   <script src="js/core.js" defer></script>
-  <script src="js/backend.js?v=166" defer></script>
-  <script src="js/app.js?v=215" defer></script>
+  <script src="js/backend.js?v=167" defer></script>
+  <script src="js/app.js?v=216" defer></script>
 </head>
 <body>
   <div id="worldScenery" class="world-scenery" aria-hidden="true">
@@ -197,10 +197,7 @@
               <span id="notificationCount" class="notification-count" hidden>0</span>
             </button>
             <section id="notificationPanel" class="notification-panel" aria-label="Последние уведомления" hidden>
-              <header class="notification-panel-head">
-                <div><strong>Уведомления</strong><small id="notificationSummary">Пока тихо</small></div>
-                <button id="markAllNotices" type="button" data-do="readall">Прочитать всё</button>
-              </header>
+              <header class="notification-panel-head"><strong>Уведомления</strong></header>
               <div id="notificationList" class="notification-list">
                 <p class="notification-empty">Здесь появятся сообщения и события.</p>
               </div>

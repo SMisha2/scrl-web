@@ -555,6 +555,7 @@ test("toolbar and bell notifications have one consistent control height", () => 
   assert.match(html, /id="notificationPanel"/);
   assert.match(html, /id="notificationCount"/);
   assert.doesNotMatch(html, /data-page="notices"/);
+  assert.doesNotMatch(html, /notificationSummary|markAllNotices|data-do="readall"/);
   assert.match(css, /--scrl-toolbar-control:38px/);
   assert.match(css, /\.notification-panel[\s\S]*?position:absolute/);
   assert.match(app, /function updateNotificationBell\(\)/);
@@ -578,7 +579,7 @@ test("bell counter only shows unread notices for the current user", () => {
   assert.equal(api.data.notices.find(item => item.user === "u0").seen, true);
   assert.equal(api.data.notices.find(item => item.user === "u1").seen, false);
   assert.equal(els.get("notificationCount").hidden, true);
-  assert.equal(els.get("notificationSummary").textContent, "Всё прочитано");
+
 });
 
 test("прочитать и очистить удаляет только уведомления текущего аккаунта", () => {
@@ -591,15 +592,6 @@ test("прочитать и очистить удаляет только уве�
   assert.equal(api.data.notices.some(item => item.user === "u1"), true);
   assert.equal(els.get("notificationCount").hidden, true);
 });
-
-test("миграция уведомлений ограничивает прочтение и очистку текущим пользователем", () => {
-  const migration = fs.readFileSync(path.join(__dirname, "../supabase/migrations/20261120215000_manage_own_notifications.sql"), "utf8");
-  assert.match(migration, /SECURITY DEFINER/);
-  assert.match(migration, /auth\.uid\(\)/);
-  assert.match(migration, /WHERE user_id = v_user_id/);
-  assert.match(migration, /p_action = 'clear'/);
-});
-
 
 test("верхняя панель показывает баланс, а карточки главной открывают свои разделы", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
