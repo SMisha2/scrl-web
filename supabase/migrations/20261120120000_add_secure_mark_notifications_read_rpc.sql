@@ -17,12 +17,18 @@ BEGIN
 
   CASE lower(coalesce(p_action, ''))
     WHEN 'read' THEN
+    WHEN 'mark_read' THEN
+    WHEN 'mark_all_read' THEN
+    WHEN 'read_all' THEN
       UPDATE public.notifications
       SET seen = true
       WHERE user_id = auth.uid()
         AND seen IS DISTINCT FROM true;
       GET DIAGNOSTICS v_affected = ROW_COUNT;
     WHEN 'clear' THEN
+    WHEN 'delete' THEN
+    WHEN 'clear_all' THEN
+    WHEN 'delete_all' THEN
       DELETE FROM public.notifications
       WHERE user_id = auth.uid();
       GET DIAGNOSTICS v_affected = ROW_COUNT;
