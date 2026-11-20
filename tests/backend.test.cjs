@@ -200,9 +200,9 @@ test("an expired REST session is refreshed and the failed request is retried", a
 
   await api.markNotificationsRead();
   assert.equal(calls.length, 3);
-  assert.match(calls[0].url, /rpc\/scrl_mark_notifications_read$/);
+  assert.match(calls[0].url, /rpc\/scrl_manage_my_notifications$/);
   assert.match(calls[1].url, /auth\/v1\/token\?grant_type=refresh_token$/);
-  assert.match(calls[2].url, /rpc\/scrl_mark_notifications_read$/);
+  assert.match(calls[2].url, /rpc\/scrl_manage_my_notifications$/);
   assert.equal(calls[2].options.headers.Authorization, "Bearer fresh-access");
   assert.deepEqual(JSON.parse(localStorage.getItem("scrlSession")), {
     id: "user-1", token: "fresh-access", refreshToken: "refresh-new"
