@@ -410,7 +410,7 @@ test("вход и регистрация занимают страницы 1 и 
   assert.match(css, /@media \(max-width:620px\)/);
 });
 
-test("курсор underscore следует за реальной кареткой во всех полях авторизации", () => {
+test("вертикальный курсор следует за реальной кареткой во всех полях авторизации", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
@@ -419,13 +419,14 @@ test("курсор underscore следует за реальной каретк�
   assert.match(html, /id="codeForm"/);
   assert.match(app, /function installMinecraftBookCursors\(\)/);
   assert.ok(app.includes('document.querySelectorAll("#authBook .mc-input-shell input")'));
-  assert.ok(app.includes('cursor.textContent = "_"'));
+  assert.ok(app.includes('cursor.textContent = "|"'));
   assert.ok(app.includes("marker.getBoundingClientRect()"));
   assert.ok(app.includes("document.body.append(mirror, cursor)"));
   assert.ok(app.includes('document.addEventListener("selectionchange", updateSelection)'));
   assert.ok(css.includes(".mc-writing-cursor"));
   assert.ok(css.includes(".mc-caret-measure"));
   assert.ok(css.includes("caret-color:transparent !important"));
+  assert.ok(css.includes("caret-shape:bar !important"));
 });
 test("восстановление пароля проходит через письмо Supabase и recovery token", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
@@ -586,7 +587,7 @@ test("прочитать и очистить удаляет только уве�
   const { api, els } = boot();
   api.notify("u0", "Моё уведомление.");
   api.notify("u1", "Чужое уведомление.");
-  assert.match(api.noticesPage(), /data-do="clearall">Прочитать и очистить/);
+  assert.match(api.noticesPage(), /data-notice-action="clear">Прочитать и удалить/);
   api.action({ dataset: { do: "clearall" } });
   assert.equal(api.data.notices.some(item => item.user === "u0"), false);
   assert.equal(api.data.notices.some(item => item.user === "u1"), true);
@@ -639,14 +640,14 @@ test("переключение входа и регистрации перели
   assert.match(css, /#auth \.book-page::before[\s\S]*?display:none !important/);
 });
 
-test("underscore отображается и в форме регистрации, и в поле восьмизначного кода", () => {
+test("вертикальный курсор отображается и в форме регистрации, и в поле восьмизначного кода", () => {
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   assert.ok(app.includes('document.querySelectorAll("#authBook .mc-input-shell input")'));
   assert.ok(app.includes('input.type === "password"'));
   assert.ok(app.includes('"•".repeat(input.value.length)'));
-  assert.ok(app.includes('cursor.textContent = "_"'));
+  assert.ok(app.includes('cursor.textContent = "|"'));
   assert.ok(css.includes("html body #auth #codeForm input#code"));
   assert.ok(css.includes("html body .mc-writing-cursor[hidden]"));
   assert.match(app, /Этот код уже использован, заменён новым или истёк/);
@@ -1115,20 +1116,20 @@ test("светлая и тёмная темы используют одинак�
   assert.ok(css.includes("background-color:#f8f8ee !important"));
   assert.ok(css.includes("border:1px solid #334a38 !important"));
 });
-test("курсор использует нативный underscore без вертикальной полосы в поддерживаемых браузерах", () => {
+test("курсор использует нативную вертикальную полосу в поддерживаемых браузерах", () => {
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
-  const nativeStart = css.lastIndexOf("@supports (caret-shape: underscore)");
+  const nativeStart = css.lastIndexOf("@supports (caret-shape: bar)");
   const fallbackRule = css.lastIndexOf("html body #auth #authBook .mc-input-shell input", nativeStart - 1);
   assert.ok(nativeStart > fallbackRule);
-  assert.ok(css.slice(nativeStart).includes("caret-shape:underscore !important"));
+  assert.ok(css.slice(nativeStart).includes("caret-shape:bar !important"));
   assert.ok(css.slice(nativeStart).includes("caret-color:#344b36 !important"));
   assert.ok(css.slice(nativeStart).includes("caret-color:#edf4e9 !important"));
   assert.ok(css.slice(nativeStart).includes(".mc-writing-cursor"));
   assert.ok(css.slice(nativeStart).includes("display:none !important"));
   assert.ok(css.includes("caret-color:transparent !important"));
-  assert.ok(app.includes('window.CSS.supports("caret-shape", "underscore")'));
-  assert.ok(app.includes('cursor.textContent = "_"'));
+  assert.ok(app.includes('window.CSS.supports("caret-shape", "bar")'));
+  assert.ok(app.includes('cursor.textContent = "|"'));
   assert.ok(app.includes('document.querySelectorAll("#authBook .mc-input-shell input")'));
 });
 test("кнопка выхода имеет ширину под подпись на десктопе и мобильных экранах", () => {
