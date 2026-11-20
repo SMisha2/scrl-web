@@ -188,7 +188,7 @@ test("an expired REST session is refreshed and the failed request is retried", a
           async text() { return JSON.stringify({ access_token: "fresh-access", refresh_token: "refresh-new" }); }
         };
       }
-      if (String(url).includes("/rpc/scrl_mark_notifications_read")) {
+      if (String(url).includes("/rpc/scrl_manage_my_notifications")) {
         if (options.headers.Authorization === "Bearer expired-access") {
           return { ok: false, status: 401, async text() { return JSON.stringify({ message: "JWT expired" }); } };
         }
@@ -251,7 +251,7 @@ test("a refresh-token race in another tab keeps the newer shared session", async
         }));
         return { ok: false, status: 400, async text() { return JSON.stringify({ message: "refresh token already used" }); } };
       }
-      if (String(url).includes("/rpc/scrl_mark_notifications_read")) {
+      if (String(url).includes("/rpc/scrl_manage_my_notifications")) {
         if (options.headers.Authorization === "Bearer expired-access") {
           return { ok: false, status: 401, async text() { return JSON.stringify({ message: "JWT expired" }); } };
         }
