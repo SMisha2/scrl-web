@@ -555,7 +555,10 @@
       return rpc("scrl_scan_publications", {});
     },
     markNotificationsRead() {
-      return rpc("scrl_mark_notifications_read", {});
+      return rpc("scrl_manage_my_notifications", { p_action: "read" });
+    },
+    clearNotifications() {
+      return rpc("scrl_manage_my_notifications", { p_action: "clear" });
     },
     logSelf(message) {
       return rpc("scrl_log_self", { p_message: message });

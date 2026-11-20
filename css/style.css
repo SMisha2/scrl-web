@@ -9210,3 +9210,37 @@ html body #page .admin-help > p {
     grid-column:1 !important;
   }
 }
+
+
+/* Notification actions are visible in the full inbox and wrap cleanly on mobile. */
+html body #page .notification-page-actions {
+  display:flex !important;
+  flex-wrap:wrap !important;
+  align-items:center !important;
+  gap:9px !important;
+  margin:0 0 14px !important;
+}
+html body #page .notification-page-actions button {
+  min-height:40px !important;
+  margin:0 !important;
+}
+@media (max-width:560px) {
+  html body #page .notification-page-actions {
+    display:grid !important;
+    grid-template-columns:1fr !important;
+  }
+  html body #page .notification-page-actions button { width:100% !important; }
+}
+
+/* In dark theme the balance chip stays light so its requested dark text remains legible. */
+html[data-theme="dark"] body .topbar-balance {
+  color:#26372b !important;
+  background:#dce7d5 !important;
+  border-color:#8fa28d !important;
+}
+html[data-theme="dark"] body .topbar-balance .balance-group small,
+html[data-theme="dark"] body .topbar-balance .balance-group strong,
+html[data-theme="dark"] body .topbar-balance .balance-divider {
+  color:#26372b !important;
+  text-shadow:none !important;
+}

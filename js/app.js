@@ -1394,10 +1394,19 @@ function favoritesPage() {
 }
 
 function noticesPage() {
-  const rows = data.notices.filter(n => n.user === me().id).map(n =>
-    '<div class="data-row"><span>' + safe(n.text) + '<small>' + new Date(n.date).toLocaleString("ru-RU") + '</small></span><b>' + (n.seen ? "Прочитано" : "Новое") + '</b></div>'
-  ).join("");
-  return '<p class="eyebrow">УВЕДОМЛЕНИЯ</p><h1>Уведомления</h1><div class="demo-list">' + (rows || '<p class="muted">Новых уведомлений нет.</p>') + '</div><button class="button button-secondary" data-do="readall">Отметить всё прочитанным</button>';
+  const items = notificationItems();
+  const unread = items.some(item => !item.seen);
+  const rows = items.map(n => {
+    const date = new Date(n.date || n.created_at || Date.now());
+    const dateText = Number.isNaN(date.getTime()) ? "" : date.toLocaleString("ru-RU");
+    return '<div class="data-row"><span>' + safe(n.text || "Новое уведомление") + '<small>' + safe(dateText) + '</small></span><b>' + (n.seen ? "Прочитано" : "Новое") + '</b></div>';
+  }).join("");
+  return '<p class="eyebrow">УВЕДОМЛЕНИЯ</p><h1>Уведомления</h1>' +
+    '<div class="notification-page-actions">' +
+      '<button class="button button-secondary" data-do="readall"' + (unread ? "" : " disabled") + '>Прочитать всё</button>' +
+      '<button class="button button-secondary" data-do="clearall"' + (items.length ? "" : " disabled") + '>Прочитать и очистить</button>' +
+    '</div>' +
+    '<div class="demo-list">' + (rows || '<p class="muted">Уведомлений пока нет.</p>') + '</div>';
 }
 
 function profilePage() {
@@ -2446,6 +2455,15 @@ function action(btn) {
     data.notices.filter(n => n.user === me().id).forEach(n => n.seen = true);
     save();
     setPage("notices");
+    msg("Все уведомления отмечены прочитанными.");
+  }
+  if (type === "clearall") {
+    const userId = me().id;
+    data.notices.filter(n => n.user === userId).forEach(n => { n.seen = true; });
+    data.notices = data.notices.filter(n => n.user !== userId);
+    save();
+    setPage("notices");
+    msg("Уведомления прочитаны и очищены.");
   }
   if (type === "block") {
     if (me().role !== "admin") throw new Error("Нет доступа.");
@@ -2726,6 +2744,14 @@ async function actionRemote(btn) {
     await backend.markNotificationsRead();
     await refreshRemoteData();
     setPage("notices");
+    msg("Все уведомления отмечены прочитанными.");
+    return;
+  }
+  if (type === "clearall") {
+    await backend.clearNotifications();
+    await refreshRemoteData();
+    setPage("notices");
+    msg("Уведомления прочитаны и очищены.");
     return;
   }
   if (type === "block") {

@@ -165,6 +165,17 @@ test("own post deletion uses the authenticated owner/admin RPC", async () => {
 });
 
 
+test("mark and clear notification actions use the authenticated notification RPC", async () => {
+  const { api, calls } = loadBackend();
+  await api.markNotificationsRead();
+  await api.clearNotifications();
+  assert.equal(calls.length, 2);
+  assert.match(calls[0].url, /rpc\/scrl_manage_my_notifications$/);
+  assert.deepEqual(JSON.parse(calls[0].options.body), { p_action: "read" });
+  assert.match(calls[1].url, /rpc\/scrl_manage_my_notifications$/);
+  assert.deepEqual(JSON.parse(calls[1].options.body), { p_action: "clear" });
+});
+
 test("an expired REST session is refreshed and the failed request is retried", async () => {
   const { api, calls, localStorage, sessionStorage } = loadBackend({
     session: { id: "user-1", token: "expired-access", refreshToken: "refresh-old" },
@@ -175,7 +186,7 @@ test("an expired REST session is refreshed and the failed request is retried", a
           async text() { return JSON.stringify({ access_token: "fresh-access", refresh_token: "refresh-new" }); }
         };
       }
-      if (String(url).includes("/rpc/scrl_mark_notifications_read")) {
+      if (String(url).includes("/rpc/scrl_manage_my_notifications")) {
         if (options.headers.Authorization === "Bearer expired-access") {
           return { ok: false, status: 401, async text() { return JSON.stringify({ message: "JWT expired" }); } };
         }
@@ -187,9 +198,9 @@ test("an expired REST session is refreshed and the failed request is retried", a
 
   await api.markNotificationsRead();
   assert.equal(calls.length, 3);
-  assert.match(calls[0].url, /rpc\/scrl_mark_notifications_read$/);
+  assert.match(calls[0].url, /rpc\/scrl_manage_my_notifications$/);
   assert.match(calls[1].url, /auth\/v1\/token\?grant_type=refresh_token$/);
-  assert.match(calls[2].url, /rpc\/scrl_mark_notifications_read$/);
+  assert.match(calls[2].url, /rpc\/scrl_manage_my_notifications$/);
   assert.equal(calls[2].options.headers.Authorization, "Bearer fresh-access");
   assert.deepEqual(JSON.parse(localStorage.getItem("scrlSession")), {
     id: "user-1", token: "fresh-access", refreshToken: "refresh-new"
@@ -238,7 +249,7 @@ test("a refresh-token race in another tab keeps the newer shared session", async
         }));
         return { ok: false, status: 400, async text() { return JSON.stringify({ message: "refresh token already used" }); } };
       }
-      if (String(url).includes("/rpc/scrl_mark_notifications_read")) {
+      if (String(url).includes("/rpc/scrl_manage_my_notifications")) {
         if (options.headers.Authorization === "Bearer expired-access") {
           return { ok: false, status: 401, async text() { return JSON.stringify({ message: "JWT expired" }); } };
         }

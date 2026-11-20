@@ -575,8 +575,29 @@ test("bell counter only shows unread notices for the current user", () => {
   assert.doesNotMatch(els.get("notificationList").innerHTML, /другого участника/);
   api.action({ dataset: { do: "readall" } });
   api.updateNotificationBell();
+  assert.equal(api.data.notices.find(item => item.user === "u0").seen, true);
+  assert.equal(api.data.notices.find(item => item.user === "u1").seen, false);
   assert.equal(els.get("notificationCount").hidden, true);
   assert.equal(els.get("notificationSummary").textContent, "Всё прочитано");
+});
+
+test("прочитать и очистить удаляет только уведомления текущего аккаунта", () => {
+  const { api, els } = boot();
+  api.notify("u0", "Моё уведомление.");
+  api.notify("u1", "Чужое уведомление.");
+  assert.match(api.noticesPage(), /data-do="clearall">Прочитать и очистить/);
+  api.action({ dataset: { do: "clearall" } });
+  assert.equal(api.data.notices.some(item => item.user === "u0"), false);
+  assert.equal(api.data.notices.some(item => item.user === "u1"), true);
+  assert.equal(els.get("notificationCount").hidden, true);
+});
+
+test("миграция уведомлений ограничивает прочтение и очистку текущим пользователем", () => {
+  const migration = fs.readFileSync(path.join(__dirname, "../supabase/migrations/20261120215000_manage_own_notifications.sql"), "utf8");
+  assert.match(migration, /SECURITY DEFINER/);
+  assert.match(migration, /auth\.uid\(\)/);
+  assert.match(migration, /WHERE user_id = v_user_id/);
+  assert.match(migration, /WHEN 'clear'/);
 });
 
 
