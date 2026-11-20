@@ -597,7 +597,7 @@ test("миграция уведомлений ограничивает проч�
   assert.match(migration, /SECURITY DEFINER/);
   assert.match(migration, /auth\.uid\(\)/);
   assert.match(migration, /WHERE user_id = v_user_id/);
-  assert.match(migration, /WHEN 'clear'/);
+  assert.match(migration, /p_action = 'clear'/);
 });
 
 
