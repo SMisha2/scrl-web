@@ -102,3 +102,18 @@ test("ordinary user management cannot demote or modify administrator profiles", 
   assert.ok(sql.includes("Профили администраторов нельзя изменять через управление участниками."));
   assert.match(sql, /REVOKE ALL ON FUNCTION public\.scrl_admin_set_user\(uuid, text, text, text\) FROM PUBLIC, anon/i);
 });
+
+
+test("active administrators can use the exchange without the parent-consent gate", () => {
+  const name = "20261121104500_allow_admin_exchange_access.sql";
+  const sql = fs.readFileSync(path.join(migrationDir, name), "utf8");
+  const adminBranch = sql.indexOf("p.role = 'admin'");
+  const ageGate = sql.indexOf("s.birth_date <= current_date");
+
+  assert.ok(adminBranch >= 0, "Active admin role must be explicitly allowed");
+  assert.ok(ageGate > adminBranch, "Admin bypass must be evaluated independently of participant age checks");
+  assert.ok(sql.includes("p.deleted_at IS NULL"));
+  assert.ok(sql.includes("p.blocked = false"));
+  assert.ok(sql.includes("s.parent_exchange_status = 'approved'"));
+  assert.ok(sql.includes("GRANT EXECUTE ON FUNCTION private.scrl_user_can_exchange(uuid) TO authenticated"));
+});
