@@ -802,6 +802,16 @@ test("кнопки уведомлений имеют отдельный обра
   assert.equal(api.data.notices.find(item => item.user === "u0").seen, true);
 });
 
+test("удалённые действия уведомлений вызывают защищённые RPC", () => {
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  const start = app.indexOf("async function actionRemote");
+  const end = app.indexOf("\nfunction action(", start);
+  const remoteAction = app.slice(start, end);
+  assert.match(remoteAction, /if \(type === "readall"\)[\s\S]*?await backend\.markNotificationsRead\(\)/);
+  assert.match(remoteAction, /if \(type === "clearall"\)[\s\S]*?await backend\.clearNotifications\(\)/);
+  assert.match(remoteAction, /await refreshRemoteData\(\)/);
+});
+
 test("форма входа и регистрации использует вертикальный курсор", () => {
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
