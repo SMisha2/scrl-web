@@ -42,3 +42,20 @@ test("notification RPC updates and deletes only the signed-in user's rows", () =
   assert.match(sql, /REVOKE ALL ON FUNCTION public\.scrl_manage_my_notifications\(text\) FROM PUBLIC, anon/i);
   assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.scrl_manage_my_notifications\(text\) TO authenticated/i);
 });
+
+
+test("every frontend RPC call has a tracked SQL function definition", () => {
+  const backend = fs.readFileSync(path.join(__dirname, "../js/backend.js"), "utf8");
+  const sql = migrationFiles
+    .map(name => fs.readFileSync(path.join(migrationDir, name), "utf8"))
+    .join("\\n");
+
+  const calls = new Set([
+    ...[...backend.matchAll(/\\brpc\\(\\s*["'`](scrl_[a-z0-9_]+)["'`]/g)].map(match => match[1]),
+    ...[...backend.matchAll(/request\\(\\s*["'`]\\/rest\\/v1\\/rpc\\/(scrl_[a-z0-9_]+)/g)].map(match => match[1])
+  ]);
+  const missing = [...calls].filter(name =>
+    !new RegExp("CREATE\\\\s+(?:OR\\\\s+REPLACE\\\\s+)?FUNCTION\\\\s+public\\\\." + name + "\\\\s*\\\\(", "i").test(sql)
+  );
+  assert.deepEqual(missing, [], "Untracked SQL RPC definitions: " + missing.join(", "));
+});
