@@ -1,0 +1,10 @@
+create index if not exists auctions_leader_idx on public.auctions(leader_id);
+create index if not exists auctions_owner_idx on public.auctions(owner_id);
+create index if not exists audit_actor_idx on public.audit(actor_id);
+create index if not exists bids_user_idx on public.bids(user_id);
+create index if not exists deal_messages_user_idx on public.deal_messages(user_id);
+create index if not exists exchange_orders_buyer_idx on public.exchange_orders(buyer_id);
+create index if not exists exchange_orders_owner_idx on public.exchange_orders(owner_id);
+create index if not exists ledger_actor_idx on public.ledger(actor_id);
+create index if not exists listings_owner_idx on public.listings(owner_id);
+create index if not exists posts_owner_idx on public.posts(owner_id);
