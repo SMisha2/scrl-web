@@ -64,25 +64,25 @@ test("every frontend RPC call has a tracked SQL function definition", () => {
 test("deal settlement refuses missing escrow and locks participant wallets before paying", () => {
   const name = "20261121100000_harden_deal_escrow_settlement.sql";
   const sql = fs.readFileSync(path.join(migrationDir, name), "utf8");
-  assert.match(sql, /PERFORM w\\.user_id[\\s\\S]*?ORDER BY w\\.user_id[\\s\\S]*?FOR UPDATE/i);
-  assert.match(sql, /IF v_buyer_wallet\\.hold_scrl < v_deal\\.escrow THEN/i);
-  assert.match(sql, /SET hold_scrl = hold_scrl - v_deal\\.escrow/i);
-  assert.doesNotMatch(sql, /hold_scrl\\s*=\\s*greatest/i);
-  assert.match(sql, /REVOKE ALL ON FUNCTION public\\.scrl_deal_action\\(uuid, text, numeric\\) FROM PUBLIC, anon/i);
+  assert.match(sql, /PERFORM w\.user_id[\s\S]*?ORDER BY w\.user_id[\s\S]*?FOR UPDATE/i);
+  assert.match(sql, /IF v_buyer_wallet\.hold_scrl < v_deal\.escrow THEN/i);
+  assert.match(sql, /SET hold_scrl = hold_scrl - v_deal\.escrow/i);
+  assert.doesNotMatch(sql, /hold_scrl\s*=\s*greatest/i);
+  assert.match(sql, /REVOKE ALL ON FUNCTION public\.scrl_deal_action\(uuid, text, numeric\) FROM PUBLIC, anon/i);
 });
 
 test("SECURITY DEFINER functions pin their search_path", () => {
   for (const name of migrationFiles) {
     const sql = fs.readFileSync(path.join(migrationDir, name), "utf8");
     const functions = [...sql.matchAll(
-      /CREATE\\s+(?:OR\\s+REPLACE\\s+)?FUNCTION\\b[\\s\\S]*?\\bAS\\s+(\\$[a-z_]*\\$|\\$\\$)[\\s\\S]*?\\1\\s*;/gi
+      /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\b[\s\S]*?\bAS\s+(\$[a-z_]*\$|\$\$)[\s\S]*?\1\s*;/gi
     )].map(match => match[0]);
 
     for (const definition of functions) {
-      if (/\\bSECURITY\\s+DEFINER\\b/i.test(definition)) {
+      if (/\bSECURITY\s+DEFINER\b/i.test(definition)) {
         assert.match(
           definition,
-          /\\bSET\\s+search_path\\b/i,
+          /\bSET\s+search_path\b/i,
           `SECURITY DEFINER function without fixed search_path in ${name}`
         );
       }
