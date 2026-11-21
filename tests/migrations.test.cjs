@@ -89,3 +89,16 @@ test("SECURITY DEFINER functions pin their search_path", () => {
     }
   }
 });
+
+
+test("ordinary user management cannot demote or modify administrator profiles", () => {
+  const name = "20261121103000_protect_admin_profiles_from_user_management.sql";
+  const sql = fs.readFileSync(path.join(migrationDir, name), "utf8");
+  const adminGuard = sql.indexOf("IF v_user.role = 'admin' THEN");
+  const firstMutation = sql.indexOf("IF p_action = 'teacher'");
+
+  assert.ok(adminGuard >= 0, "The SQL function must reject administrator targets");
+  assert.ok(firstMutation > adminGuard, "The administrator guard must run before role changes");
+  assert.ok(sql.includes("Профили администраторов нельзя изменять через управление участниками."));
+  assert.match(sql, /REVOKE ALL ON FUNCTION public\.scrl_admin_set_user\(uuid, text, text, text\) FROM PUBLIC, anon/i);
+});
