@@ -1169,12 +1169,12 @@ function boardPage() {
   return '<p class="eyebrow">ВЗАИМОПОМОЩЬ</p><h1>Доска</h1>' +
     '<section class="match-box"><h2>Подходящие предложения</h2>' + (hints || '<p class="muted small">Создай запрос — здесь появятся предложения по такой же теме.</p>') + '</section>' +
     '<form id="boardFilter" class="filter-row"><input name="term" id="boardTerm" value="' + safe(filter.term) + '" placeholder="Поиск по публикациям">' +
-    '<select name="type"><option value="all"' + (filter.type === "all" ? " selected" : "") + '>Все</option><option value="need"' + (filter.type === "need" ? " selected" : "") + '>Мне нужно</option><option value="offer"' + (filter.type === "offer" ? " selected" : "") + '>Я могу</option></select>' +
+    '<select name="type" aria-label="Тип публикации"><option value="all"' + (filter.type === "all" ? " selected" : "") + '>Все</option><option value="need"' + (filter.type === "need" ? " selected" : "") + '>Мне нужно</option><option value="offer"' + (filter.type === "offer" ? " selected" : "") + '>Я могу</option></select>' +
     '<button class="button button-secondary" type="submit">Найти</button></form>' +
-    '<form id="boardForm" class="demo-form"><h2>Новая публикация</h2><label>Тип</label><select name="type"><option value="need">Мне нужно</option><option value="offer">Я могу</option></select>' +
-    '<label>Тема</label><select name="category"><option>Учёба</option><option>Математика</option><option>Языки</option><option>Дизайн</option><option>Творчество</option><option>Другое</option></select>' +
-    '<label>Заголовок</label><input name="title" maxlength="80" required><label>Описание</label><textarea name="desc" rows="3" maxlength="300" required></textarea>' +
-    '<label>Цена в ScRl (0 — бесплатно, без лимита)</label><input name="price" type="number" min="0" step="any" value="0" required><button class="button button-primary" type="submit">Опубликовать</button></form>' +
+    '<form id="boardForm" class="demo-form"><h2>Новая публикация</h2><label>Тип</label><select name="type" aria-label="Тип публикации"><option value="need">Мне нужно</option><option value="offer">Я могу</option></select>' +
+    '<label>Тема</label><select name="category" aria-label="Категория"><option>Учёба</option><option>Математика</option><option>Языки</option><option>Дизайн</option><option>Творчество</option><option>Другое</option></select>' +
+    '<label>Заголовок</label><input name="title" maxlength="80" required aria-label="Заголовок"><label>Описание</label><textarea name="desc" rows="3" maxlength="300" required aria-label="Описание"></textarea>' +
+    '<label>Цена в ScRl (0 — бесплатно, без лимита)</label><input name="price" type="number" min="0" step="any" value="0" required aria-label="Цена в ScRl"><button class="button button-primary" type="submit">Опубликовать</button></form>' +
     '<div class="demo-list-title"><h2>Публикации</h2><span class="muted small">' + visiblePosts.length + ' записей</span></div>' +
     '<div class="demo-list">' + (rows || '<p class="muted">По этому запросу ничего нет.</p>') + '</div>';
 }
@@ -1194,12 +1194,12 @@ function marketPage() {
       '<button class="text-button" data-do="buy" data-id="' + item.id + '">Заказать</button>') + '</span></div></article>'
   ).join("");
   return '<p class="eyebrow">УСЛУГИ УЧЕНИКОВ</p><h1>Маркет</h1><p class="muted">Услуги и заказы с резервом ScRl до подтверждения.</p>' +
-    '<form id="marketFilter" class="filter-row"><input name="term" value="' + safe(marketFilter.term) + '" placeholder="Поиск по услугам"><select name="category"><option value="all">Все категории</option>' +
+    '<form id="marketFilter" class="filter-row"><input name="term" value="' + safe(marketFilter.term) + '" placeholder="Поиск по услугам"><select name="category" aria-label="Категория услуги"><option value="all">Все категории</option>' +
     categories.map(cat => '<option value="' + safe(cat) + '"' + (marketFilter.category === cat ? " selected" : "") + '>' + safe(cat) + '</option>').join("") + '</select>' +
-    '<select name="sort"><option value="new"' + (marketFilter.sort === "new" ? " selected" : "") + '>Сначала новые</option><option value="cheap"' + (marketFilter.sort === "cheap" ? " selected" : "") + '>Сначала дешевле</option><option value="expensive"' + (marketFilter.sort === "expensive" ? " selected" : "") + '>Сначала дороже</option></select><button class="button button-secondary" type="submit">Применить</button></form>' +
-    '<form id="marketForm" class="demo-form"><h2>Добавить услугу</h2><label>Название</label><input name="title" maxlength="80" required>' +
-    '<label>Описание</label><textarea name="desc" rows="3" maxlength="300" required></textarea><label>Категория</label><select name="category"><option>Учёба</option><option>Дизайн</option><option>Творчество</option><option>Языки</option><option>Другое</option></select>' +
-    '<label>Цена в ScRl</label><input name="price" type="number" min="1" max="500" value="20" required><label>Количество заказов</label><input name="slots" type="number" min="1" max="10" value="1" required>' +
+    '<select name="sort" aria-label="Сортировка"><option value="new"' + (marketFilter.sort === "new" ? " selected" : "") + '>Сначала новые</option><option value="cheap"' + (marketFilter.sort === "cheap" ? " selected" : "") + '>Сначала дешевле</option><option value="expensive"' + (marketFilter.sort === "expensive" ? " selected" : "") + '>Сначала дороже</option></select><button class="button button-secondary" type="submit">Применить</button></form>' +
+    '<form id="marketForm" class="demo-form"><h2>Добавить услугу</h2><label>Название</label><input name="title" maxlength="80" required aria-label="Название услуги">' +
+    '<label>Описание</label><textarea name="desc" rows="3" maxlength="300" required aria-label="Описание услуги"></textarea><label>Категория</label><select name="category" aria-label="Категория услуги"><option>Учёба</option><option>Дизайн</option><option>Творчество</option><option>Языки</option><option>Другое</option></select>' +
+    '<label>Цена в ScRl</label><input name="price" type="number" min="1" max="500" value="20" required aria-label="Цена в ScRl"><label>Количество заказов</label><input name="slots" type="number" min="1" max="10" value="1" required aria-label="Количество заказов">' +
     '<button class="button button-primary" type="submit">Опубликовать</button></form><div class="demo-list-title"><h2>Услуги</h2><span class="muted small">' + items.length + ' найдено</span></div>' +
     '<div class="demo-list">' + (rows || '<p class="muted">Услуг по этим условиям нет.</p>') + '</div>';
 }
@@ -1858,8 +1858,10 @@ function updateMenu() {
   document.querySelectorAll(".nav-tab").forEach(btn => { btn.hidden = parentMode; });
   const name = el("userName");
   const avatar = el("avatar");
+  const profileControl = el("profileShortcut");
   if (name) name.textContent = parentMode ? "Родитель · тест" : shortProfileName(me().name || "Участник");
   if (avatar) avatar.textContent = parentMode ? "Р" : String(me().name || "У").charAt(0).toUpperCase();
+  if (profileControl) profileControl.setAttribute("aria-label", "Профиль: " + (name ? name.textContent : "Участник"));
   const notifications = el("notificationWrap");
   if (notifications) notifications.hidden = parentMode;
 }
@@ -1875,7 +1877,7 @@ function updateTopbarBalance() {
   if (scrl) scrl.textContent = user.role === "parent" ? "—" : money(user.scrl);
   if (vrub) vrub.textContent = user.role === "parent" ? "—" : money(user.vrub);
   if (control) control.setAttribute("aria-label",
-    "Открыть кошелёк. Доступно " + money(user.scrl) + " ScRl и " + money(user.vrub) + " V-RUB."
+    "ScRl " + money(user.scrl) + " · V-RUB " + money(user.vrub)
   );
 }
 

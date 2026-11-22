@@ -48,3 +48,9 @@ test("адаптивная сетка и анимации подключены",
   assert.ok(css.includes("@media (max-width: 900px)"));
   assert.ok(css.includes("prefers-reduced-motion"));
 });
+
+test("скрытые элементы не перекрываются display из дизайн-слоя", () => {
+  const css = readDesign();
+  assert.match(css, /\[hidden\] \{ display: none !important; \}/);
+  assert.match(css, /\.notification-count\[hidden\] \{ display: none !important; \}/);
+});

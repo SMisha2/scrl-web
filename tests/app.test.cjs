@@ -1727,3 +1727,24 @@ test("мои публикации доступны через меню «Ещё�
   assert.match(html, /id="notificationBell"/);
   assert.doesNotMatch(html, /<button type="button" data-page="notices"/);
 });
+
+test("публичные формы имеют доступные имена контролов", () => {
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  assert.match(app, /<select name="type" aria-label="Тип публикации">/);
+  assert.match(app, /<select name="category" aria-label="Категория">/);
+  assert.match(app, /<input name="title" maxlength="80" required aria-label="Заголовок">/);
+  assert.match(app, /<textarea name="desc" rows="3" maxlength="300" required aria-label="Описание">/);
+  assert.match(app, /<input name="price" type="number" min="0" step="any" value="0" required aria-label="Цена в ScRl">/);
+  assert.match(app, /<select name="sort" aria-label="Сортировка">/);
+  assert.match(app, /<input name="slots" type="number" min="1" max="10" value="1" required aria-label="Количество заказов">/);
+});
+
+test("имя доступности кнопки кошелька включает видимый баланс", () => {
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  assert.match(app, /if \(control\) control\.setAttribute\("aria-label",[\s\S]*?"ScRl " \+ money\(user\.scrl\) \+ " · V-RUB " \+ money\(user\.vrub\)/);
+});
+
+test("имя доступности кнопки профиля включает имя пользователя", () => {
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  assert.match(app, /profileControl\.setAttribute\("aria-label", "Профиль: " \+ \(name \? name\.textContent : "Участник"\)\)/);
+});

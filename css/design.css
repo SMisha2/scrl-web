@@ -449,6 +449,7 @@
     font-weight: 700 !important;
     border: 2px solid var(--scrl-surface) !important;
   }
+  .notification-count[hidden] { display: none !important; }
   .notification-panel {
     position: absolute !important;
     right: 0 !important;
@@ -1264,4 +1265,7 @@
       scroll-behavior: auto !important;
     }
   }
+
+  /* Скрытые элементы обязаны оставаться скрытыми, даже если слой задаёт display */
+  [hidden] { display: none !important; }
 }
