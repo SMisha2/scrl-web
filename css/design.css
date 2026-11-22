@@ -649,7 +649,7 @@
   .moderation-state { background: var(--scrl-warning-soft) !important; color: var(--scrl-warning) !important; border-color: transparent !important; }
   .moderation-status-line { color: var(--scrl-text-muted) !important; font-size: 12.5px !important; }
 
-  .data-list { display: flex !important; flex-direction: column !important; gap: 8px !important; }
+  .data-list { display: flex !important; flex-direction: column !important; gap: 8px !important; border-top: 0 !important; }
   .data-row {
     display: flex !important;
     align-items: center !important;
