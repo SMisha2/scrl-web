@@ -2,16 +2,20 @@
 <html lang="ru" data-theme="dark" data-world="cave" data-style="classic">
 <head>
   <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://bkmccvazgnfnjefrytki.supabase.co; form-action 'self'; frame-src 'none'; worker-src 'self'; manifest-src 'self'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="color-scheme" content="dark light">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0b110d">
   <meta name="description" content="ScRl — уютное пространство школьной взаимопомощи.">
   <link rel="canonical" href="https://www.scrl.site/">
   <meta property="og:url" content="https://www.scrl.site/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="ScRl — школьная взаимопомощь">
+  <meta property="og:description" content="Уютное пространство школьной взаимопомощи: доска запросов, сделки, аукционы и учебные баллы.">
   <link rel="icon" type="image/png" href="assets/crb,blb.png">
   <title>ScRl</title>
   <link rel="preload" href="assets/MinecraftRus.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="assets/backgrounds/night.png" as="image" fetchpriority="high">
-  <link rel="preload" href="assets/backgrounds/day.png" as="image" fetchpriority="low">
   <link rel="stylesheet" href="css/style.css?v=212">
   <script src="js/config.js" defer></script>
   <script src="js/core.js" defer></script>
@@ -19,6 +23,8 @@
   <script src="js/app.js?v=217" defer></script>
 </head>
 <body>
+  <noscript><div class="noscript">Для входа и работы ScRl нужен JavaScript. Включите его в настройках браузера или обратитесь к ответственному взрослому.</div></noscript>
+  <a class="skip-link" href="#page">Перейти к содержимому</a>
   <div id="worldScenery" class="world-scenery" aria-hidden="true">
     <div class="world-layer world-layer--cave"></div>
     <div class="world-layer world-layer--surface"></div>
@@ -117,10 +123,10 @@
               <div class="auth-legal-links" aria-label="Документы ScRl"><span>Документы:</span> <a href="legal/terms.html" target="_blank" rel="noopener">Правила сервиса</a><a href="legal/privacy.html" target="_blank" rel="noopener">Политика данных</a><a href="legal/ai-moderation.html" target="_blank" rel="noopener">ИИ-модерация</a><a href="legal/parent-exchange.html" target="_blank" rel="noopener">Согласие родителя для биржи</a></div>
             </form>
             <form id="codeForm" class="auth-form book-form book-form--registration" hidden>
-              <p class="code-info">Мы отправили восьмизначный код на <b id="codeMail"></b>.</p>
+              <p class="code-info">Мы отправили код из 6–8 цифр на <b id="codeMail"></b>.</p>
               <label for="code">Код из письма:</label>
-              <span class="mc-input-shell"><input id="code" class="code-input" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" maxlength="8" pattern="[0-9]{8}" aria-describedby="codeHelp" required></span>
-              <p class="code-help" id="codeHelp">8 цифр · можно вставить код целиком</p>
+              <span class="mc-input-shell"><input id="code" class="code-input" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" maxlength="12" pattern="[0-9]{6,8}" enterkeyhint="done" aria-describedby="codeHelp" required></span>
+              <p class="code-help" id="codeHelp">6–8 цифр · можно вставить код целиком</p>
               <p class="form-error" id="codeErr" aria-live="polite"></p>
               <button class="book-inline-link" id="againCode" type="button">Отправить код ещё раз</button>
               <button class="book-inline-link" id="backReg" type="button">Изменить данные</button>
@@ -210,9 +216,10 @@
         </div>
       </div>
     </header>
+    <p id="pageAnnouncement" class="sr-only" role="status" aria-live="polite"></p>
     <aside id="moderationNotice" class="moderation-notice" role="note" hidden></aside>
     <main class="page-wrap">
-      <section id="page" class="welcome-block" aria-live="polite"></section>
+      <section id="page" class="welcome-block" tabindex="-1"></section>
     </main>
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>

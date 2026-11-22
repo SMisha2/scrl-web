@@ -1,6 +1,8 @@
-const CACHE_NAME = "scrl-world-backgrounds-v5";
+const CACHE_NAME = "scrl-world-backgrounds-v6";
 const CACHE_PREFIX = "scrl-world-backgrounds-";
-const BACKGROUND_FILES = new Set(["night.png", "day.png"]);
+// WebP versions are about 90% smaller than the PNG fallbacks, which matters
+// for school networks and mobile traffic. Older browsers keep the PNG path.
+const BACKGROUND_FILES = new Set(["night.webp", "day.webp"]);
 
 function getBackgroundUrl(filename) {
   return new URL("assets/backgrounds/" + filename, self.registration.scope).href;

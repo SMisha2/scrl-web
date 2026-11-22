@@ -483,20 +483,30 @@ test("повторный код отправляется только для п�
 
 
 
-test("дневной и ночной фон — цельные изображения поверхности без руки и 3D-слоёв", () => {
+test("дневной и ночной фон — цельные WebP-изображения с PNG-запасным вариантом", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const day = fs.readFileSync(path.join(__dirname, "../assets/backgrounds/day.png"));
   const night = fs.readFileSync(path.join(__dirname, "../assets/backgrounds/night.png"));
+  const dayWebp = fs.readFileSync(path.join(__dirname, "../assets/backgrounds/day.webp"));
+  const nightWebp = fs.readFileSync(path.join(__dirname, "../assets/backgrounds/night.webp"));
   for (const image of [day, night]) {
-    assert.equal(image.toString("ascii", 1, 4), "PNG", "Фон должен быть настоящим PNG-файлом");
+    assert.equal(image.toString("ascii", 1, 4), "PNG", "PNG-запасной вариант должен оставаться настоящим PNG");
     assert.equal(image.readUInt32BE(16), 1919);
     assert.equal(image.readUInt32BE(20), 1079);
     assert.ok(image.length > 1000);
   }
-  assert.match(css, /assets\/backgrounds\/day\.png/);
-  assert.match(css, /assets\/backgrounds\/night\.png/);
+  for (const image of [dayWebp, nightWebp]) {
+    assert.equal(image.toString("ascii", 0, 4), "RIFF");
+    assert.equal(image.toString("ascii", 8, 12), "WEBP");
+    assert.ok(image.length > 1000);
+  }
+  assert.ok(dayWebp.length < day.length / 2, "WebP-фон дня должен быть заметно легче PNG");
+  assert.ok(nightWebp.length < night.length / 2, "WebP-фон ночи должен быть заметно легче PNG");
+  assert.match(css, /image-set\([\s\S]*?day\.webp/);
+  assert.match(css, /image-set\([\s\S]*?night\.webp/);
+  assert.doesNotMatch(html, /rel="preload"[^>]*assets\/backgrounds/);
   assert.match(html, /world-layer--surface/);
   assert.match(html, /world-layer--cave/);
   assert.doesNotMatch(html, /mcCaveCanvas|mcExplosionCanvas|worldTransition|world-torch-glow/);
@@ -509,8 +519,12 @@ test("дневной и ночной фон — цельные изображе�
 test("фон дня и ночи берётся из отдельной папки assets/backgrounds", () => {
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
   const guide = fs.readFileSync(path.join(__dirname, "../assets/backgrounds/README.md"), "utf8");
+  assert.match(css, /assets\/backgrounds\/day\.webp/);
+  assert.match(css, /assets\/backgrounds\/night\.webp/);
   assert.match(css, /assets\/backgrounds\/day\.png/);
   assert.match(css, /assets\/backgrounds\/night\.png/);
+  assert.match(guide, /day\.webp/);
+  assert.match(guide, /night\.webp/);
   assert.match(guide, /day\.png/);
   assert.match(guide, /night\.png/);
 });
@@ -621,7 +635,7 @@ test("страницы книги используют читаемый текс
 });
 
 
-test("signup opens the eight-digit code step immediately and uses the published app redirect", () => {
+test("signup opens the 6–8 digit code step immediately and uses the published app redirect", () => {
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   assert.ok(app.includes('const APP_REDIRECT_URL = "https://www.scrl.site/";'));
@@ -640,7 +654,7 @@ test("переключение входа и регистрации перели
   assert.match(css, /#auth \.book-page::before[\s\S]*?display:none !important/);
 });
 
-test("вертикальный курсор отображается и в форме регистрации, и в поле восьмизначного кода", () => {
+test("вертикальный курсор отображается и в форме регистрации, и в поле кода из 6–8 цифр", () => {
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
@@ -655,16 +669,48 @@ test("вертикальный курсор отображается и в фо�
   assert.match(html, /id="regForm"/);
   assert.match(html, /id="codeForm"/);
 });
-test("email confirmation accepts the eight-digit OTP configured in Supabase", () => {
+test("email confirmation accepts a 6–8 digit OTP and normalizes pasted digits", () => {
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
-  assert.match(app, /Введи восемь цифр из письма/);
-  assert.match(app, /\[0-9\]\{8\}/);
-  assert.match(html, /id="code"[^>]*maxlength="8" pattern="\[0-9\]\{8\}"/);
-  assert.match(html, /восьмизначный код/);
+  assert.match(app, /Введи 6–8 цифр из письма/);
+  assert.match(app, /\[0-9\]\{6,8\}/);
+  assert.match(html, /id="code"[^>]*maxlength="12" pattern="\[0-9\]\{6,8\}"/);
+  assert.match(html, /6–8 цифр/);
+  assert.ok(app.includes("function normalizeEmailCode"));
+  assert.ok(app.includes("function isValidEmailCode"));
   assert.ok(/<script src="js\/app\.js\?v=\d+" defer><\/script>/.test(html));
 });
 
+test("код подтверждения принимает 6–8 цифр и отбрасывает лишние символы", () => {
+  const { api } = boot();
+  assert.equal(api.normalizeEmailCode(" 12-34 56 "), "123456");
+  assert.equal(api.normalizeEmailCode("123456789"), "12345678");
+  assert.equal(api.isValidEmailCode("123456"), true);
+  assert.equal(api.isValidEmailCode("12345678"), true);
+  assert.equal(api.isValidEmailCode("12 34 56"), true);
+  assert.equal(api.isValidEmailCode("12345"), false);
+  assert.equal(api.isValidEmailCode("123456789"), false);
+  assert.equal(api.isValidEmailCode("abcdef"), false);
+});
+
+
+test("страница задаёт CSP, referrer policy, пропуск навигации и live-регион страниц", () => {
+  const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  assert.match(html, /http-equiv="Content-Security-Policy"/);
+  assert.match(html, /connect-src 'self' https:\/\/bkmccvazgnfnjefrytki\.supabase\.co/);
+  assert.match(html, /script-src 'self'/);
+  assert.match(html, /object-src 'none'/);
+  assert.match(html, /name="referrer" content="strict-origin-when-cross-origin"/);
+  assert.match(html, /class="skip-link" href="#page"/);
+  assert.match(html, /id="pageAnnouncement"[^>]*role="status"[^>]*aria-live="polite"/);
+  assert.match(html, /id="page"[^>]*tabindex="-1"/);
+  assert.doesNotMatch(html, /id="page"[^>]*aria-live/);
+  assert.match(app, /heading\.focus\(\{ preventScroll: true \}\)/);
+  assert.match(app, /pageAnnouncement/);
+  assert.match(app, /function closeExtraMenu\(restoreFocus = false\)/);
+  assert.match(app, /function closeNotificationPanel\(restoreFocus = false\)/);
+});
 
 test("AI moderation has appeal screens, an admin case queue and clear external-processing disclosure", () => {
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
@@ -941,9 +987,9 @@ test("фоновая сцена кэшируется service worker для по�
   const worker = fs.readFileSync(path.join(__dirname, "../sw.js"), "utf8");
   assert.match(app, /new URL\("\.\.\/sw\.js", appScriptUrl\)\.href/);
   assert.match(app, /не удалось зарегистрировать кэш фона/);
-  assert.match(worker, /scrl-world-backgrounds-v5/);
-  assert.match(worker, /night\.png/);
-  assert.match(worker, /day\.png/);
+  assert.match(worker, /scrl-world-backgrounds-v6/);
+  assert.match(worker, /night\.webp/);
+  assert.match(worker, /day\.webp/);
   assert.match(worker, /cache\.match\(cacheUrl, \{ ignoreSearch: true \}\)/);
   assert.match(worker, /cache\.put\(url, response\.clone\(\)\)/);
   assert.match(worker, /await self\.skipWaiting\(\)/);
@@ -1163,7 +1209,7 @@ test("мобильная навигация показывает все разд
   }
   assert.match(css, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\) !important/);
   assert.match(css, /overflow:visible !important/);
-  assert.match(app, /function closeExtraMenu\(\)/);
+  assert.match(app, /function closeExtraMenu\(restoreFocus = false\)/);
   assert.doesNotMatch(app, /document\.body\.appendChild\(menu\)/);
   assert.match(app, /extraMenu\.addEventListener\("click"/);
 });

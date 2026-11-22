@@ -1876,11 +1876,15 @@ body > .world-transition { z-index: 999; }
 }
 .world-layer--cave {
   background-image: url("../assets/backgrounds/night.png");
+  background-image: -webkit-image-set(url("../assets/backgrounds/night.webp") type("image/webp"), url("../assets/backgrounds/night.png") type("image/png"));
+  background-image: image-set(url("../assets/backgrounds/night.webp") type("image/webp"), url("../assets/backgrounds/night.png") type("image/png"));
   opacity: 1;
   filter: none;
 }
 .world-layer--surface {
   background-image: url("../assets/backgrounds/day.png");
+  background-image: -webkit-image-set(url("../assets/backgrounds/day.webp") type("image/webp"), url("../assets/backgrounds/day.png") type("image/png"));
+  background-image: image-set(url("../assets/backgrounds/day.webp") type("image/webp"), url("../assets/backgrounds/day.png") type("image/png"));
   opacity: 0;
   filter: none;
 }
@@ -8291,8 +8295,7 @@ html[data-style="classic"] body .user-avatar {
 #auth .auth-consent-check--single { display:flex !important; align-items:flex-start !important; gap:9px !important; margin:0 0 10px !important; padding:9px 11px !important; border:1px solid rgba(145,160,175,.42) !important; border-radius:8px !important; background:rgba(110,130,150,.10) !important; color:inherit !important; font-size:12px !important; line-height:1.45 !important; text-transform:none !important; white-space:normal !important; }
 #auth .auth-consent-check--single input { flex:0 0 17px !important; width:17px !important; min-width:17px !important; height:17px !important; margin:1px 0 0 !important; padding:0 !important; }
 #auth .auth-consent-check--single span { display:block !important; color:inherit !important; text-transform:none !important; }
-#auth .auth-legal-links, #page .consent-document-links { display:flex !important; flex-wrap:wrap !important; gap:5px 12px !important; margin:8px 0 4px !important; font-size:10px !important; line-height:1.45 !important; }
-#auth .auth-legal-links span { opacity:.7; }
+#auth .auth-legal-links, #page .consent-document-links { display:flex !important; flex-wrap:wrap !important; gap:5px 12px !important; margin:8px 0 4px !important; font-size:11px !important; line-height:1.45 !important; }
 #auth .auth-legal-links a, #page .consent-document-links a { color:inherit !important; text-decoration:underline !important; text-underline-offset:2px !important; }
 #auth .auth-consent-list--details { margin:6px 0 !important; padding:7px 9px !important; font-size:10px !important; line-height:1.4 !important; }
 
@@ -9267,4 +9270,63 @@ html body #auth #authBook #codeForm input#code {
   }
   html body .mc-caret-measure,
   html body .mc-writing-cursor { display:none !important; }
+}
+
+/* Accessibility and no-script helpers. */
+.sr-only {
+  position:absolute !important;
+  width:1px !important;
+  height:1px !important;
+  padding:0 !important;
+  margin:-1px !important;
+  overflow:hidden !important;
+  clip:rect(0,0,0,0) !important;
+  white-space:nowrap !important;
+  border:0 !important;
+}
+.skip-link {
+  display:none;
+  position:fixed;
+  top:10px;
+  left:10px;
+  z-index:10050;
+  padding:10px 16px;
+  border:2px solid #536d4d;
+  border-radius:4px;
+  background:#fbfdec;
+  color:#1f3324;
+  font:700 15px/1.2 "MinecraftRus", "Segoe UI", Arial, sans-serif;
+  text-decoration:none;
+  box-shadow:0 4px 0 rgba(22,38,24,.35);
+  transition:transform .16s ease;
+}
+body.app-active .skip-link { display:block; }
+.skip-link:not(:focus):not(:focus-visible) { transform:translateY(-200%); }
+.skip-link:focus,
+.skip-link:focus-visible {
+  transform:translateY(0);
+  outline:3px solid #e0b85f;
+  outline-offset:2px;
+}
+html[data-theme="dark"] body .skip-link {
+  border-color:#8aa47e;
+  background:#17231b;
+  color:#edf4e9;
+}
+#page:focus,
+#page h1[tabindex="-1"]:focus,
+#page h2[tabindex="-1"]:focus { outline:none; }
+.noscript {
+  position:fixed;
+  inset:0 0 auto 0;
+  z-index:10060;
+  padding:14px 18px;
+  background:#7a1f1f;
+  color:#fff;
+  text-align:center;
+  font:600 15px/1.45 "Segoe UI", Arial, sans-serif;
+  box-shadow:0 4px 18px rgba(0,0,0,.35);
+}
+@media (prefers-reduced-motion: reduce) {
+  .skip-link { transition:none !important; }
 }

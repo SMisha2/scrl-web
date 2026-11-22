@@ -315,6 +315,14 @@ function safe(value) {
   })[char]);
 }
 
+function normalizeEmailCode(value) {
+  return String(value ?? "").replace(/[^0-9]/g, "").slice(0, 8);
+}
+
+function isValidEmailCode(value) {
+  return /^[0-9]{6,8}$/.test(String(value ?? "").replace(/[^0-9]/g, ""));
+}
+
 function money(value) {
   return Number(value || 0).toLocaleString("ru-RU", { maximumFractionDigits: 2 });
 }
@@ -610,11 +618,14 @@ function updateNotificationBell() {
   }).join("") : '<p class="notification-empty">Здесь появятся сообщения и события.</p>';
 }
 
-function closeNotificationPanel() {
+function closeNotificationPanel(restoreFocus = false) {
   const panel = el("notificationPanel");
   const bell = el("notificationBell");
+  const hadFocus = panel && typeof panel.contains === "function" &&
+    typeof document !== "undefined" && panel.contains(document.activeElement);
   if (panel) panel.hidden = true;
   if (bell) bell.setAttribute("aria-expanded", "false");
+  if (restoreFocus && hadFocus && bell) bell.focus();
 }
 
 function notify(id, text) {
@@ -657,7 +668,7 @@ function revealApp(user) {
   if (el("userName")) el("userName").textContent = shortProfileName(user.name);
   if (el("avatar")) el("avatar").textContent = user.name.charAt(0).toUpperCase();
   app.classList.remove("is-entering", "is-ready");
-  setPage("home");
+  setPage("home", { focus: true });
 }
 
 function enterLocal(name, mail, token = "", guest = false, id = "") {
@@ -794,6 +805,7 @@ function leave() {
   codeForm.reset();
   pending = null;
   setMode("login");
+  if (el("logMail")) el("logMail").focus();
 }
 
 async function ask(path, body) {
@@ -928,10 +940,10 @@ function setCodePage() {
   if (el("regTab")) el("regTab").classList.add("is-active");
   const isEmailLogin = pending?.purpose === "email-login";
   el("authTitle").textContent = "Подтвердите почту";
-  el("authDesc").textContent = "Код уже отправлен на почту. Введи восемь цифр из письма.";
+  el("authDesc").textContent = "Код уже отправлен на почту. Введи 6–8 цифр из письма.";
   el("codeMail").textContent = pending.mail;
   const codeInfo = document.querySelector("#codeForm .code-info");
-  if (codeInfo) codeInfo.textContent = "Код уже отправлен на " + pending.mail + ". Открой письмо и введи восемь цифр ниже.";
+  if (codeInfo) codeInfo.textContent = "Код уже отправлен на " + pending.mail + ". Открой письмо и введи 6–8 цифр ниже.";
   updateBookControls();
   el("code").focus();
 }
@@ -1882,7 +1894,7 @@ function consentStatusNeedsAcceptance(status = data.safety) {
     status.hasAiConsent !== true;
 }
 
-function setPage(name) {
+function setPage(name, options = {}) {
   closeExpiredAuctions();
   let page = pages[name] ? name : "home";
   const role = me().role;
@@ -1896,6 +1908,15 @@ function setPage(name) {
   if (remoteReady && page !== "privacy" && consentStatusNeedsAcceptance(data.safety)) {
     page = "privacy";
   }
+  const previousPage = activePageName;
+  const activeElement = typeof document !== "undefined" ? document.activeElement : null;
+  const canInspectFocus = activeElement && typeof activeElement.closest === "function";
+  const navigationTarget = canInspectFocus
+    ? activeElement.closest(".main-nav, #extraMenu, .notification-panel, #brandHome, #topbarBalance, #profileShortcut, [data-page]")
+    : null;
+  const keepScroll = options.keepScroll === true ||
+    Boolean(canInspectFocus && activeElement.closest("[data-admin-page], [data-style-toggle]"));
+  const moveFocus = options.focus === true || Boolean(navigationTarget);
   activePageName = page;
   document.querySelectorAll(".nav-tab").forEach(btn => {
     const active = btn.dataset.page === page;
@@ -1908,6 +1929,34 @@ function setPage(name) {
   updateTopbarBalance();
   updateMenu();
   updateNotificationBell();
+  if (!window.__scrlTestMode) {
+    const pageRoot = el("page");
+    const heading = pageRoot && typeof pageRoot.querySelector === "function"
+      ? pageRoot.querySelector("h1, h2")
+      : null;
+    if (moveFocus && heading) {
+      heading.setAttribute("tabindex", "-1");
+      try {
+        heading.focus({ preventScroll: true });
+      } catch {
+        heading.focus();
+      }
+    }
+    if (!keepScroll && typeof window.scrollTo === "function") {
+      const reduceMotion = typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      try {
+        window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+      } catch {
+        window.scrollTo(0, 0);
+      }
+    }
+    const announcement = el("pageAnnouncement");
+    if (announcement && page !== previousPage) {
+      const title = heading && heading.textContent ? heading.textContent.trim() : "Раздел";
+      announcement.textContent = title + " — раздел открыт";
+    }
+  }
 }
 
 function createDeal(title, buyer, seller, amount, from, sourceId = "") {
@@ -3530,8 +3579,9 @@ reg.addEventListener("submit", async event => {
 codeForm.addEventListener("submit", async event => {
   event.preventDefault();
   el("codeErr").textContent = "";
-  const token = el("code").value.trim();
-  if (!/^[0-9]{8}$/.test(token)) return el("codeErr").textContent = "Введи все восемь цифр.";
+  const rawCode = el("code").value;
+  const token = normalizeEmailCode(rawCode);
+  if (!isValidEmailCode(rawCode)) return el("codeErr").textContent = "Введи код из 6–8 цифр.";
   if (!pending?.mail) return el("codeErr").textContent = "Начни регистрацию заново.";
 
   try {
@@ -3640,13 +3690,14 @@ if (otpInput && !window.__scrlTestMode) {
     const current = otpInput.value;
     const caret = typeof otpInput.selectionStart === "number" ? otpInput.selectionStart : current.length;
     const digitsBeforeCaret = current.slice(0, caret).replace(/[^0-9]/g, "").length;
-    const clean = current.replace(/[^0-9]/g, "").slice(0, 8);
+    const clean = normalizeEmailCode(current);
     if (clean !== current) {
       otpInput.value = clean;
       if (typeof otpInput.setSelectionRange === "function") {
         otpInput.setSelectionRange(Math.min(digitsBeforeCaret, clean.length), Math.min(digitsBeforeCaret, clean.length));
       }
     }
+    if (el("codeErr").textContent) el("codeErr").textContent = "";
   });
 }
 
@@ -3686,14 +3737,17 @@ el("logout").addEventListener("click", () => {
   if (window.confirm("Выйти из аккаунта ScRl?")) leave();
 });
 
-function closeExtraMenu() {
+function closeExtraMenu(restoreFocus = false) {
   const menu = el("extraMenu");
   const button = el("moreBtn");
+  const hadFocus = menu && typeof menu.contains === "function" &&
+    typeof document !== "undefined" && menu.contains(document.activeElement);
   if (menu) {
     menu.hidden = true;
     menu.removeAttribute("style");
   }
   if (button) button.setAttribute("aria-expanded", "false");
+  if (restoreFocus && hadFocus && button) button.focus();
 }
 
 if (el("moreBtn") && el("extraMenu")) {
@@ -3742,6 +3796,12 @@ if (el("moreBtn") && el("extraMenu")) {
           : maxTop;
       extraMenu.style.setProperty("top", Math.max(8, Math.min(top, maxTop)) + "px", "important");
     }
+    if (event.detail === 0) {
+      const firstItem = typeof extraMenu.querySelector === "function"
+        ? extraMenu.querySelector("button[data-page]:not([hidden])")
+        : null;
+      if (firstItem) firstItem.focus();
+    }
   });
 
   extraMenu.addEventListener("click", event => {
@@ -3760,7 +3820,15 @@ if (el("notificationBell")) {
     panel.hidden = !opening;
     el("notificationBell").setAttribute("aria-expanded", String(opening));
     closeExtraMenu();
-    if (opening) updateNotificationBell();
+    if (opening) {
+      updateNotificationBell();
+      if (event.detail === 0) {
+        const firstItem = typeof panel.querySelector === "function"
+          ? panel.querySelector("button")
+          : null;
+        if (firstItem) firstItem.focus();
+      }
+    }
   });
 }
 if (el("notificationPanel")) {
@@ -3781,8 +3849,8 @@ if (document.addEventListener) {
   });
   document.addEventListener("keydown", event => {
     if (event.key === "Escape") {
-      closeNotificationPanel();
-      closeExtraMenu();
+      closeNotificationPanel(true);
+      closeExtraMenu(true);
     }
   });
   if (typeof window.addEventListener === "function") {
@@ -3956,6 +4024,8 @@ if (window.__scrlTestMode) {
     switchTheme,
     applyTheme,
     consentStatusNeedsAcceptance,
+    normalizeEmailCode,
+    isValidEmailCode,
     get data() { return data; },
     me,
     getUser,
