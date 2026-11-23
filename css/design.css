@@ -277,14 +277,14 @@
   .topbar-inner {
     max-width: var(--scrl-content-max) !important;
     margin: 0 auto !important;
-    padding: 10px 20px !important;
+    padding: 8px 20px !important;
     display: flex !important;
     align-items: center !important;
     gap: 12px 16px !important;
-    flex-wrap: wrap !important;
+    flex-wrap: nowrap !important;
     box-shadow: none !important;
     background: none !important;
-    border-bottom: 1px solid var(--scrl-border) !important;
+    border-bottom: 0 !important;
     border-radius: 0 !important;
     border-left: 0 !important;
     border-right: 0 !important;
@@ -316,12 +316,16 @@
 
   .main-nav {
     flex: 1 1 auto !important;
+    min-width: 0 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     gap: 4px !important;
-    flex-wrap: wrap !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
   }
+  .main-nav::-webkit-scrollbar { display: none !important; }
   .nav-tab {
     display: inline-flex !important;
     align-items: center !important;
@@ -394,11 +398,19 @@
   }
   .more-menu button:hover { background: var(--scrl-surface-2) !important; }
 
-  .topbar-actions { display: flex !important; align-items: center !important; gap: 8px !important; margin-left: auto !important; }
-  .topbar-user { display: inline-flex !important; align-items: center !important; gap: 8px !important; }
+  .topbar-actions { display: flex !important; align-items: center !important; flex: 0 0 auto !important; flex-wrap: nowrap !important; gap: 8px !important; margin-left: auto !important; }
+  /* Порядок правого кластера: баланс → уведомления → тема → аккаунт.
+     Кнопка выхода оказывается в самом углу, а не между балансом и колоколом. */
+  .topbar-actions > .topbar-balance { order: 1 !important; }
+  .topbar-actions > .notification-wrap { order: 2 !important; }
+  .topbar-actions > .theme-btn { order: 3 !important; }
+  .topbar-actions > .topbar-user { order: 4 !important; }
+  .topbar-user { display: inline-flex !important; align-items: center !important; flex: 0 0 auto !important; gap: 8px !important; }
   .topbar-profile {
     display: inline-flex !important;
     align-items: center !important;
+    justify-content: center !important;
+    min-height: 38px !important;
     gap: 8px !important;
     padding: 4px !important;
     border: 0 !important;
@@ -425,6 +437,10 @@
   }
   .user-name { font-size: 13px !important; font-weight: 600 !important; color: var(--scrl-text) !important; }
   .logout-button {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 38px !important;
     padding: 7px 12px !important;
     border: 1px solid var(--scrl-border) !important;
     border-radius: var(--scrl-radius-pill) !important;
@@ -441,6 +457,7 @@
   .topbar-balance {
     display: inline-flex !important;
     align-items: center !important;
+    min-height: 38px !important;
     gap: 8px !important;
     padding: 6px 12px !important;
     border: 1px solid var(--scrl-border) !important;
@@ -1295,7 +1312,7 @@
 
   /* ---------- Адаптив ---------- */
   @media (max-width: 900px) {
-    .topbar-inner { padding: 8px 12px !important; gap: 8px 10px !important; }
+    .topbar-inner { padding: 8px 12px !important; gap: 8px 10px !important; flex-wrap: wrap !important; }
     .main-nav {
       order: 3 !important;
       flex-basis: 100% !important;
@@ -1317,6 +1334,12 @@
     .book-page, .book-page--single, .book-page--registration { padding: 22px 18px !important; }
     .auth-theme-btn { top: 10px !important; right: 10px !important; }
     .purchase-dialog-card { padding: 20px !important; }
+  }
+  @media (max-width: 700px) {
+    /* На узких экранах баланс живёт на главной и в кошельке, а не в тесном топбаре. */
+    .topbar-balance { display: none !important; }
+    .topbar-actions { gap: 6px !important; }
+    .topbar-user { gap: 6px !important; }
   }
   @media (max-width: 480px) {
     .topbar-balance { padding: 5px 10px !important; font-size: 12px !important; }

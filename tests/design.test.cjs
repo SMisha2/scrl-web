@@ -100,3 +100,15 @@ test("переключатели темы и стиля: фиксированн�
   assert.match(css, /\.theme-switch-thumb \{[\s\S]*?background: var\(--scrl-accent\) !important/);
   assert.match(css, /\.style-mode-toggle-thumb \{[\s\S]*?background: var\(--scrl-accent\) !important/);
 });
+
+test("топбар: контролы в один ряд, верный порядок, без переполнения", () => {
+  const css = readDesign();
+  assert.match(css, /\.topbar-inner \{[\s\S]*?flex-wrap: nowrap !important/);
+  assert.match(css, /\.main-nav \{[\s\S]*?min-width: 0 !important/);
+  assert.ok(css.includes(".topbar-actions > .topbar-balance { order: 1 !important; }"));
+  assert.ok(css.includes(".topbar-actions > .notification-wrap { order: 2 !important; }"));
+  assert.ok(css.includes(".topbar-actions > .theme-btn { order: 3 !important; }"));
+  assert.ok(css.includes(".topbar-actions > .topbar-user { order: 4 !important; }"));
+  assert.match(css, /@media \(max-width: 700px\) \{[\s\S]*?\.topbar-balance \{ display: none !important; \}/);
+  assert.match(css, /\.topbar-inner \{[\s\S]*?border-bottom: 0 !important/);
+});
