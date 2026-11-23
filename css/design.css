@@ -42,19 +42,19 @@
     --scrl-content-max: 1180px;
 
     /* Светлая тема */
-    --scrl-bg: #f3f5f1;
+    --scrl-bg: #f4f6f2;
     --scrl-surface: #ffffff;
-    --scrl-surface-2: #f1f4ef;
-    --scrl-surface-3: #e6ece4;
-    --scrl-text: #1b2520;
-    --scrl-text-muted: #5d6c62;
-    --scrl-border: #e1e7df;
-    --scrl-border-strong: #c9d4c8;
-    --scrl-accent: #2e7d5b;
-    --scrl-accent-strong: #246349;
+    --scrl-surface-2: #eef2ec;
+    --scrl-surface-3: #e3eae1;
+    --scrl-text: #17231e;
+    --scrl-text-muted: #5a6a60;
+    --scrl-border: #e2e8e0;
+    --scrl-border-strong: #cdd8cc;
+    --scrl-accent: #158054;
+    --scrl-accent-strong: #0e6b45;
     --scrl-accent-contrast: #ffffff;
-    --scrl-accent-soft: #e1f0e7;
-    --scrl-gold: #c08a24;
+    --scrl-accent-soft: #dff2e8;
+    --scrl-gold: #c2902a;
     --scrl-gold-soft: #f7ecd2;
     --scrl-danger: #b4372f;
     --scrl-danger-strong: #932922;
@@ -65,24 +65,24 @@
     --scrl-info: #2b6cb0;
     --scrl-info-soft: #e2edf8;
     --scrl-ring: rgb(46 125 91 / .28);
-    --scrl-shadow-1: 0 1px 2px rgb(20 32 25 / .05), 0 4px 14px rgb(20 32 25 / .05);
-    --scrl-shadow-2: 0 2px 6px rgb(20 32 25 / .08), 0 16px 36px rgb(20 32 25 / .12);
+    --scrl-shadow-1: 0 1px 2px rgb(20 32 25 / .06), 0 8px 24px rgb(20 32 25 / .06);
+    --scrl-shadow-2: 0 2px 6px rgb(20 32 25 / .08), 0 18px 40px rgb(20 32 25 / .13);
     --scrl-shadow-pop: 0 16px 48px rgb(20 32 25 / .2);
   }
 
   html[data-theme="dark"] {
-    --scrl-bg: #0d1310;
-    --scrl-surface: #151e19;
-    --scrl-surface-2: #1c2821;
-    --scrl-surface-3: #26362c;
-    --scrl-text: #e9f1ea;
-    --scrl-text-muted: #9fb0a4;
-    --scrl-border: #28382e;
-    --scrl-border-strong: #3a4f42;
-    --scrl-accent: #4fbe8b;
-    --scrl-accent-strong: #7fd3ab;
+    --scrl-bg: #0b110e;
+    --scrl-surface: #131c17;
+    --scrl-surface-2: #1a2620;
+    --scrl-surface-3: #243329;
+    --scrl-text: #e9f2ec;
+    --scrl-text-muted: #9bb0a3;
+    --scrl-border: #26362c;
+    --scrl-border-strong: #38503f;
+    --scrl-accent: #34d399;
+    --scrl-accent-strong: #6ee7b7;
     --scrl-accent-contrast: #07130c;
-    --scrl-accent-soft: #1d3a2b;
+    --scrl-accent-soft: #123528;
     --scrl-gold: #dfb158;
     --scrl-gold-soft: #3a2f16;
     --scrl-danger: #e07a70;
@@ -132,6 +132,24 @@
   html[data-style="minecraft"] body,
   html[data-style="minecraft"] #app,
   html[data-style="minecraft"] .page-wrap { background: transparent !important; }
+
+  /* ---------- Атмосфера и полировка ---------- */
+  /* Лёгкое акцентное свечение сверху придаёт глубину, не отвлекая. */
+  html[data-style="classic"] body {
+    background-image: radial-gradient(1100px 480px at 50% -120px, color-mix(in srgb, var(--scrl-accent) 9%, transparent), transparent 72%) !important;
+    background-attachment: fixed !important;
+  }
+  /* Аккуратные тонкие скроллбары в тон интерфейсу. */
+  * { scrollbar-width: thin !important; scrollbar-color: var(--scrl-border-strong) transparent !important; }
+  ::-webkit-scrollbar { width: 10px !important; height: 10px !important; }
+  ::-webkit-scrollbar-track { background: transparent !important; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrl-border-strong) !important;
+    border-radius: var(--scrl-radius-pill) !important;
+    border: 2px solid transparent !important;
+    background-clip: content-box !important;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: var(--scrl-text-muted) !important; background-clip: content-box !important; }
 
   /* Легаси-пасс Minecraft насильно ставил пиксельный шрифт вообще всем
      элементам. Возвращаем единую типографику: современный UI по умолчанию,
@@ -205,7 +223,7 @@
   }
   .eyebrow {
     margin: 0 0 8px !important;
-    color: var(--scrl-text-muted) !important;
+    color: var(--scrl-accent-strong) !important;
     font-size: 11px !important;
     font-weight: 700 !important;
     letter-spacing: .12em !important;
@@ -347,9 +365,10 @@
   }
   .nav-tab:hover { background: var(--scrl-surface-2) !important; color: var(--scrl-text) !important; }
   .nav-tab.is-active {
-    background: var(--scrl-accent-soft) !important;
+    background: linear-gradient(180deg, var(--scrl-accent-soft), color-mix(in srgb, var(--scrl-accent-soft) 72%, var(--scrl-surface))) !important;
     color: var(--scrl-accent-strong) !important;
-    border-color: color-mix(in srgb, var(--scrl-accent) 22%, transparent) !important;
+    border-color: color-mix(in srgb, var(--scrl-accent) 28%, transparent) !important;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / .25) !important;
   }
   .more-wrap { position: relative !important; display: inline-flex !important; }
   .more-btn {
@@ -647,8 +666,19 @@
   .button:hover { background: var(--scrl-surface-3) !important; }
   .button:active { transform: translateY(1px) !important; }
   .button:disabled { opacity: .55 !important; cursor: not-allowed !important; }
-  .button-primary { background: var(--scrl-accent) !important; color: var(--scrl-accent-contrast) !important; }
-  .button-primary:hover { background: var(--scrl-accent-strong) !important; }
+  .button-primary {
+    background-color: var(--scrl-accent) !important;
+    background-image: linear-gradient(180deg, color-mix(in srgb, var(--scrl-accent) 88%, #ffffff), var(--scrl-accent)) !important;
+    color: var(--scrl-accent-contrast) !important;
+    box-shadow: 0 1px 2px rgb(0 0 0 / .14), 0 6px 16px color-mix(in srgb, var(--scrl-accent) 30%, transparent) !important;
+  }
+  .button-primary:hover {
+    background-color: var(--scrl-accent-strong) !important;
+    background-image: linear-gradient(180deg, var(--scrl-accent), var(--scrl-accent-strong)) !important;
+    box-shadow: 0 2px 4px rgb(0 0 0 / .16), 0 10px 24px color-mix(in srgb, var(--scrl-accent) 38%, transparent) !important;
+    transform: translateY(-1px) !important;
+  }
+  .button-primary:active { transform: translateY(0) !important; }
   .button-secondary { background: var(--scrl-surface) !important; border-color: var(--scrl-border-strong) !important; color: var(--scrl-text) !important; }
   .button-secondary:hover { background: var(--scrl-surface-2) !important; border-color: var(--scrl-accent) !important; }
   .button-danger { background: var(--scrl-danger-fill) !important; color: #fff !important; }
@@ -688,7 +718,7 @@
     box-shadow: var(--scrl-shadow-1) !important;
     transition: box-shadow var(--scrl-dur-2) var(--scrl-ease), transform var(--scrl-dur-2) var(--scrl-ease), border-color var(--scrl-dur-2) var(--scrl-ease) !important;
   }
-  .demo-card:hover { box-shadow: var(--scrl-shadow-2) !important; transform: translateY(-2px) !important; border-color: var(--scrl-border-strong) !important; }
+  .demo-card:hover { box-shadow: var(--scrl-shadow-2) !important; transform: translateY(-2px) !important; border-color: color-mix(in srgb, var(--scrl-accent) 40%, var(--scrl-border)) !important; }
   .demo-card h2, .demo-card h3 { margin-top: 0 !important; }
   .demo-card p { color: var(--scrl-text-muted) !important; font-size: 13.5px !important; line-height: 1.5 !important; }
   .card-top { display: flex !important; flex-wrap: wrap !important; align-items: center !important; gap: 8px !important; margin-bottom: 10px !important; }
@@ -765,7 +795,7 @@
     text-transform: uppercase !important;
     letter-spacing: .07em !important;
   }
-  .demo-stat b { font-family: var(--scrl-font-display) !important; font-size: 27px !important; font-weight: 750 !important; letter-spacing: -.02em !important; line-height: 1.1 !important; }
+  .demo-stat b { font-family: var(--scrl-font-display) !important; font-size: 27px !important; font-weight: 750 !important; letter-spacing: -.02em !important; line-height: 1.1 !important; color: var(--scrl-accent-strong) !important; }
   .demo-stat small { color: var(--scrl-text-muted) !important; font-size: 12px !important; }
 
   .home-overview { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important; gap: 14px !important; margin-top: 18px !important; }
@@ -785,10 +815,10 @@
     cursor: pointer !important;
     transition: box-shadow var(--scrl-dur-2) var(--scrl-ease), transform var(--scrl-dur-2) var(--scrl-ease), border-color var(--scrl-dur-2) var(--scrl-ease) !important;
   }
-  .home-overview-card:hover { box-shadow: var(--scrl-shadow-2) !important; transform: translateY(-2px) !important; border-color: var(--scrl-border-strong) !important; }
+  .home-overview-card:hover { box-shadow: var(--scrl-shadow-2) !important; transform: translateY(-2px) !important; border-color: color-mix(in srgb, var(--scrl-accent) 45%, var(--scrl-border)) !important; }
   .home-overview-card p { margin: 0 !important; color: var(--scrl-text-muted) !important; font-size: 13px !important; }
   .home-overview-label { color: var(--scrl-text-muted) !important; font-size: 11px !important; font-weight: 700 !important; letter-spacing: .1em !important; text-transform: uppercase !important; }
-  .home-overview-value { font-family: var(--scrl-font-display) !important; font-size: 30px !important; font-weight: 750 !important; line-height: 1 !important; letter-spacing: -.02em !important; }
+  .home-overview-value { font-family: var(--scrl-font-display) !important; font-size: 30px !important; font-weight: 750 !important; line-height: 1 !important; letter-spacing: -.02em !important; color: var(--scrl-accent-strong) !important; }
   .home-overview-action { margin-top: auto !important; color: var(--scrl-accent-strong) !important; font-size: 13px !important; font-weight: 600 !important; }
 
   /* ---------- Формы ---------- */

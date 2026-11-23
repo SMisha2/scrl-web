@@ -112,3 +112,13 @@ test("топбар: контролы в один ряд, верный поряд
   assert.match(css, /@media \(max-width: 700px\) \{[\s\S]*?\.topbar-balance \{ display: none !important; \}/);
   assert.match(css, /\.topbar-inner \{[\s\S]*?border-bottom: 0 !important/);
 });
+
+test("визуальная полировка: атмосфера, градиент кнопки, акцентные метрики", () => {
+  const css = readDesign();
+  assert.match(css, /html\[data-style="classic"\] body \{[\s\S]*?background-image: radial-gradient/);
+  assert.match(css, /\.button-primary \{[\s\S]*?background-color: var\(--scrl-accent\) !important/);
+  assert.match(css, /\.button-primary \{[\s\S]*?background-image: linear-gradient/);
+  assert.match(css, /\.home-overview-value \{[\s\S]*?color: var\(--scrl-accent-strong\) !important/);
+  assert.match(css, /\.eyebrow \{[\s\S]*?color: var\(--scrl-accent-strong\) !important/);
+  assert.ok(css.includes("scrollbar-width: thin !important"));
+});
