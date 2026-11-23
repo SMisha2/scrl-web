@@ -58,6 +58,7 @@
     --scrl-gold-soft: #f7ecd2;
     --scrl-danger: #b4372f;
     --scrl-danger-strong: #932922;
+    --scrl-danger-fill: #a8322a;
     --scrl-danger-soft: #f7e2df;
     --scrl-warning: #96660f;
     --scrl-warning-soft: #f8ecd1;
@@ -86,6 +87,7 @@
     --scrl-gold-soft: #3a2f16;
     --scrl-danger: #e07a70;
     --scrl-danger-strong: #ef9a91;
+    --scrl-danger-fill: #a8322a;
     --scrl-danger-soft: #3d211e;
     --scrl-warning: #dfa44f;
     --scrl-warning-soft: #3a2d16;
@@ -102,8 +104,8 @@
     --scrl-surface: rgb(255 255 255 / .88);
     --scrl-surface-2: rgb(255 255 255 / .72);
     --scrl-surface-3: rgb(255 255 255 / .6);
-    --scrl-accent: #3d8a5f;
-    --scrl-accent-strong: #2f7a4f;
+    --scrl-accent: #2f7a4f;
+    --scrl-accent-strong: #245c3c;
     --scrl-gold: #c08a24;
   }
   html[data-style="minecraft"][data-theme="dark"] {
@@ -130,6 +132,18 @@
   html[data-style="minecraft"] body,
   html[data-style="minecraft"] #app,
   html[data-style="minecraft"] .page-wrap { background: transparent !important; }
+
+  /* Легаси-пасс Minecraft насильно ставил пиксельный шрифт вообще всем
+     элементам. Возвращаем единую типографику: современный UI по умолчанию,
+     пиксельный — только в выбранном стиле Minecraft. */
+  body, body * { font-family: var(--scrl-font-ui) !important; }
+  html[data-style="minecraft"] body,
+  html[data-style="minecraft"] body * { font-family: var(--scrl-font-mc) !important; }
+  body { image-rendering: auto !important; }
+  html[data-style="minecraft"] body { image-rendering: pixelated !important; }
+
+  /* Легаси-тени текста и «пиксельные» обводки несовместимы с плоским UI. */
+  #page, #page *, #auth, #auth *, #app .topbar, #app .topbar * { text-shadow: none !important; }
 
   h1, h2, h3, h4, p, ul, ol, figure { margin: 0 !important; }
   ul, ol { padding-left: 20px !important; }
@@ -160,6 +174,7 @@
     border: 0 !important;
     box-shadow: none !important;
     text-shadow: none !important;
+    clip-path: none !important;
   }
   #page h2, .book-page h2 {
     font-family: var(--scrl-font-display) !important;
@@ -174,6 +189,7 @@
     border: 0 !important;
     box-shadow: none !important;
     text-shadow: none !important;
+    clip-path: none !important;
   }
   #page h3, .book-page h3 {
     font-size: 15px !important;
@@ -184,6 +200,8 @@
     background: none !important;
     border: 0 !important;
     box-shadow: none !important;
+    text-shadow: none !important;
+    clip-path: none !important;
   }
   .eyebrow {
     margin: 0 0 8px !important;
@@ -204,6 +222,37 @@
     color: var(--scrl-text-muted) !important;
     font-size: 12.5px !important;
     line-height: 1.5 !important;
+  }
+
+  /* Легаси-стили рисовали «бокс» вокруг каждого абзаца, подписи и мелкого
+     текста. Это главный источник ощущения «всё мимо боксов»: текст должен
+     жить в своём контейнере, а не в собственной рамке. */
+  #page p, #page li, #page label, #page small,
+  #page .muted, #page .small, #page .section-hint,
+  #page .data-row small, #page .demo-stat span, #page .demo-stat small,
+  #page .activity-item small, #page .card-top .small,
+  #page .chat-line small, #page .moderation-status-line,
+  #page .notification-empty {
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    box-decoration-break: slice !important;
+    text-shadow: none !important;
+  }
+  /* Настоящие заметки остаются боксами, но аккуратными и на токенах. */
+  .demo-note, .review-eligibility-note {
+    padding: 10px 12px !important;
+    border: 1px solid var(--scrl-border) !important;
+    border-radius: var(--scrl-radius-md) !important;
+    background: var(--scrl-surface-2) !important;
+  }
+  /* В авторизационной книге легаси тоже оборачивал подписи в рамки. */
+  #auth .book-subtitle, #auth .code-info, #auth .code-help, #auth .ban-appeal-info {
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
   }
 
   /* ---------- Каркас ---------- */
@@ -257,7 +306,7 @@
     place-items: center !important;
     width: 32px !important;
     height: 32px !important;
-    border-radius: 9px !important;
+    border-radius: var(--scrl-radius-md) !important;
     overflow: hidden !important;
     border: 1px solid var(--scrl-border) !important;
     background: var(--scrl-surface) !important;
@@ -374,7 +423,7 @@
     border: 0 !important;
     box-shadow: none !important;
   }
-  .user-name { font-size: 13px !important; font-weight: 600 !important; }
+  .user-name { font-size: 13px !important; font-weight: 600 !important; color: var(--scrl-text) !important; }
   .logout-button {
     padding: 7px 12px !important;
     border: 1px solid var(--scrl-border) !important;
@@ -413,8 +462,8 @@
     letter-spacing: .05em !important;
   }
   .balance-group strong { font-size: 14px !important; font-weight: 750 !important; color: var(--scrl-text) !important; }
-  .balance-divider { color: var(--scrl-border-strong) !important; }
-  .currency-coin-frame { display: inline-grid !important; place-items: center !important; width: 20px !important; height: 20px !important; border-radius: 50% !important; overflow: hidden !important; }
+  .balance-divider { color: var(--scrl-text-muted) !important; }
+  .currency-coin-frame { display: inline-grid !important; place-items: center !important; width: 20px !important; height: 20px !important; border: 0 !important; border-radius: 50% !important; background: transparent !important; box-shadow: none !important; overflow: hidden !important; }
   .currency-coin-icon { width: 18px !important; height: 18px !important; object-fit: contain !important; }
 
   .notification-wrap { position: relative !important; display: inline-flex !important; }
@@ -444,7 +493,7 @@
     display: grid !important;
     place-items: center !important;
     border-radius: var(--scrl-radius-pill) !important;
-    background: var(--scrl-danger) !important;
+    background: var(--scrl-danger-fill) !important;
     color: #fff !important;
     font-size: 11px !important;
     font-weight: 700 !important;
@@ -466,6 +515,8 @@
   .notification-panel-head {
     padding: 12px 16px !important;
     border-bottom: 1px solid var(--scrl-border) !important;
+    background: var(--scrl-surface-2) !important;
+    color: var(--scrl-text) !important;
     font-size: 13px !important;
     font-weight: 700 !important;
   }
@@ -576,7 +627,7 @@
   .button-primary:hover { background: var(--scrl-accent-strong) !important; }
   .button-secondary { background: var(--scrl-surface) !important; border-color: var(--scrl-border-strong) !important; color: var(--scrl-text) !important; }
   .button-secondary:hover { background: var(--scrl-surface-2) !important; border-color: var(--scrl-accent) !important; }
-  .button-danger { background: var(--scrl-danger) !important; color: #fff !important; }
+  .button-danger { background: var(--scrl-danger-fill) !important; color: #fff !important; }
   .button-danger:hover { background: var(--scrl-danger-strong) !important; }
 
   .text-button {
@@ -646,6 +697,9 @@
     font-weight: 700 !important;
     letter-spacing: .02em !important;
     white-space: nowrap !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    clip-path: none !important;
   }
   .moderation-state { background: var(--scrl-warning-soft) !important; color: var(--scrl-warning) !important; border-color: transparent !important; }
   .moderation-status-line { color: var(--scrl-text-muted) !important; font-size: 12.5px !important; }
@@ -799,7 +853,7 @@
   }
   .match-box h2, .chat-box h2, .consent-panel h2, .review-panel h2,
   .settings-card h2, .admin-section h2, .order-card h2 { margin-top: 0 !important; }
-  .chat-line { padding: 8px 0 !important; border-bottom: 1px solid var(--scrl-border) !important; }
+  .chat-line { padding: 8px 0 !important; border: 0 !important; border-bottom: 1px solid var(--scrl-border) !important; }
   .chat-line:last-child { border-bottom: 0 !important; }
   .msg-form { display: flex !important; flex-direction: column !important; gap: 8px !important; margin-top: 8px !important; }
   .assistant-text { line-height: 1.6 !important; color: var(--scrl-text) !important; }
@@ -812,7 +866,7 @@
   .order-participants { display: flex !important; flex-wrap: wrap !important; gap: 12px !important; color: var(--scrl-text-muted) !important; font-size: 13px !important; }
   .parent-preview-status { color: var(--scrl-warning) !important; font-weight: 700 !important; }
   .settings-card-copy { display: flex !important; gap: 14px !important; align-items: flex-start !important; }
-  .settings-icon { font-size: 26px !important; line-height: 1 !important; }
+  .settings-icon { font-size: 26px !important; line-height: 1 !important; border-radius: var(--scrl-radius-md) !important; }
   .settings-current-style { font-size: 13px !important; color: var(--scrl-text-muted) !important; }
   .settings-shortcut-list { display: flex !important; flex-wrap: wrap !important; gap: 8px !important; }
   .style-choice-row { display: flex !important; align-items: center !important; gap: 12px !important; margin: 14px 0 8px !important; }
@@ -965,6 +1019,7 @@
     margin-top: 10px !important;
     padding: 0 !important;
     border: 0 !important;
+    border-radius: 0 !important;
     background: none !important;
     color: var(--scrl-accent-strong) !important;
     font-family: var(--scrl-font-ui) !important;
@@ -1192,7 +1247,7 @@
     inset: 0 0 auto 0 !important;
     z-index: 10060 !important;
     padding: 14px 18px !important;
-    background: var(--scrl-danger) !important;
+    background: var(--scrl-danger-fill) !important;
     color: #fff !important;
     text-align: center !important;
     font-family: var(--scrl-font-ui) !important;

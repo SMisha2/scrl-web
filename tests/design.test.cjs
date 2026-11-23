@@ -54,3 +54,41 @@ test("скрытые элементы не перекрываются display и
   assert.match(css, /\[hidden\] \{ display: none !important; \}/);
   assert.match(css, /\.notification-count\[hidden\] \{ display: none !important; \}/);
 });
+
+test("легаси-боксы вокруг текста сняты (абзацы, подписи, мелкий текст)", () => {
+  const css = readDesign();
+  assert.ok(css.includes("box-decoration-break: slice !important"));
+  assert.match(css, /#page p, #page li, #page label, #page small,/);
+  assert.ok(css.includes("background: transparent !important"));
+});
+
+test("заголовки и теги без пиксельных контуров и теней текста", () => {
+  const css = readDesign();
+  assert.ok(css.includes("clip-path: none !important"));
+  assert.match(css, /#page, #page \*, #auth, #auth \*, #app \.topbar, #app \.topbar \* \{ text-shadow: none !important; \}/);
+});
+
+test("типографика едина: современный шрифт по умолчанию, пиксельный только в Minecraft", () => {
+  const css = readDesign();
+  assert.match(css, /body, body \* \{ font-family: var\(--scrl-font-ui\) !important; \}/);
+  assert.match(css, /html\[data-style="minecraft"\] body \* \{ font-family: var\(--scrl-font-mc\) !important; \}/);
+});
+
+test("имя пользователя и бейдж уведомлений читаемы в обеих темах", () => {
+  const css = readDesign();
+  assert.match(css, /\.user-name \{[^}]*color: var\(--scrl-text\) !important/);
+  assert.ok(css.includes("--scrl-danger-fill:"));
+  assert.match(css, /\.notification-count \{[\s\S]*?background: var\(--scrl-danger-fill\) !important/);
+});
+
+test("шапка панели уведомлений на токенах, а не на легаси-золоте", () => {
+  const css = readDesign();
+  assert.match(css, /\.notification-panel-head \{[\s\S]*?background: var\(--scrl-surface-2\) !important/);
+});
+
+test("авторизационная книга без легаси-рамок и теней текста", () => {
+  const css = readDesign();
+  assert.ok(css.includes("#auth .book-subtitle, #auth .code-info, #auth .code-help, #auth .ban-appeal-info"));
+  assert.ok(css.includes("#auth, #auth *"));
+  assert.match(css, /\.book-inline-link \{[\s\S]*?border-radius: 0 !important/);
+});
