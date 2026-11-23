@@ -92,3 +92,11 @@ test("авторизационная книга без легаси-рамок �
   assert.ok(css.includes("#auth, #auth *"));
   assert.match(css, /\.book-inline-link \{[\s\S]*?border-radius: 0 !important/);
 });
+
+test("переключатели темы и стиля: фиксированная геометрия и видимый бегунок", () => {
+  const css = readDesign();
+  assert.match(css, /\.theme-switch \{[\s\S]*?min-width: 56px !important/);
+  assert.match(css, /\.style-mode-toggle \{[\s\S]*?min-width: 56px !important/);
+  assert.match(css, /\.theme-switch-thumb \{[\s\S]*?background: var\(--scrl-accent\) !important/);
+  assert.match(css, /\.style-mode-toggle-thumb \{[\s\S]*?background: var\(--scrl-accent\) !important/);
+});
