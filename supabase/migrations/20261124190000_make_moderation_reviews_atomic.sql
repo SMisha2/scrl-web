@@ -43,8 +43,6 @@ BEGIN
 
   IF v_case.source_id IS NOT NULL THEN
     IF v_case.source_table IN ('posts', 'listings', 'auctions', 'deal_messages', 'reviews') THEN
-      UPDATE public.posts SET status = CASE WHEN p_decision = 'restore' THEN 'active' ELSE 'hidden' END
-      WHERE false;
       IF v_case.source_table = 'posts' THEN
         UPDATE public.posts
         SET status = CASE WHEN p_decision = 'restore' THEN 'active' ELSE 'hidden' END
