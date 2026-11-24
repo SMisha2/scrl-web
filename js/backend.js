@@ -426,13 +426,15 @@
           }
         }, token);
       }
-      // The edge function checks current consent before forwarding text to the external AI provider.
-      await moderationCheck("profile", { full_name: fullName }, token);
+      // The edge function verifies AI consent before any external processing and can
+      // route the change to a moderator without transmitting the name to an AI provider.
+      const moderation = await moderationCheck("profile", { full_name: fullName }, token);
       const body = { full_name: fullName };
       if (room !== null && room !== undefined) body.room = String(room).trim();
-      return request("/rest/v1/profiles?id=eq." + encodeURIComponent(id), {
+      await request("/rest/v1/profiles?id=eq." + encodeURIComponent(id), {
         method: "PATCH", body, prefer: "return=minimal"
       }, token);
+      return { success: true, moderation };
     },
     saveSafetyData(safety) {
       return rpc("scrl_save_my_safety_data", {
