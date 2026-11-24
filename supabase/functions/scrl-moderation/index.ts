@@ -317,7 +317,12 @@ async function checkContent(userId:string,kind:string,input:any) {
   if(autoBan) {
     const item=await createCase(userId,kind,"prewrite","ban",result,{original:payload,analysis_views:analysisViews});
     if(!item?.id) throw new Error("Не удалось сохранить дело модерации.");
-    await issueBan(userId,String(item.id),result.reason);
+    const banId=await issueBan(userId,String(item.id),result.reason);
+    if(!banId) {
+      const reason="Обнаружено критическое нарушение, но у аккаунта есть незавершённые операции. Блокировка отложена; дело передано администратору.";
+      await notifyAdmins("Критическое дело модерации ожидает ручного решения: у участника есть активные финансовые операции.");
+      return {allowed:false,banned:false,decision:"flag",reason,caseId:item.id};
+    }
     return {allowed:false,banned:true,decision:"ban",reason:result.reason};
   }
   // A report is accepted even when it quotes harmful content; its author is never auto-banned.
