@@ -327,21 +327,20 @@ async function checkContent(userId:string,kind:string,input:any) {
     item=await createCase(userId,kind,SOURCE_TABLE[kind],decision,result,{original:payload,analysis_views:analysisViews});
     if(!item?.id) throw new Error("Не удалось сохранить дело модерации.");
   }
-  if(item && manualReview) {
+  if(item) {
     const descriptions:Record<string,string> = {
-      post:"Новое объявление",
-      listing:"Новая услуга",
-      auction:"Новый аукцион",
-      message:"Новое сообщение по сделке",
-      review:"Новый отзыв",
+      post:"Объявление",
+      listing:"Услуга",
+      auction:"Аукцион",
+      message:"Сообщение по сделке",
+      review:"Отзыв",
       profile:"Изменение имени профиля",
-      report:"Новая жалоба"
+      report:"Жалоба",
+      deal:"Сделка",
+      teacher_issue:"Начисление ScRl"
     };
-    await notifyAdmins((descriptions[kind]||"Новый материал")+" ожидает ручной проверки администратора.");
-  } else if(item && ["post","listing"].includes(kind)) {
-    await notifyAdmins(kind==="post"
-      ? "Новое объявление ожидает ручной проверки администратора."
-      : "Новая услуга ожидает ручной проверки администратора.");
+    const queueMode=manualReview?"ожидает ручной проверки":"требует проверки модератором";
+    await notifyAdmins((descriptions[kind]||"Материал")+" "+queueMode+".");
   }
   // Deal creation and issuance affect balances; never allow those writes to pass
   // merely because an item was queued for later review.
@@ -351,7 +350,6 @@ async function checkContent(userId:string,kind:string,input:any) {
     severity:result.severity,confidence:result.confidence,categories:result.categories,
     reason:result.reason,case_id:item?.id||null,expires_at:new Date(Date.now()+180000).toISOString()
   }});
-  if(kind==="report") await notifyAdmins("Получена новая жалоба; требуется ручная проверка администратора.");
   return {allowed:true,banned:false,decision,reason:result.reason,caseId:item?.id||null,manualReview};
 }
 async function myStatus(userId:string) {
