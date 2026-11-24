@@ -2944,12 +2944,12 @@ async function saveReview(dealId, ratingValue, reviewText = "") {
   if (remoteReady && !window.__scrlTestMode) {
     try {
       await backend.addReview({ deal: deal.id, user: me().id, target, rating, text });
-      await refreshRemoteData();
+      await refreshRemoteData({ force: true });
     } catch (error) {
       const reason = String(error && error.message || "");
       if (reason.includes("Сначала прими актуальное согласие")) {
         setPage("privacy");
-        throw new Error("Чтобы оставить отзыв, подтверди актуальные согласия в открывшемся разделе и попробуй ещё раз.");
+        throw new Error("Чтобы оставить отзыв, подтверди политику обработки данных в открывшемся разделе и попробуй ещё раз.");
       }
       throw error;
     }
@@ -2963,9 +2963,16 @@ async function saveReview(dealId, ratingValue, reviewText = "") {
     save();
   }
 
+  const savedReview = data.reviews.find(review => review.deal === deal.id && review.user === me().id) || null;
   setPage("orders");
-  msg("Оценка сохранена.");
-  return data.reviews.find(review => review.deal === deal.id && review.user === me().id) || null;
+  if (savedReview?.status === "review") {
+    msg("Отзыв отправлен на ручную проверку. Собеседник увидит его после одобрения.");
+  } else if (savedReview?.status === "hidden") {
+    msg("Отзыв скрыт модерацией до решения администратора.");
+  } else {
+    msg("Оценка сохранена.");
+  }
+  return savedReview;
 }
 
 async function submitRemote(form) {
