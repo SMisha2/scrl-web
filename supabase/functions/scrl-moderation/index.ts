@@ -84,12 +84,12 @@ async function authenticate(request: Request) {
   return {id:String(user.id)};
 }
 async function profileFor(id:string) {
-  const rows=await rest("profiles?id=eq."+encodeURIComponent(id)+"&select=id,role,blocked,full_name&limit=1");
+  const rows=await rest("profiles?id=eq."+encodeURIComponent(id)+"&select=id,role,blocked,deleted_at,full_name&limit=1");
   return Array.isArray(rows)?rows[0]:null;
 }
 async function requireAdmin(id:string) {
   const p=await profileFor(id);
-  if(!p||p.blocked||p.role!=="admin") throw new Response(JSON.stringify({error:"Доступ только для активного администратора ScRl."}),{status:403});
+  if(!p||p.blocked||p.deleted_at||p.role!=="admin") throw new Response(JSON.stringify({error:"Доступ только для активного администратора ScRl."}),{status:403});
 }
 function normalize(kind:string,p:any) {
   const s=(k:string,max:number,fallback="")=>String(p[k]??fallback).trim().slice(0,max);
@@ -236,6 +236,30 @@ async function classify(kind:string,payload:Record<string,unknown>,analysisViews
   const reason=String(parsed?.reason||"Требуется дополнительная проверка.").replace(/[<>]/g,"").slice(0,240);
   return {decision,severity,confidence:Number.isFinite(confidence)?Math.max(0,Math.min(1,confidence)):0,categories,reason};
 }
+function canonicalJson(value:unknown):string {
+  if(Array.isArray(value)) return "["+value.map(canonicalJson).join(",")+"]";
+  if(value&&typeof value==="object") {
+    const record=value as Record<string,unknown>;
+    return "{"+Object.keys(record).sort().map(key=>JSON.stringify(key)+":"+canonicalJson(record[key])).join(",")+"}";
+  }
+  return JSON.stringify(value);
+}
+async function findManualRetryPermit(userId:string,kind:string,payload:any) {
+  const expiry=encodeURIComponent(new Date().toISOString());
+  const rows=await rest(
+    "scrl_moderation_tickets?select=id,payload,case_id,categories"+
+    "&user_id=eq."+encodeURIComponent(userId)+
+    "&kind=eq."+encodeURIComponent(kind)+
+    "&decision=eq.allow&consumed_at=is.null&expires_at=gt."+expiry+
+    "&order=created_at.desc&limit=20"
+  );
+  if(!Array.isArray(rows)) return null;
+  return rows.find((ticket:any)=>
+    Array.isArray(ticket.categories)&&ticket.categories.includes("manual_approved")&&
+    canonicalJson(ticket.payload)===canonicalJson(payload)
+  )||null;
+}
+
 async function createCase(userId:string,kind:string,table:string,decision:string,result:any,payload:any) {
   const rows=await rest("scrl_moderation_cases",{method:"POST",headers:{Prefer:"return=representation"},body:{
     user_id:userId,kind,source_table:table,source_id:null,decision,severity:result.severity,
@@ -258,10 +282,18 @@ async function issueBan(userId:string,caseId:string,reason:string) {
 async function checkContent(userId:string,kind:string,input:any) {
   if(!ALLOWED_KINDS.has(kind)) throw new Error("Неизвестный тип содержимого.");
   const profile=await profileFor(userId);
-  if(!profile||profile.blocked) throw new Response(JSON.stringify({error:"Аккаунт заблокирован. Открой страницу апелляции."}),{status:403});
+  if(!profile||profile.blocked||profile.deleted_at) throw new Response(JSON.stringify({error:"Аккаунт заблокирован. Открой страницу апелляции."}),{status:403});
   const payload=normalize(kind,input);
   const analysisViews=buildAnalysisViews(kind,payload);
   if((JSON.stringify(payload)+JSON.stringify(analysisViews)).length>14000) throw new Error("Содержимое слишком большое для проверки.");
+  const retryPermit=await findManualRetryPermit(userId,kind,payload);
+  if(retryPermit) {
+    return {
+      allowed:true,banned:false,decision:"allow",
+      reason:"Администратор ранее одобрил этот материал. Разрешение действует для одной отправки.",
+      caseId:retryPermit.case_id,manualReview:false,approvedByHuman:true
+    };
+  }
   const since=new Date(Date.now()-60000).toISOString();
   const [recentTickets,recentCases]=await Promise.all([
     rest("scrl_moderation_tickets?select=id,case_id&user_id=eq."+encodeURIComponent(userId)+"&created_at=gte."+encodeURIComponent(since)),
@@ -329,7 +361,8 @@ async function checkContent(userId:string,kind:string,input:any) {
   const decision=kind==="report"?(result.decision==="allow"?"allow":"flag"):(result.decision==="ban"?"hide":result.decision);
   let item:any=null;
   if(decision!=="allow") {
-    item=await createCase(userId,kind,SOURCE_TABLE[kind],decision,result,{original:payload,analysis_views:analysisViews});
+    const sourceTable=["deal","teacher_issue"].includes(kind)?"prewrite":SOURCE_TABLE[kind];
+    item=await createCase(userId,kind,sourceTable,decision,result,{original:payload,analysis_views:analysisViews});
     if(!item?.id) throw new Error("Не удалось сохранить дело модерации.");
   }
   if(item) {
@@ -369,7 +402,7 @@ async function myStatus(userId:string) {
   const result:any={
     activeBan:ban?{id:ban.id,reason:ban.reason,createdAt:ban.created_at,appealUntil:ban.appeal_until,canAppeal:Date.now()<=new Date(ban.appeal_until).getTime()}:null,
     appeals:Array.isArray(appeals)?appeals:[],cases:Array.isArray(cases)?cases:[],
-    blocked:Boolean(profile?.blocked),admin:profile?.role==="admin"&&!profile?.blocked,
+    blocked:Boolean(profile?.blocked),admin:profile?.role==="admin"&&!profile?.blocked&&!profile?.deleted_at,
     aiEnabled:Deno.env.get("SCRL_MODERATION_ENABLED")==="true" &&
       Deno.env.get("SCRL_MODERATION_EXTERNAL_PROCESSING_APPROVED")==="true" &&
       Boolean(Deno.env.get("GROQ_API_KEY")) && aiConsent===true,
@@ -406,7 +439,15 @@ async function adminReviewCase(adminId:string,caseId:string,decision:string) {
   await requireAdmin(adminId);
   if(!caseId) throw new Error("Не указано дело модерации.");
   if(!["restore","keep_hidden"].includes(decision)) throw new Error("Неизвестное решение.");
-  await rest("rpc/scrl_moderation_admin_resolve_case",{
+  const rows=await rest("scrl_moderation_cases?id=eq."+encodeURIComponent(caseId)+"&select=id,kind,source_table,source_id&limit=1");
+  const item=Array.isArray(rows)?rows[0]:null;
+  if(!item) throw new Error("Дело уже рассмотрено или не найдено.");
+  const prewrite=item.source_table==="prewrite"||
+    (item.source_id===null&&["deal","teacher_issue"].includes(String(item.kind)));
+  const functionName=prewrite
+    ?"scrl_moderation_admin_resolve_prewrite_case"
+    :"scrl_moderation_admin_resolve_case";
+  await rest("rpc/"+functionName,{
     method:"POST",
     body:{p_admin:adminId,p_case_id:caseId,p_decision:decision}
   });
