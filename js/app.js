@@ -952,7 +952,8 @@ function privacyPage() {
   const status = data.safety || {};
   const birthDate = String(status.birthDate || "");
   const today = new Date().toISOString().slice(0, 10);
-  const allChecked = status.hasPersonalDataConsent === true && status.hasAiConsent === true ? " checked" : "";
+  const personalChecked = status.hasPersonalDataConsent === true ? " checked" : "";
+  const aiChecked = status.hasAiConsent === true ? " checked" : "";
   const loadWarning = status.loadError
     ? '<p class="form-error">Не удалось загрузить текущий статус согласий: ' + safe(status.loadError) + '</p>'
     : "";
@@ -969,7 +970,8 @@ function privacyPage() {
     loadWarning +
     '<form id="privacyConsentForm" class="demo-form consent-form">' +
     '<label for="privacyBirthDate">Дата рождения</label><input id="privacyBirthDate" name="birthDate" type="date" max="' + today + '" value="' + safe(birthDate) + '"' + (birthDate ? ' readonly aria-readonly="true"' : "") + ' required>' +
-    '<label class="consent-check"><input type="checkbox" name="allConsents" value="yes"' + allChecked + ' required><span>Я ознакомился(-ась) и принимаю обязательные документы ScRl, включая обработку персональных данных и ИИ-модерацию.</span></label>' +
+    '<label class="consent-check"><input type="checkbox" name="personalConsent" value="yes"' + personalChecked + ' required><span>Согласен(-на) на обработку персональных данных по политике ScRl. Это необходимо для работы аккаунта.</span></label>' +
+    '<label class="consent-check"><input type="checkbox" name="aiConsent" value="yes"' + aiChecked + '><span>Отдельно разрешаю передавать проверяемые тексты внешнему ИИ-поставщику Groq, если ИИ-модерация включена и согласована. Согласие необязательно и может быть отозвано.</span></label>' +
     '<nav class="consent-document-links" aria-label="Документы ScRl"><a href="legal/terms.html" target="_blank" rel="noopener">Правила сервиса</a><a href="legal/privacy.html" target="_blank" rel="noopener">Политика данных</a><a href="legal/ai-moderation.html" target="_blank" rel="noopener">ИИ-модерация</a><a href="legal/parent-exchange.html" target="_blank" rel="noopener">Согласие родителя для биржи</a></nav>' +
     '<button class="button button-primary" type="submit">Сохранить согласия</button></form>';
 }
@@ -1315,7 +1317,7 @@ function ordersPage() {
     const canMessage = ["work", "ready", "dispute"].includes(deal.status);
     const messages = (deal.messages || []).map(message =>
       '<div class="chat-line"><b>' + userProfileLink(message.user) + '</b><span>' + safe(message.text) +
-      '</span><small>' + (message.status && message.status !== "active" ? "На проверке ИИ · " : "") +
+      '</span><small>' + (message.status && message.status !== "active" ? "Ожидает проверки модератором · " : "") +
       new Date(message.date).toLocaleString("ru-RU") + '</small></div>'
     ).join("");
     const counterpartyId = deal.buyer === me().id ? deal.seller : deal.buyer;
@@ -1892,8 +1894,7 @@ function updateModerationNotice() {
 function consentStatusNeedsAcceptance(status = data.safety) {
   return !status ||
     status.needsOnboarding === true ||
-    status.hasPersonalDataConsent !== true ||
-    status.hasAiConsent !== true;
+    status.hasPersonalDataConsent !== true;
 }
 
 function setPage(name, options = {}) {
@@ -2962,21 +2963,20 @@ async function submitRemote(form) {
 
   if (form.id === "privacyConsentForm") {
     const birthDate = String(fields.get("birthDate") || "").trim();
-    const allConsents = ["yes", "on"].includes(String(fields.get("allConsents") || ""));
-    const personalConsent = allConsents;
-    const aiConsent = allConsents;
+    const personalConsent = ["yes", "on"].includes(String(fields.get("personalConsent") || ""));
+    const aiConsent = ["yes", "on"].includes(String(fields.get("aiConsent") || ""));
     if (!birthDate || birthDate > new Date().toISOString().slice(0, 10)) throw new Error("Проверь дату рождения.");
-    if (!allConsents) throw new Error("Подтверди ознакомление с обязательными документами и согласиями ScRl.");
+    if (!personalConsent) throw new Error("Для работы аккаунта необходимо принять политику обработки персональных данных.");
     await backend.saveSafetyData({
       birthDate, personalConsent, aiConsent,
       personalVersion: PERSONAL_DATA_CONSENT_VERSION, aiVersion: AI_MODERATION_CONSENT_VERSION
     });
     await refreshRemoteData({ force: true });
     if (!data.safety || data.safety.loadError || consentStatusNeedsAcceptance(data.safety)) {
-      throw new Error("База данных пока не подтвердила сохранение обоих согласий. Проверь подключение и попробуй ещё раз.");
+      throw new Error("База данных пока не подтвердила согласие на обработку персональных данных. Проверь подключение и попробуй ещё раз.");
     }
     setPage("home");
-    msg("Согласия сохранены.");
+    msg(aiConsent ? "Согласие на данные и отдельное согласие на ИИ сохранены." : "Согласие на обработку данных сохранено. Материалы будут проходить ручную проверку.");
     return;
   }
   if (form.dataset.form === "parent-exchange-request") {
@@ -3556,14 +3556,13 @@ reg.addEventListener("submit", async event => {
   const pass = el("regPass").value;
   const again = el("regAgain").value;
   const birthDate = String(el("regBirth")?.value || "").trim();
-  const allConsents = Boolean(el("regAllConsents")?.checked);
-  const personalConsent = allConsents;
-  const aiConsent = allConsents;
+  const personalConsent = Boolean(el("regPersonalConsent")?.checked);
+  const aiConsent = Boolean(el("regAiConsent")?.checked);
   if (!last || !first) return el("regErr").textContent = "Напиши фамилию и имя.";
   if (!mail) return el("regErr").textContent = "Введи электронную почту.";
   if (!birthDate) return el("regErr").textContent = "Укажи дату рождения.";
   if (birthDate > new Date().toISOString().slice(0, 10)) return el("regErr").textContent = "Дата рождения не может быть в будущем.";
-  if (!allConsents) return el("regErr").textContent = "Подтверди ознакомление с обязательными документами и согласиями ScRl.";
+  if (!personalConsent) return el("regErr").textContent = "Для создания аккаунта необходимо принять политику обработки персональных данных.";
   if (pass.length < 8) return el("regErr").textContent = "Пароль должен быть не короче 8 символов.";
   if (pass !== again) return el("regErr").textContent = "Пароли не совпадают.";
   const name = [last, first, pat].filter(Boolean).join(" ");
