@@ -299,11 +299,16 @@
       : [];
     const nameById = new Map(profiles.map(user => [user.id, user.name]));
     const messagesByDeal = new Map();
+    const isCurrentUserAdmin = currentProfile?.role === "admin";
     rows.deal_messages.forEach(row => {
+      const status = row.status || "active";
+      // Participants must not see another user's message before a moderator approves it.
+      // The sender can see their own pending message; admins can inspect it in the case queue.
+      if (status !== "active" && row.user_id !== currentUserId && !isCurrentUserAdmin) return;
       const item = {
         user: row.user_id,
         text: row.message,
-        status: row.status || "active",
+        status,
         date: time(row.created_at)
       };
       if (!messagesByDeal.has(row.deal_id)) messagesByDeal.set(row.deal_id, []);
