@@ -1535,6 +1535,16 @@ test("обязательное подтверждение согласий со�
 });
 
 
+test("review submission clearly distinguishes manual review from publication", () => {
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  const start = app.indexOf("async function saveReview(");
+  const end = app.indexOf("\nasync function submitRemote", start);
+  const source = app.slice(start, end);
+  assert.match(source, /savedReview\?\.status === "review"/);
+  assert.match(source, /Отзыв отправлен на ручную проверку/);
+  assert.match(source, /savedReview\?\.status === "hidden"/);
+  assert.match(source, /refreshRemoteData\(\{ force: true \}\)/);
+});
 test("завершённый заказ показывает заметную форму оценки и отзыв сохраняется", async () => {
   const { api } = boot();
   const deal = {
