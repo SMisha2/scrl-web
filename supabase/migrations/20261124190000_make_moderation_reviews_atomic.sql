@@ -223,7 +223,7 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Связанная блокировка не найдена.';
   END IF;
-  IF v_case_user IS DISTINCT FROM v_appeal.user_id THEN
+  IF v_case_user IS DISTINCT FROM v_user_id THEN
     RAISE EXCEPTION 'Апелляция не соответствует владельцу блокировки.';
   END IF;
 
