@@ -8,6 +8,21 @@ const migrationFiles = fs.readdirSync(migrationDir)
   .filter(name => name.endsWith(".sql"))
   .sort();
 
+test("concurrent admin account deletion is serialized and cannot remove the last administrator", () => {
+  const sql = fs.readFileSync(path.join(migrationDir, "20261124202000_serialize_admin_roster_deletion.sql"), "utf8");
+  const lock = sql.indexOf("pg_advisory_xact_lock(hashtext('scrl_admin_roster'))");
+  const accountLock = sql.indexOf("FROM public.profiles", lock);
+  const lastAdminGuard = sql.indexOf("v_profile.role = 'admin' AND NOT EXISTS", lock);
+
+  assert.ok(lock >= 0, "Admin roster lock must exist");
+  assert.ok(accountLock > lock, "Global admin lock must be acquired before profile row locking");
+  assert.ok(lastAdminGuard > lock, "The remaining-admin check must run while holding the global lock");
+  assert.ok(sql.includes("role = 'admin'"));
+  assert.ok(sql.includes("blocked = false"));
+  assert.ok(sql.includes("deleted_at IS NULL"));
+  assert.match(sql, /SECURITY DEFINER[\s\S]*?SET search_path TO 'public', 'auth', 'pg_temp'/i);
+});
+
 test("school pilot documentation assigns operator and processing roles to adults appointed by the school", () => {
   const docs = fs.readFileSync(path.join(__dirname, "../docs/school-pilot.md"), "utf8");
   assert.match(docs, /Совершеннолетний специалист или организация, письменно назначенные школой/);
@@ -17,7 +32,7 @@ test("school pilot documentation assigns operator and processing roles to adults
 
 test("all production migrations remain versioned and tracked", () => {
   assert.ok(
-    migrationFiles.length >= 36,
+    migrationFiles.length >= 48,
     `Expected at least 36 tracked migrations, found ${migrationFiles.length}`
   );
 
