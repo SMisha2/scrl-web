@@ -1527,7 +1527,7 @@ test("обязательное подтверждение согласий со�
   assert.match(page, /Сохранить согласия/);
   assert.match(page, /legal\/privacy\.html/);
   assert.doesNotMatch(html, /data-page="privacy"/);
-  assert.doesNotMatch(app, /link\("privacy"/);
+  assert.match(app, /link\("privacy", "Данные и согласия"\)/);
   assert.match(app, /consentStatusNeedsAcceptance\(data\.safety\)/);
 });
 
