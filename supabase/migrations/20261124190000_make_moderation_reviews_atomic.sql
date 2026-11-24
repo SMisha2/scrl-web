@@ -16,6 +16,8 @@ DECLARE
   v_case public.scrl_moderation_cases%rowtype;
   v_ban public.scrl_moderation_bans%rowtype;
   v_rows integer;
+  v_other uuid;
+  v_title text;
   v_now timestamptz := now();
 BEGIN
   IF coalesce(current_setting('request.jwt.claim.role', true), '') <> 'service_role' THEN
@@ -67,6 +69,19 @@ BEGIN
       GET DIAGNOSTICS v_rows = ROW_COUNT;
       IF v_rows = 0 THEN
         RAISE EXCEPTION 'Материал не найден. Дело не было закрыто.';
+      END IF;
+      IF v_case.source_table = 'deal_messages' AND p_decision = 'restore' THEN
+        SELECT
+          CASE WHEN m.user_id = d.buyer_id THEN d.seller_id ELSE d.buyer_id END,
+          d.title
+        INTO v_other, v_title
+        FROM public.deal_messages AS m
+        JOIN public.deals AS d ON d.id = m.deal_id
+        WHERE m.id::text = v_case.source_id;
+        IF v_other IS NOT NULL THEN
+          INSERT INTO public.notifications(user_id, message)
+          VALUES (v_other, 'Новое сообщение по сделке «' || left(coalesce(v_title, 'заказ'), 80) || '».');
+        END IF;
       END IF;
     ELSIF v_case.source_table = 'reports' THEN
       UPDATE public.reports
