@@ -112,7 +112,9 @@ BEGIN
   IF v_case.decision = 'ban' AND p_decision = 'restore' THEN
     SELECT * INTO v_ban
     FROM public.scrl_moderation_bans
-    WHERE case_id = p_case_id AND active = true
+    WHERE case_id = p_case_id
+      AND user_id = v_case.user_id
+      AND active = true
     ORDER BY created_at DESC
     LIMIT 1
     FOR UPDATE;
