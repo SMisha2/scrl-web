@@ -268,7 +268,36 @@ async function checkContent(userId:string,kind:string,input:any) {
   ]);
   const recentCount=(Array.isArray(recentTickets)?recentTickets.length:0)+(Array.isArray(recentCases)?recentCases.length:0);
   if(recentCount>=6) throw new Response(JSON.stringify({error:"Слишком много проверок подряд. Подожди минуту и повтори отправку."}),{status:429});
-  const result=await classify(kind,payload,analysisViews);
+  let aiConsent=false;
+  try {
+    aiConsent=await rest("rpc/scrl_has_ai_processing_consent",{
+      method:"POST",body:{p_user_id:userId}
+    })===true;
+  } catch {
+    // Never send text to an external provider when consent cannot be verified.
+    aiConsent=false;
+  }
+  const providerEnabled=Deno.env.get("SCRL_MODERATION_ENABLED")==="true" &&
+    Deno.env.get("SCRL_MODERATION_EXTERNAL_PROCESSING_APPROVED")==="true" &&
+    Boolean(Deno.env.get("GROQ_API_KEY"));
+  const useExternalAI=providerEnabled&&aiConsent;
+  const manualReview=!useExternalAI;
+
+  if(manualReview&&["deal","teacher_issue"].includes(kind)) {
+    throw new Response(JSON.stringify({
+      error:"Операции со сделками и начислениями временно недоступны без подтверждённой автоматической проверки. Публикации и сообщения можно отправлять на ручную проверку администратора."
+    }),{status:503});
+  }
+
+  const result=useExternalAI
+    ? await classify(kind,payload,analysisViews)
+    : {
+        decision:"flag",
+        severity:"medium",
+        confidence:0,
+        categories:["manual_review"],
+        reason:"Внешняя ИИ-проверка не используется: материал ожидает ручной проверки администратора."
+      };
   if(result.decision==="allow"&&result.confidence<0.74) {
     result.decision="flag";
     result.reason="ИИ не смог с достаточной уверенностью подтвердить безопасность текста; требуется ручная проверка.";
@@ -287,12 +316,24 @@ async function checkContent(userId:string,kind:string,input:any) {
     item=await createCase(userId,kind,SOURCE_TABLE[kind],decision,result,{original:payload,analysis_views:analysisViews});
     if(!item?.id) throw new Error("Не удалось сохранить дело модерации.");
   }
-  if(item && ["post","listing"].includes(kind)) {
+  if(item && manualReview) {
+    const descriptions:Record<string,string> = {
+      post:"Новое объявление",
+      listing:"Новая услуга",
+      auction:"Новый аукцион",
+      message:"Новое сообщение по сделке",
+      review:"Новый отзыв",
+      profile:"Изменение имени профиля",
+      report:"Новая жалоба"
+    };
+    await notifyAdmins((descriptions[kind]||"Новый материал")+" ожидает ручной проверки администратора.");
+  } else if(item && ["post","listing"].includes(kind)) {
     await notifyAdmins(kind==="post"
       ? "Новое объявление ожидает ручной проверки администратора."
       : "Новая услуга ожидает ручной проверки администратора.");
   }
-  // Don't create financial actions or deals while their text is under review.
+  // Deal creation and issuance affect balances; never allow those writes to pass
+  // merely because an item was queued for later review.
   if(["deal","teacher_issue"].includes(kind)&&decision!=="allow") return {allowed:false,banned:false,decision,reason:result.reason};
   await rest("scrl_moderation_tickets",{method:"POST",headers:{Prefer:"return=minimal"},body:{
     user_id:userId,kind,payload,decision:decision==="allow"?"allow":decision,
@@ -300,14 +341,15 @@ async function checkContent(userId:string,kind:string,input:any) {
     reason:result.reason,case_id:item?.id||null,expires_at:new Date(Date.now()+180000).toISOString()
   }});
   if(kind==="report") await notifyAdmins("Получена новая жалоба; требуется ручная проверка администратора.");
-  return {allowed:true,banned:false,decision,reason:result.reason,caseId:item?.id||null};
+  return {allowed:true,banned:false,decision,reason:result.reason,caseId:item?.id||null,manualReview};
 }
 async function myStatus(userId:string) {
-  const [bans,appeals,cases,profile]=await Promise.all([
+  const [bans,appeals,cases,profile,aiConsent]=await Promise.all([
     rest("scrl_moderation_bans?select=*&user_id=eq."+encodeURIComponent(userId)+"&active=eq.true&order=created_at.desc&limit=5"),
     rest("scrl_moderation_appeals?select=*&user_id=eq."+encodeURIComponent(userId)+"&order=created_at.desc&limit=10"),
     rest("scrl_moderation_cases?select=*&user_id=eq."+encodeURIComponent(userId)+"&order=created_at.desc&limit=20"),
-    profileFor(userId)
+    profileFor(userId),
+    rest("rpc/scrl_has_ai_processing_consent",{method:"POST",body:{p_user_id:userId}}).catch(()=>false)
   ]);
   const ban=Array.isArray(bans)?bans[0]:null;
   const result:any={
@@ -316,7 +358,8 @@ async function myStatus(userId:string) {
     blocked:Boolean(profile?.blocked),admin:profile?.role==="admin"&&!profile?.blocked,
     aiEnabled:Deno.env.get("SCRL_MODERATION_ENABLED")==="true" &&
       Deno.env.get("SCRL_MODERATION_EXTERNAL_PROCESSING_APPROVED")==="true" &&
-      Boolean(Deno.env.get("GROQ_API_KEY")),
+      Boolean(Deno.env.get("GROQ_API_KEY")) && aiConsent===true,
+    manualReviewAvailable:true,
     adminCases:[],adminAppeals:[]
   };
   if(!result.admin) return result;
@@ -385,10 +428,9 @@ Deno.serve(async (request:Request)=>{
     if(action==="admin_review_case") return json(await adminReviewCase(identity.id,String(body.case_id||""),String(body.decision||"")),200,origin);
     if(action==="admin_review_appeal") return json(await adminReviewAppeal(identity.id,String(body.appeal_id||""),String(body.decision||""),String(body.note||"")),200,origin);
     if(action!=="check") return json({error:"Неизвестное действие модерации."},400,origin);
-    if(Deno.env.get("SCRL_MODERATION_ENABLED")!=="true"||Deno.env.get("SCRL_MODERATION_EXTERNAL_PROCESSING_APPROVED")!=="true") {
-      return json({error:"ИИ-модерация ещё не активирована. Нужны новый ключ Groq и разрешение на внешнюю проверку пользовательского контента."},503,origin);
+    if(!body.payload||typeof body.payload!=="object"||Array.isArray(body.payload)) {
+      return json({error:"Не передано содержимое для проверки."},400,origin);
     }
-    if(!body.payload||typeof body.payload!=="object") return json({error:"Не передано содержимое для проверки."},400,origin);
     const result=await checkContent(identity.id,String(body.kind||""),body.payload);
     return json(result,result.allowed?200:403,origin);
   } catch(error) {
