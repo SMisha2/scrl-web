@@ -957,15 +957,16 @@ function privacyPage() {
   const loadWarning = status.loadError
     ? '<p class="form-error">Не удалось загрузить текущий статус согласий: ' + safe(status.loadError) + '</p>'
     : "";
-  const onboardingNotice = remoteReady && consentStatusNeedsAcceptance(status)
-    ? '<p class="muted">Перед первым использованием ScRl нужно принять обязательные документы и сохранить согласия. После проверки базы откроются остальные разделы.</p>'
+  const onboarding = remoteReady && consentStatusNeedsAcceptance(status);
+  const onboardingNotice = onboarding
+    ? '<p class="muted">Перед первым использованием ScRl нужно принять политику обработки персональных данных. Согласие на внешнюю ИИ-модерацию отдельное и необязательное.</p>'
     : "";
-  return '<p class="eyebrow">НАСТРОЙКА АККАУНТА</p><h1>Завершение настройки</h1>' +
+  return '<p class="eyebrow">НАСТРОЙКА АККАУНТА</p><h1>' + (onboarding ? 'Завершение настройки' : 'Данные и согласия') + '</h1>' +
     onboardingNotice +
     '<section class="match-box consent-panel"><h2>Какие данные обрабатываются</h2>' +
     '<p>ScRl использует ФИО, электронную почту, дату рождения, класс, публикации, сообщения, отзывы и сведения об операциях для создания аккаунта, работы сервиса, безопасности, поддержки и разбора споров.</p>' +
     '<p>Дата рождения и журнал согласий хранятся отдельно от общего профиля и не показываются другим ученикам.</p>' +
-    '<details><summary>Подробнее об ИИ-модерации</summary><p>Если ИИ-модерация включена и внешняя обработка согласована, текст публикаций, услуг, аукционов, сообщений, отзывов, имени профиля и жалоб может передаваться Groq — внешнему поставщику ИИ. Если модерация отключена или не настроена, новые проверяемые действия останавливаются, а не обходят проверку. Не отправляй в тексты пароли, адреса, телефоны и другие лишние личные сведения.</p><p>ИИ может ошибаться. Спорные случаи отправляются администратору на ручную проверку; решения можно обжаловать.</p></details>' +
+    '<details><summary>Подробнее об ИИ-модерации</summary><p>Только при отдельном согласии, включённой настройке модерации и согласованной внешней обработке проверяемый текст публикации, услуги, аукциона, сообщения, отзыва, имени профиля или жалобы может передаваться Groq — внешнему поставщику ИИ. Без согласия или при отключённом провайдере поддерживаемые текстовые материалы направляются администратору на ручную проверку и не отправляются Groq. Создание сделок и начисление ScRl в режиме только ручной проверки временно отключены, чтобы не проводить финансовые действия до проверки. Не отправляй в тексты пароли, адреса, телефоны и лишние личные сведения.</p><p>ИИ может ошибаться. Решения можно обжаловать, а согласие на внешнюю обработку можно отозвать здесь в любое время.</p></details>' +
     '<p class="small muted">Согласия сохраняются в аккаунте с датой и версией текста. Галочка на экране входа сама по себе не записывает согласие в базу. После сохранения ScRl заново проверит данные на сервере; пока проверка не пройдёт, остальные разделы останутся закрыты.</p></section>' +
     loadWarning +
     '<form id="privacyConsentForm" class="demo-form consent-form">' +
@@ -993,6 +994,7 @@ function settingsPage() {
     '</section>' +
     '<section class="settings-card settings-shortcuts"><h2>Быстрый переход</h2><p>Нужные разделы собраны здесь, чтобы их было проще найти.</p><div class="settings-shortcut-list">' +
       link("profile", "Профиль и мои данные") +
+      link("privacy", "Данные и согласия") +
       link("notices", "Уведомления") +
     '</div></section>';
 }
@@ -3141,7 +3143,13 @@ async function submitRemote(form) {
     const selectedRole = String(fields.get("role") || "");
     if (!name) throw new Error("Имя не может быть пустым.");
     if (name.length > 100) throw new Error("ФИО не должно быть длиннее 100 символов.");
-    await backend.updateProfile(me().id, name, room);
+    const profileResult = await backend.updateProfile(me().id, name, room);
+    if (profileResult?.moderation && profileResult.moderation.decision !== "allow") {
+      await refreshRemoteData({ force: true });
+      setPage("profile");
+      msg("Изменение имени отправлено на ручную проверку. До решения модератора будет отображаться прежнее имя.");
+      return;
+    }
     me().name = name;
     me().room = room;
     const session = sess();
@@ -3599,14 +3607,16 @@ codeForm.addEventListener("submit", async event => {
     el("logMail").value = mail;
     setMode("login");
     try {
-      await saveProfile(result.user.id, name, result.access_token, null, {
+      const saved = await saveProfile(result.user.id, name, result.access_token, null, {
         birthDate: registration.birthDate,
         personalConsent: registration.personalConsent === true,
         aiConsent: registration.aiConsent === true,
         personalVersion: PERSONAL_DATA_CONSENT_VERSION,
         aiVersion: AI_MODERATION_CONSENT_VERSION
       });
-      msg("Почта подтверждена, согласия сохранены. Теперь войди по email и паролю.");
+      msg(saved?.moderation && saved.moderation.decision !== "allow"
+        ? "Почта подтверждена. Данные сохранены, имя отправлено на ручную проверку. Теперь войди по email и паролю."
+        : "Почта подтверждена, согласие на обработку данных сохранено. Теперь войди по email и паролю.");
     } catch (profileError) {
       msg("Почта подтверждена, но профиль не удалось полностью сохранить. Попробуй войти и повторить сохранение.");
       console.warn("ScRl profile/consent save:", profileError);
