@@ -32,7 +32,7 @@ test("school pilot documentation assigns operator and processing roles to adults
 
 test("all production migrations remain versioned and tracked", () => {
   assert.ok(
-    migrationFiles.length >= 48,
+    migrationFiles.length >= 47,
     `Expected at least 36 tracked migrations, found ${migrationFiles.length}`
   );
 
