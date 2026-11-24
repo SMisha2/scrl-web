@@ -3,6 +3,12 @@
 -- are stored in the existing manual-review workflow instead of failing open.
 BEGIN;
 
+ALTER TABLE public.auctions
+  DROP CONSTRAINT IF EXISTS auctions_status_check;
+ALTER TABLE public.auctions
+  ADD CONSTRAINT auctions_status_check
+  CHECK (status IN ('active', 'review', 'done', 'settlementError'));
+
 ALTER TABLE private.scrl_user_safety
   ALTER COLUMN ai_moderation_consent_at DROP NOT NULL,
   ALTER COLUMN ai_moderation_consent_version DROP NOT NULL;
@@ -326,5 +332,52 @@ GRANT EXECUTE ON FUNCTION public.scrl_save_my_safety_data(date, boolean, boolean
 GRANT EXECUTE ON FUNCTION public.scrl_get_my_safety_status() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.scrl_request_exchange_parent_consent(boolean) TO authenticated;
 GRANT EXECUTE ON FUNCTION private.scrl_user_can_exchange(uuid) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.scrl_send_message(p_deal uuid, p_message text)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth, pg_temp
+AS $function$
+DECLARE
+  v_id uuid;
+  v_other uuid;
+  v_title text;
+  v_status text;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Требуется вход.';
+  END IF;
+  IF length(btrim(coalesce(p_message, ''))) = 0 OR length(p_message) > 2000 THEN
+    RAISE EXCEPTION 'Сообщение пустое или слишком длинное.';
+  END IF;
+
+  SELECT CASE WHEN buyer_id = auth.uid() THEN seller_id ELSE buyer_id END, title
+  INTO v_other, v_title
+  FROM public.deals
+  WHERE id = p_deal
+    AND auth.uid() IN (buyer_id, seller_id)
+    AND status IN ('work', 'ready', 'dispute');
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Нет доступа к переписке.';
+  END IF;
+
+  INSERT INTO public.deal_messages(deal_id, user_id, message)
+  VALUES (p_deal, auth.uid(), btrim(p_message))
+  RETURNING id INTO v_id;
+
+  SELECT status INTO v_status
+  FROM public.deal_messages
+  WHERE id = v_id;
+
+  IF v_status = 'active' THEN
+    PERFORM public.scrl_notify(v_other, 'Новое сообщение по сделке «' || left(v_title, 80) || '».');
+  END IF;
+  RETURN v_id;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.scrl_send_message(uuid, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.scrl_send_message(uuid, text) TO authenticated;
 
 COMMIT;
