@@ -117,3 +117,58 @@ test("active administrators can use the exchange without the parent-consent gate
   assert.ok(sql.includes("s.parent_exchange_status = 'approved'"));
   assert.ok(sql.includes("GRANT EXECUTE ON FUNCTION private.scrl_user_can_exchange(uuid) TO authenticated"));
 });
+
+
+test("moderation case and appeal decisions are atomic and cannot be processed twice", () => {
+  const name = "20261124190000_make_moderation_reviews_atomic.sql";
+  const sql = fs.readFileSync(path.join(migrationDir, name), "utf8");
+  const cases = sql.slice(sql.indexOf("FUNCTION public.scrl_moderation_admin_resolve_case"));
+  const appeals = sql.slice(sql.indexOf("FUNCTION public.scrl_moderation_admin_resolve_appeal"));
+
+  assert.match(cases, /WHERE id = p_case_id[\\s\\S]*?FOR UPDATE/i);
+  assert.match(cases, /v_case.status <> 'pending'/i);
+  assert.match(cases, /NOT EXISTS \\([\\s\\S]*?scrl_moderation_bans/i);
+  assert.match(cases, /source_id IS NOT NULL/i);
+  assert.match(cases, /INSERT INTO public.notifications/i);
+  assert.match(appeals, /WHERE id = p_appeal_id[\\s\\S]*?FOR UPDATE/i);
+  assert.match(appeals, /v_appeal.status <> 'pending'/i);
+  assert.match(appeals, /v_ban.active = false/i);
+  assert.match(appeals, /NOT EXISTS \\([\\s\\S]*?scrl_moderation_bans/i);
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION public\\.scrl_moderation_admin_resolve_case\\(uuid, uuid, text\\) TO service_role/i);
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION public\\.scrl_moderation_admin_resolve_appeal\\(uuid, uuid, text, text\\) TO service_role/i);
+
+  const edge = fs.readFileSync(path.join(__dirname, "../supabase/functions/scrl-moderation/index.ts"), "utf8");
+  assert.match(edge, /rpc\\/scrl_moderation_admin_resolve_case/);
+  assert.match(edge, /rpc\\/scrl_moderation_admin_resolve_appeal/);
+  assert.doesNotMatch(edge, /scrl_moderation_cases\\?id=eq\\.[\\s\\S]*?method:"PATCH"/);
+});
+
+test("external AI consent is separate, optional and revocable", () => {
+  const name = "20261124185600_separate_ai_consent_and_enable_manual_review.sql";
+  const sql = fs.readFileSync(path.join(migrationDir, name), "utf8");
+  assert.match(sql, /ALTER COLUMN ai_moderation_consent_at DROP NOT NULL/i);
+  assert.match(sql, /ALTER COLUMN ai_moderation_consent_version DROP NOT NULL/i);
+  assert.match(sql, /ADD COLUMN IF NOT EXISTS revoked_at timestamptz/i);
+  assert.match(sql, /IF p_ai_consent IS TRUE AND p_ai_version IS DISTINCT FROM '2026-11-17-v2'/i);
+  assert.match(sql, /SET revoked_at = coalesce\\(revoked_at, v_now\\)/i);
+  assert.match(sql, /'needsOnboarding', \\(v_row.birth_date IS NULL OR NOT v_personal_ok\\)/i);
+  assert.match(sql, /p.role = 'admin'/i);
+  assert.match(sql, /CHECK \\(status IN \\('active', 'review', 'done', 'settlementError'\\)\\)/i);
+
+  const consentGuard = sql.slice(sql.indexOf("FUNCTION private.scrl_require_user_consents"));
+  assert.match(consentGuard, /personal_data_consent_version = '2026-11-17-v1'/i);
+  assert.doesNotMatch(consentGuard, /ai_moderation_consent_at/i);
+});
+
+test("manual moderation does not send content externally without consent and keeps financial actions fail-closed", () => {
+  const edge = fs.readFileSync(path.join(__dirname, "../supabase/functions/scrl-moderation/index.ts"), "utf8");
+  assert.match(edge, /rpc\\/scrl_has_ai_processing_consent/);
+  assert.match(edge, /const useExternalAI=providerEnabled&&aiConsent/);
+  assert.match(edge, /decision:"flag"[\\s\\S]*?categories:\\["manual_review"\\]/);
+  assert.match(edge, /manualReview&&\\["deal","teacher_issue"\\]\\.includes\\(kind\\)/);
+  assert.match(edge, /moderation_admin_resolve_case/);
+
+  const sql = fs.readFileSync(path.join(migrationDir, "20261124185600_separate_ai_consent_and_enable_manual_review.sql"), "utf8");
+  assert.match(sql, /IF v_status = 'active' THEN[\\s\\S]*?scrl_notify/i);
+  assert.match(sql, /scrl_send_message\\(uuid, text\\)/i);
+});
