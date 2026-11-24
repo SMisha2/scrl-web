@@ -244,15 +244,16 @@ async function createCase(userId:string,kind:string,table:string,decision:string
   return Array.isArray(rows)?rows[0]:null;
 }
 async function issueBan(userId:string,caseId:string,reason:string) {
-  const deadline=new Date(Date.now()+86400000).toISOString();
-  const rows=await rest("scrl_moderation_bans",{method:"POST",headers:{Prefer:"return=representation"},body:{
-    user_id:userId,case_id:caseId,reason,active:true,appeal_until:deadline
-  }});
-  await rest("profiles?id=eq."+encodeURIComponent(userId),{method:"PATCH",headers:{Prefer:"return=minimal"},body:{blocked:true,block_reason:reason,updated_at:new Date().toISOString()}});
-  await rest("notifications",{method:"POST",headers:{Prefer:"return=minimal"},body:{
-    user_id:userId,message:"Аккаунт заблокирован ИИ-модерацией. Причина: "+reason.slice(0,150)+". Апелляцию можно подать в течение 24 часов."
-  }}).catch(()=>null);
-  return Array.isArray(rows)?rows[0]:null;
+  const appealUntil=new Date(Date.now()+86400000).toISOString();
+  return await rest("rpc/scrl_moderation_issue_automatic_ban",{
+    method:"POST",
+    body:{
+      p_user:userId,
+      p_case_id:caseId,
+      p_reason:reason,
+      p_appeal_until:appealUntil
+    }
+  });
 }
 async function checkContent(userId:string,kind:string,input:any) {
   if(!ALLOWED_KINDS.has(kind)) throw new Error("Неизвестный тип содержимого.");
@@ -312,7 +313,7 @@ async function checkContent(userId:string,kind:string,input:any) {
     result.decision="flag";
     result.reason="ИИ не смог с достаточной уверенностью подтвердить безопасность текста; требуется ручная проверка.";
   }
-  const autoBan=kind!=="report"&&result.decision==="ban"&&result.severity==="critical"&&result.confidence>=0.98&&result.categories.some((x:string)=>AUTO_BAN_CATEGORIES.has(x));
+  const autoBan=profile.role!=="admin"&&kind!=="report"&&result.decision==="ban"&&result.severity==="critical"&&result.confidence>=0.98&&result.categories.some((x:string)=>AUTO_BAN_CATEGORIES.has(x));
   if(autoBan) {
     const item=await createCase(userId,kind,"prewrite","ban",result,{original:payload,analysis_views:analysisViews});
     if(!item?.id) throw new Error("Не удалось сохранить дело модерации.");
