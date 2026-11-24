@@ -600,6 +600,16 @@ test("bell counter only shows unread notices for the current user", () => {
 
 });
 
+test("notification text is escaped before insertion into the HTML panel", () => {
+  const { api, els } = boot();
+  const payload = '<img src=x onerror="alert(1)"> & "quoted"';
+  api.notify("u0", payload);
+  api.updateNotificationBell();
+  const html = els.get("notificationList").innerHTML;
+  assert.match(html, /&lt;img src=x onerror=&quot;alert\(1\)&quot;&gt;/);
+  assert.match(html, /&amp; &quot;quoted&quot;/);
+  assert.doesNotMatch(html, /<img\s/);
+});
 test("прочитать и очистить удаляет только уведомления текущего аккаунта", () => {
   const { api, els } = boot();
   api.notify("u0", "Моё уведомление.");
