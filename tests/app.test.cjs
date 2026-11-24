@@ -320,12 +320,15 @@ test("обязательные согласия принимаются при р
   const { api } = boot();
 
   assert.match(html, /id="loginAllConsents"[^>]*required/);
-  assert.match(html, /id="regAllConsents"[^>]*required/);
+  assert.match(html, /id="regPersonalConsent"[^>]*required/);
+  assert.match(html, /id="regAiConsent"[^>]*type="checkbox"/);
   assert.match(html, /legal\/terms\.html/);
   assert.match(html, /legal\/privacy\.html/);
   assert.match(html, /legal\/ai-moderation\.html/);
   assert.match(html, /legal\/parent-exchange\.html/);
-  assert.match(app, /name="allConsents"/);
+  assert.match(app, /name="personalConsent"/);
+  assert.match(app, /name="aiConsent"/);
+  assert.match(app, /Материалы будут проходить ручную проверку/);
   assert.match(app, /loginAllConsents/);
   assert.match(app, /Не удалось проверить сохранённые согласия/);
   assert.match(app, /consentStatusNeedsAcceptance\(data\.safety\)/);
@@ -338,7 +341,7 @@ test("обязательные согласия принимаются при р
     needsOnboarding: false,
     hasPersonalDataConsent: true,
     hasAiConsent: false
-  }), true);
+  }), false);
   assert.equal(api.consentStatusNeedsAcceptance({
     needsOnboarding: true,
     hasPersonalDataConsent: true,
@@ -1518,7 +1521,9 @@ test("обязательное подтверждение согласий со�
   assert.match(page, /Завершение настройки/);
   assert.match(page, /privacyConsentForm/);
   assert.match(page, /privacyBirthDate/);
-  assert.match(page, /name="allConsents"/);
+  assert.match(page, /name="personalConsent"/);
+  assert.match(page, /name="aiConsent"/);
+  assert.match(page, /согласие необязательно/);
   assert.match(page, /Сохранить согласия/);
   assert.match(page, /legal\/privacy\.html/);
   assert.doesNotMatch(html, /data-page="privacy"/);
