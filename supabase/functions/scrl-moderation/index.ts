@@ -113,6 +113,25 @@ const VISUAL_CONFUSABLES: Record<string,string> = {
 };
 const ZERO_WIDTH = /[\u200B-\u200F\u202A-\u202E\u2060\uFEFF]/g;
 
+function externalModerationPayload(kind:string,payload:Record<string,unknown>):Record<string,unknown> {
+  const allowed:Record<string,string[]> = {
+    post:["type","title","description","category"],
+    listing:["title","description","category"],
+    auction:["title","prize"],
+    deal:["title"],
+    message:["message"],
+    review:["text"],
+    profile:["full_name"],
+    report:[],
+    teacher_issue:["reason"]
+  };
+  const result:Record<string,unknown>={};
+  for(const key of allowed[kind]||[]) {
+    if(payload[key]!==undefined&&payload[key]!==null) result[key]=payload[key];
+  }
+  return result;
+}
+
 function buildAnalysisViews(kind:string,payload:Record<string,unknown>) {
   const entries=Object.entries(payload).filter(([key,value]) =>
     typeof value==="string" && /title|description|category|prize|message|text|reason|details|full_name/i.test(key)
@@ -284,7 +303,8 @@ async function checkContent(userId:string,kind:string,input:any) {
   const profile=await profileFor(userId);
   if(!profile||profile.blocked||profile.deleted_at) throw new Response(JSON.stringify({error:"Аккаунт заблокирован. Открой страницу апелляции."}),{status:403});
   const payload=normalize(kind,input);
-  const analysisViews=buildAnalysisViews(kind,payload);
+  const providerPayload=externalModerationPayload(kind,payload);
+  const analysisViews=buildAnalysisViews(kind,providerPayload);
   if((JSON.stringify(payload)+JSON.stringify(analysisViews)).length>14000) throw new Error("Содержимое слишком большое для проверки.");
   const retryPermit=await findManualRetryPermit(userId,kind,payload);
   if(retryPermit) {
@@ -323,7 +343,8 @@ async function checkContent(userId:string,kind:string,input:any) {
   const providerEnabled=Deno.env.get("SCRL_MODERATION_ENABLED")==="true" &&
     Deno.env.get("SCRL_MODERATION_EXTERNAL_PROCESSING_APPROVED")==="true" &&
     Boolean(Deno.env.get("GROQ_API_KEY"));
-  const useExternalAI=providerEnabled&&aiConsent;
+  // Reports can contain third-party personal data or quoted private material, so they stay manual.
+  const useExternalAI=providerEnabled&&aiConsent&&kind!=="report";
   const manualReview=!useExternalAI;
 
   if(manualReview&&["deal","teacher_issue"].includes(kind)) {
@@ -333,7 +354,7 @@ async function checkContent(userId:string,kind:string,input:any) {
   }
 
   const result=useExternalAI
-    ? await classify(kind,payload,analysisViews)
+    ? await classify(kind,providerPayload,analysisViews)
     : {
         decision:"flag",
         severity:"medium",
