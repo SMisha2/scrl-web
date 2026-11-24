@@ -347,57 +347,22 @@ async function submitAppeal(userId:string,banId:string,reason:string) {
 }
 async function adminReviewCase(adminId:string,caseId:string,decision:string) {
   await requireAdmin(adminId);
-  const rows=await rest("scrl_moderation_cases?id=eq."+encodeURIComponent(caseId)+"&select=*&limit=1");
-  const item=Array.isArray(rows)?rows[0]:null;
-  if(!item||item.status!=="pending") throw new Error("Дело уже закрыто или не найдено.");
+  if(!caseId) throw new Error("Не указано дело модерации.");
   if(!["restore","keep_hidden"].includes(decision)) throw new Error("Неизвестное решение.");
-  const allowed=new Set(["posts","listings","auctions","deal_messages","reviews","reports","profiles"]);
-  if(item.source_id&&allowed.has(item.source_table)) {
-    if(item.source_table==="reports") {
-      await rest("reports?id=eq."+encodeURIComponent(item.source_id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:{status:decision==="restore"?"resolved":"hidden"}});
-    } else if(item.source_table==="profiles") {
-      if(decision==="restore" && item.evidence && typeof item.evidence.full_name==="string") {
-        await rest("profiles?id=eq."+encodeURIComponent(item.source_id),{
-          method:"PATCH",headers:{Prefer:"return=minimal"},
-          body:{full_name:item.evidence.full_name,updated_at:new Date().toISOString()}
-        });
-      }
-    } else {
-      await rest(item.source_table+"?id=eq."+encodeURIComponent(item.source_id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:{status:decision==="restore"?"active":"hidden"}});
-    }
-  }
-  if(item.decision==="ban" && decision==="restore") {
-    await rest("scrl_moderation_bans?case_id=eq."+encodeURIComponent(caseId)+"&active=eq.true",{
-      method:"PATCH",headers:{Prefer:"return=minimal"},
-      body:{active:false,lifted_at:new Date().toISOString(),lifted_by:adminId}
-    });
-    await rest("profiles?id=eq."+encodeURIComponent(item.user_id),{
-      method:"PATCH",headers:{Prefer:"return=minimal"},
-      body:{blocked:false,block_reason:"",updated_at:new Date().toISOString()}
-    });
-  }
-  await rest("scrl_moderation_cases?id=eq."+encodeURIComponent(caseId),{method:"PATCH",headers:{Prefer:"return=minimal"},body:{
-    status:"resolved",resolution:decision==="restore"?"restored":"kept_hidden",reviewed_at:new Date().toISOString(),reviewed_by:adminId
-  }});
-  await rest("notifications",{method:"POST",headers:{Prefer:"return=minimal"},body:{
-    user_id:item.user_id,message:decision==="restore"?"Администратор проверил дело модерации и восстановил материал.":"Администратор рассмотрел материал. Скрытие оставлено в силе."
-  }}).catch(()=>null);
+  await rest("rpc/scrl_moderation_admin_resolve_case",{
+    method:"POST",
+    body:{p_admin:adminId,p_case_id:caseId,p_decision:decision}
+  });
   return {success:true};
 }
 async function adminReviewAppeal(adminId:string,appealId:string,decision:string,note:string) {
   await requireAdmin(adminId);
+  if(!appealId) throw new Error("Не указана апелляция.");
   if(!["accept","reject"].includes(decision)) throw new Error("Неизвестное решение по апелляции.");
-  const rows=await rest("scrl_moderation_appeals?id=eq."+encodeURIComponent(appealId)+"&select=*&limit=1");
-  const appeal=Array.isArray(rows)?rows[0]:null;
-  if(!appeal||appeal.status!=="pending") throw new Error("Апелляция уже рассмотрена или не найдена.");
-  if(decision==="accept") {
-    await rest("scrl_moderation_bans?id=eq."+encodeURIComponent(appeal.ban_id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:{active:false,lifted_at:new Date().toISOString(),lifted_by:adminId}});
-    await rest("profiles?id=eq."+encodeURIComponent(appeal.user_id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:{blocked:false,block_reason:"",updated_at:new Date().toISOString()}});
-  }
-  await rest("scrl_moderation_appeals?id=eq."+encodeURIComponent(appealId),{method:"PATCH",headers:{Prefer:"return=minimal"},body:{
-    status:decision==="accept"?"accepted":"rejected",decision_note:String(note||"").trim().slice(0,500),reviewed_at:new Date().toISOString(),reviewed_by:adminId
-  }});
-  await rest("notifications",{method:"POST",headers:{Prefer:"return=minimal"},body:{user_id:appeal.user_id,message:decision==="accept"?"Апелляция удовлетворена. Блокировка снята.":"Апелляция отклонена. Блокировка остаётся активной."}}).catch(()=>null);
+  await rest("rpc/scrl_moderation_admin_resolve_appeal",{
+    method:"POST",
+    body:{p_admin:adminId,p_appeal_id:appealId,p_decision:decision,p_note:String(note||"").trim().slice(0,500)}
+  });
   return {success:true};
 }
 
