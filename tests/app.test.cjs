@@ -1607,7 +1607,7 @@ test("отзывы объясняют условия публикации и п�
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
   assert.match(app, /Оставить оценку можно после завершённой сделки с этим участником/);
   assert.match(app, /setPage\("privacy"\)/);
-  assert.match(app, /подтверди актуальные согласия в открывшемся разделе/);
+  assert.match(app, /подтверди политику обработки данных в открывшемся разделе/);
   assert.match(css, /review-eligibility-note/);
   assert.match(css, /@media \(max-width: 560px\)[\s\S]*?order-card/);
 });
