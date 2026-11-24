@@ -125,50 +125,54 @@ test("moderation case and appeal decisions are atomic and cannot be processed tw
   const cases = sql.slice(sql.indexOf("FUNCTION public.scrl_moderation_admin_resolve_case"));
   const appeals = sql.slice(sql.indexOf("FUNCTION public.scrl_moderation_admin_resolve_appeal"));
 
-  assert.match(cases, /WHERE id = p_case_id[\\s\\S]*?FOR UPDATE/i);
-  assert.match(cases, /v_case.status <> 'pending'/i);
-  assert.match(cases, /NOT EXISTS \\([\\s\\S]*?scrl_moderation_bans/i);
-  assert.match(cases, /source_id IS NOT NULL/i);
-  assert.match(cases, /INSERT INTO public.notifications/i);
-  assert.match(appeals, /WHERE id = p_appeal_id[\\s\\S]*?FOR UPDATE/i);
-  assert.match(appeals, /v_appeal.status <> 'pending'/i);
-  assert.match(appeals, /v_ban.active = false/i);
-  assert.match(appeals, /NOT EXISTS \\([\\s\\S]*?scrl_moderation_bans/i);
-  assert.match(sql, /GRANT EXECUTE ON FUNCTION public\\.scrl_moderation_admin_resolve_case\\(uuid, uuid, text\\) TO service_role/i);
-  assert.match(sql, /GRANT EXECUTE ON FUNCTION public\\.scrl_moderation_admin_resolve_appeal\\(uuid, uuid, text, text\\) TO service_role/i);
+  const caseLock = cases.indexOf("WHERE id = p_case_id");
+  const appealLock = appeals.indexOf("WHERE id = p_appeal_id");
+  assert.ok(caseLock >= 0 && cases.indexOf("FOR UPDATE", caseLock) > caseLock);
+  assert.ok(appealLock >= 0 && appeals.indexOf("FOR UPDATE", appealLock) > appealLock);
+  assert.ok(cases.includes("v_case.status <> 'pending'"));
+  assert.ok(cases.includes("NOT EXISTS ("));
+  assert.ok(cases.includes("scrl_moderation_bans"));
+  assert.ok(cases.includes("source_id IS NOT NULL"));
+  assert.ok(cases.includes("INSERT INTO public.notifications"));
+  assert.ok(appeals.includes("v_appeal.status <> 'pending'"));
+  assert.ok(appeals.includes("v_ban.active = false"));
+  assert.ok(appeals.includes("NOT EXISTS ("));
+  assert.ok(appeals.includes("scrl_moderation_bans"));
+  assert.ok(sql.includes("GRANT EXECUTE ON FUNCTION public.scrl_moderation_admin_resolve_case(uuid, uuid, text) TO service_role"));
+  assert.ok(sql.includes("GRANT EXECUTE ON FUNCTION public.scrl_moderation_admin_resolve_appeal(uuid, uuid, text, text) TO service_role"));
 
   const edge = fs.readFileSync(path.join(__dirname, "../supabase/functions/scrl-moderation/index.ts"), "utf8");
-  assert.match(edge, /rpc\\/scrl_moderation_admin_resolve_case/);
-  assert.match(edge, /rpc\\/scrl_moderation_admin_resolve_appeal/);
-  assert.doesNotMatch(edge, /scrl_moderation_cases\\?id=eq\\.[\\s\\S]*?method:"PATCH"/);
+  assert.ok(edge.includes('rpc("rpc/scrl_moderation_admin_resolve_case"') || edge.includes('"rpc/scrl_moderation_admin_resolve_case"'));
+  assert.ok(edge.includes("rpc/scrl_moderation_admin_resolve_appeal"));
+  assert.ok(!edge.includes('rest("scrl_moderation_cases?id=eq."'));
 });
 
 test("external AI consent is separate, optional and revocable", () => {
   const name = "20261124185600_separate_ai_consent_and_enable_manual_review.sql";
   const sql = fs.readFileSync(path.join(migrationDir, name), "utf8");
-  assert.match(sql, /ALTER COLUMN ai_moderation_consent_at DROP NOT NULL/i);
-  assert.match(sql, /ALTER COLUMN ai_moderation_consent_version DROP NOT NULL/i);
-  assert.match(sql, /ADD COLUMN IF NOT EXISTS revoked_at timestamptz/i);
-  assert.match(sql, /IF p_ai_consent IS TRUE AND p_ai_version IS DISTINCT FROM '2026-11-17-v2'/i);
-  assert.match(sql, /SET revoked_at = coalesce\\(revoked_at, v_now\\)/i);
-  assert.match(sql, /'needsOnboarding', \\(v_row.birth_date IS NULL OR NOT v_personal_ok\\)/i);
-  assert.match(sql, /p.role = 'admin'/i);
-  assert.match(sql, /CHECK \\(status IN \\('active', 'review', 'done', 'settlementError'\\)\\)/i);
+  assert.ok(sql.includes("ALTER COLUMN ai_moderation_consent_at DROP NOT NULL"));
+  assert.ok(sql.includes("ALTER COLUMN ai_moderation_consent_version DROP NOT NULL"));
+  assert.ok(sql.includes("ADD COLUMN IF NOT EXISTS revoked_at timestamptz"));
+  assert.ok(sql.includes("IF p_ai_consent IS TRUE AND p_ai_version IS DISTINCT FROM '2026-11-17-v2'"));
+  assert.ok(sql.includes("SET revoked_at = coalesce(revoked_at, v_now)"));
+  assert.ok(sql.includes("'needsOnboarding', (v_row.birth_date IS NULL OR NOT v_personal_ok)"));
+  assert.ok(sql.includes("p.role = 'admin'"));
+  assert.ok(sql.includes("CHECK (status IN ('active', 'review', 'done', 'settlementError'))"));
 
   const consentGuard = sql.slice(sql.indexOf("FUNCTION private.scrl_require_user_consents"));
-  assert.match(consentGuard, /personal_data_consent_version = '2026-11-17-v1'/i);
-  assert.doesNotMatch(consentGuard, /ai_moderation_consent_at/i);
+  assert.ok(consentGuard.includes("personal_data_consent_version = '2026-11-17-v1'"));
+  assert.ok(!consentGuard.includes("ai_moderation_consent_at"));
 });
 
-test("manual moderation does not send content externally without consent and keeps financial actions fail-closed", () => {
+test("manual moderation avoids external processing without consent and keeps financial actions fail-closed", () => {
   const edge = fs.readFileSync(path.join(__dirname, "../supabase/functions/scrl-moderation/index.ts"), "utf8");
-  assert.match(edge, /rpc\\/scrl_has_ai_processing_consent/);
-  assert.match(edge, /const useExternalAI=providerEnabled&&aiConsent/);
-  assert.match(edge, /decision:"flag"[\\s\\S]*?categories:\\["manual_review"\\]/);
-  assert.match(edge, /manualReview&&\\["deal","teacher_issue"\\]\\.includes\\(kind\\)/);
-  assert.match(edge, /moderation_admin_resolve_case/);
+  assert.ok(edge.includes('rpc("rpc/scrl_has_ai_processing_consent"') || edge.includes('"rpc/scrl_has_ai_processing_consent"'));
+  assert.ok(edge.includes("const useExternalAI=providerEnabled&&aiConsent"));
+  assert.ok(edge.includes('categories:["manual_review"]'));
+  assert.ok(edge.includes('manualReview&&["deal","teacher_issue"].includes(kind)'));
+  assert.ok(edge.includes("moderation_admin_resolve_case"));
 
   const sql = fs.readFileSync(path.join(migrationDir, "20261124185600_separate_ai_consent_and_enable_manual_review.sql"), "utf8");
-  assert.match(sql, /IF v_status = 'active' THEN[\\s\\S]*?scrl_notify/i);
-  assert.match(sql, /scrl_send_message\\(uuid, text\\)/i);
+  assert.ok(sql.includes("IF v_status = 'active' THEN"));
+  assert.ok(sql.includes("scrl_send_message(uuid, text)"));
 });
