@@ -67,6 +67,33 @@ BEGIN
     RAISE EXCEPTION 'Профиль не найден, уже заблокирован или имеет административную роль.';
   END IF;
 
+  -- Serialize automatic blocking with the participant's balance operations.
+  PERFORM 1 FROM public.wallets WHERE user_id = p_user FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Кошелёк участника не найден. Автоматическая блокировка остановлена.';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM public.deals
+    WHERE (buyer_id = p_user OR seller_id = p_user)
+      AND status IN ('work', 'ready', 'dispute')
+  )
+  OR EXISTS (
+    SELECT 1 FROM public.exchange_orders
+    WHERE owner_id = p_user AND status = 'active'
+  )
+  OR EXISTS (
+    SELECT 1 FROM public.auctions
+    WHERE status IN ('active', 'settlementError')
+      AND (owner_id = p_user OR leader_id = p_user)
+  ) THEN
+    UPDATE public.scrl_moderation_cases
+    SET decision = 'flag',
+        reason = left(v_case.reason || ' Автоматическая блокировка отложена до завершения активных операций; требуется ручное решение администратора.', 500)
+    WHERE id = p_case_id;
+    RETURN NULL;
+  END IF;
+
   INSERT INTO public.scrl_moderation_bans(
     user_id, case_id, reason, active, appeal_until
   )
