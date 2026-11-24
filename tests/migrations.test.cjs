@@ -192,11 +192,18 @@ test("automatic moderation bans update the ban, profile, notification and audit 
   assert.ok(sql.includes("INSERT INTO public.notifications"));
   assert.ok(sql.includes("INSERT INTO public.audit"));
   assert.ok(sql.includes("role <> 'admin'"));
+  assert.ok(sql.includes("public.deals"));
+  assert.ok(sql.includes("public.exchange_orders"));
+  assert.ok(sql.includes("public.auctions"));
+  assert.ok(sql.includes("UPDATE public.scrl_moderation_cases"));
+  assert.ok(sql.includes("RETURN NULL"));
   assert.ok(sql.includes("GRANT EXECUTE ON FUNCTION public.scrl_moderation_issue_automatic_ban(uuid, uuid, text, timestamptz) TO service_role"));
 
   const edge = fs.readFileSync(path.join(__dirname, "../supabase/functions/scrl-moderation/index.ts"), "utf8");
   assert.ok(edge.includes("rpc/scrl_moderation_issue_automatic_ban"));
   assert.ok(edge.includes('profile.role!=="admin"'));
+  assert.ok(edge.includes("if(!banId)"));
+  assert.ok(edge.includes("у участника есть активные финансовые операции"));
 });
 
 
