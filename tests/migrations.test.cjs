@@ -176,3 +176,25 @@ test("manual moderation avoids external processing without consent and keeps fin
   assert.ok(sql.includes("IF v_status = 'active' THEN"));
   assert.ok(sql.includes("scrl_send_message(uuid, text)"));
 });
+
+
+test("automatic moderation bans update the ban, profile, notification and audit atomically", () => {
+  const name = "20261124192000_make_automatic_moderation_bans_atomic.sql";
+  const sql = fs.readFileSync(path.join(migrationDir, name), "utf8");
+  assert.ok(sql.includes("pg_advisory_xact_lock"));
+  assert.ok(sql.includes("v_case.status <> 'pending'"));
+  assert.ok(sql.includes("v_case.decision <> 'ban'"));
+  assert.ok(sql.includes("v_case.severity <> 'critical'"));
+  assert.ok(sql.includes("v_case.confidence < 0.98"));
+  assert.ok(sql.includes("sexual_exploitation_or_grooming"));
+  assert.ok(sql.includes("UPDATE public.profiles"));
+  assert.ok(sql.includes("INSERT INTO public.scrl_moderation_bans"));
+  assert.ok(sql.includes("INSERT INTO public.notifications"));
+  assert.ok(sql.includes("INSERT INTO public.audit"));
+  assert.ok(sql.includes("role <> 'admin'"));
+  assert.ok(sql.includes("GRANT EXECUTE ON FUNCTION public.scrl_moderation_issue_automatic_ban(uuid, uuid, text, timestamptz) TO service_role"));
+
+  const edge = fs.readFileSync(path.join(__dirname, "../supabase/functions/scrl-moderation/index.ts"), "utf8");
+  assert.ok(edge.includes("rpc/scrl_moderation_issue_automatic_ban"));
+  assert.ok(edge.includes('profile.role!=="admin"'));
+});
