@@ -244,7 +244,7 @@ test("pre-write approvals create short-lived one-use retry tickets and pending m
   assert.match(migration, /user_id = \(SELECT auth\.uid\(\)\)/);
   assert.match(migration, /status = 'active'[\s\S]*?AND EXISTS/);
   assert.match(migration, /source_table <> 'prewrite'/);
-  assert.match(migration, /decision = 'allow'/);
+  assert.match(migration, /v_case\.kind,[\s\S]*?v_payload,[\s\S]*?'allow'/);
   assert.match(migration, /manual_approved/);
   assert.match(migration, /v_now \+ interval '30 minutes'/);
   assert.match(migration, /REVOKE ALL ON FUNCTION public\.scrl_moderation_admin_resolve_prewrite_case/);
