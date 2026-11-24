@@ -95,4 +95,31 @@ ScRl — общая платформа школьной взаимопомощи
 
 ## Проверка
 
-GitHub Actions запускает `node --check` и тесты из `tests/*.test.cjs` после каждого коммита в `main`.
+GitHub Actions выполняет:
+- `node --check` для браузерного JavaScript и Service Worker;
+- `deno check` для трёх Supabase Edge Functions;
+- регрессионные тесты `node --test tests/*.test.cjs`;
+- перед публикацией GitHub Pages повторяет проверки и проверяет HTTPS-домены.
+
+Локальный запуск проверок:
+
+```sh
+node --check js/config.js
+node --check js/core.js
+node --check js/backend.js
+node --check js/app.js
+node --check sw.js
+node --test tests/*.test.cjs
+deno check supabase/functions/scrl-account/index.ts
+deno check supabase/functions/scrl-ai/index.ts
+deno check supabase/functions/scrl-moderation/index.ts
+```
+
+## Ограничения самостоятельного развёртывания
+
+- Базовые миграции production-схемы `20261116005525`–`20261116010448` сейчас не хранятся в этом репозитории. Последующие миграции здесь есть, но их недостаточно для создания пустой базы. Не запускай `supabase db reset` на production и не считай репозиторий автономным источником восстановления БД. До независимого развёртывания нужно экспортировать и проверить базовую схему и историю миграций из действующего Supabase-проекта.
+- GitHub Pages workflow публикует только статический сайт. Он проверяет Edge Functions через `deno check`, но не развёртывает их в Supabase. Изменённые функции нужно отдельно публиковать через Supabase CLI или Dashboard.
+- CI не имеет доступа к закрытым Supabase Secrets и production-данным, поэтому не подтверждает фактическую работу SMTP, настроек Auth, RPC, RLS и внешних ключей. Эти настройки нужно проверять в самом Supabase-проекте.
+- Автоматические тесты не заменяют сквозной тест регистрации, подтверждения email, входа, восстановления пароля, операций с балансом, сделок, модерации и администрирования на отдельной тестовой учётной записи.
+
+Для пилота со школьниками дополнительно выполни требования из [чек-листа школьного пилота](docs/school-pilot.md). До назначения взрослого оператора и согласования обработки данных не используй реальные данные учеников.
