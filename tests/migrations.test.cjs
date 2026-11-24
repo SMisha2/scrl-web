@@ -237,6 +237,33 @@ test("all money releases preserve aggregate ScRl and V-RUB reserves across deals
 });
 
 
+test("pre-write approvals create short-lived one-use retry tickets and pending messages stay private", () => {
+  const migration = fs.readFileSync(path.join(migrationDir, "20261124201030_add_manual_review_retry_permits_and_hide_pending_messages.sql"), "utf8");
+  assert.match(migration, /user_id = \(SELECT auth\.uid\(\)\)/);
+  assert.match(migration, /status = 'active'[\s\S]*?AND EXISTS/);
+  assert.match(migration, /source_table <> 'prewrite'/);
+  assert.match(migration, /decision = 'allow'/);
+  assert.match(migration, /manual_approved/);
+  assert.match(migration, /v_now \+ interval '30 minutes'/);
+  assert.match(migration, /REVOKE ALL ON FUNCTION public\.scrl_moderation_admin_resolve_prewrite_case/);
+  assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.scrl_moderation_admin_resolve_prewrite_case[\s\S]*TO service_role/);
+
+  const edge = fs.readFileSync(path.join(__dirname, "../supabase/functions/scrl-moderation/index.ts"), "utf8");
+  assert.ok(edge.includes("findManualRetryPermit"));
+  assert.ok(edge.includes("scrl_moderation_admin_resolve_prewrite_case"));
+  assert.ok(edge.includes('["deal","teacher_issue"].includes(kind)?"prewrite"'));
+  assert.ok(edge.includes('ticket.categories.includes("manual_approved")'));
+});
+
+test("external moderation receives only allowlisted text fields and never receives reports", () => {
+  const edge = fs.readFileSync(path.join(__dirname, "../supabase/functions/scrl-moderation/index.ts"), "utf8");
+  assert.ok(edge.includes("function externalModerationPayload"));
+  assert.ok(edge.includes('report:[]'));
+  assert.ok(edge.includes('kind!=="report"'));
+  assert.ok(edge.includes('await classify(kind,providerPayload,analysisViews)'));
+  assert.ok(edge.includes('profile.deleted_at'));
+});
+
 test("financial operations lock active participant profiles before reserves and order rows", () => {
   const name = "20261124200000_serialize_financial_actor_profile_locks.sql";
   const sql = fs.readFileSync(path.join(migrationDir, name), "utf8");
