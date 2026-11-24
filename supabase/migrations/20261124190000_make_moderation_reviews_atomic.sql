@@ -117,6 +117,10 @@ BEGIN
     LIMIT 1
     FOR UPDATE;
 
+    IF NOT FOUND OR v_ban.user_id IS NULL THEN
+      RAISE EXCEPTION 'Активная блокировка для дела не найдена. Дело не было закрыто.';
+    END IF;
+
     UPDATE public.scrl_moderation_bans
     SET active = false, lifted_at = v_now, lifted_by = p_admin
     WHERE case_id = p_case_id AND active = true;
