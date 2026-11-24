@@ -8,6 +8,22 @@ const migrationFiles = fs.readdirSync(migrationDir)
   .filter(name => name.endsWith(".sql"))
   .sort();
 
+test("admin block and anonymize refuse accounts with unexplained wallet holds", () => {
+  const sql = fs.readFileSync(path.join(migrationDir, "20261124203000_harden_admin_block_and_anonymize_orphan_reserves.sql"), "utf8");
+  const normalized = sql.toLowerCase();
+  const blockStart = normalized.indexOf("elsif p_action = 'block'");
+  const anonymizeStart = normalized.indexOf("elsif p_action = 'anonymize'");
+  assert.ok(blockStart >= 0 && anonymizeStart > blockStart);
+  const block = normalized.slice(blockStart, anonymizeStart);
+  const anonymize = normalized.slice(anonymizeStart);
+  assert.ok(block.includes("end loop;"));
+  assert.ok(block.includes("hold_scrl > 0 or hold_vrub > 0"));
+  assert.ok(block.indexOf("hold_scrl > 0 or hold_vrub > 0") < block.indexOf("set blocked = true"));
+  assert.ok(anonymize.includes("hold_scrl > 0 or hold_vrub > 0"));
+  assert.ok(anonymize.indexOf("hold_scrl > 0 or hold_vrub > 0") < anonymize.indexOf("set full_name = 'удалённый участник'"));
+  assert.match(sql, /REVOKE ALL ON FUNCTION public\.scrl_admin_set_user\(uuid, text, text, text\)/);
+});
+
 test("concurrent admin account deletion is serialized and cannot remove the last administrator", () => {
   const sql = fs.readFileSync(path.join(migrationDir, "20261124202000_serialize_admin_roster_deletion.sql"), "utf8");
   const lock = sql.indexOf("pg_advisory_xact_lock(hashtext('scrl_admin_roster'))");
@@ -32,7 +48,7 @@ test("school pilot documentation assigns operator and processing roles to adults
 
 test("all production migrations remain versioned and tracked", () => {
   assert.ok(
-    migrationFiles.length >= 47,
+    migrationFiles.length >= 48,
     `Expected at least 36 tracked migrations, found ${migrationFiles.length}`
   );
 
