@@ -611,7 +611,7 @@ test("notification text is escaped before insertion into the HTML panel", () => 
   assert.doesNotMatch(html, /<img\s/);
 });
 test("user-generated HTML is escaped in board, service and auction cards", () => {
-  const { api } = boot();
+  const { api, els } = boot();
   const payload = '<img src=x onerror="alert(1)"> & "quoted"';
 
   api.data.posts.unshift({
@@ -626,7 +626,8 @@ test("user-generated HTML is escaped in board, service and auction cards", () =>
     id: "xss-listing", title: payload, desc: payload,
     category: payload, price: 1, slots: 1, user: "u0", status: "active", date: Date.now()
   });
-  const market = api.marketPage();
+  api.setPage("market");
+  const market = els.get("page").innerHTML;
   assert.match(market, /&lt;img src=x onerror=&quot;alert\(1\)&quot;&gt;/);
   assert.doesNotMatch(market, /<img\s/);
 
