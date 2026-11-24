@@ -263,10 +263,20 @@ async function checkContent(userId:string,kind:string,input:any) {
   if((JSON.stringify(payload)+JSON.stringify(analysisViews)).length>14000) throw new Error("Содержимое слишком большое для проверки.");
   const since=new Date(Date.now()-60000).toISOString();
   const [recentTickets,recentCases]=await Promise.all([
-    rest("scrl_moderation_tickets?select=id&user_id=eq."+encodeURIComponent(userId)+"&created_at=gte."+encodeURIComponent(since)),
+    rest("scrl_moderation_tickets?select=id,case_id&user_id=eq."+encodeURIComponent(userId)+"&created_at=gte."+encodeURIComponent(since)),
     rest("scrl_moderation_cases?select=id&user_id=eq."+encodeURIComponent(userId)+"&created_at=gte."+encodeURIComponent(since))
   ]);
-  const recentCount=(Array.isArray(recentTickets)?recentTickets.length:0)+(Array.isArray(recentCases)?recentCases.length:0);
+  // A manual-review submission creates one case and one linked ticket.
+  // Count the linked pair once, otherwise manual-only users hit the limit
+  // after roughly three actions instead of the configured six.
+  const linkedCaseIds=new Set(
+    (Array.isArray(recentTickets)?recentTickets:[])
+      .map((ticket:any)=>String(ticket.case_id||""))
+      .filter(Boolean)
+  );
+  const unlinkedCases=(Array.isArray(recentCases)?recentCases:[])
+    .filter((item:any)=>!linkedCaseIds.has(String(item.id)));
+  const recentCount=(Array.isArray(recentTickets)?recentTickets.length:0)+unlinkedCases.length;
   if(recentCount>=6) throw new Response(JSON.stringify({error:"Слишком много проверок подряд. Подожди минуту и повтори отправку."}),{status:429});
   let aiConsent=false;
   try {
