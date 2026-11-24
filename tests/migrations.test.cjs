@@ -253,14 +253,16 @@ test("financial operations lock active participant profiles before reserves and 
     assert.ok(source.indexOf("ORDER BY p.id") < source.indexOf("FOR UPDATE"), name + " must lock profiles before proceeding");
   }
 
-  assert.ok(deal.indexOf("ORDER BY p.id") < deal.indexOf("public.listings"), "deal creation locks profiles before publication rows");
+  assert.ok(deal.indexOf("ORDER BY p.id") < deal.indexOf("select * into v_listing"), "deal creation locks profiles before publication rows");
   assert.ok(teacher.indexOf("ORDER BY p.id") < teacher.indexOf("teacher_issuance"), "teacher issuance locks profiles before quotas and wallets");
   assert.ok(auction.includes("deleted_at is null"));
   assert.ok(auction.includes("v_role is null or v_role not in ('teacher','admin')"));
   assert.ok(auction.includes("for update"));
   assert.ok(place.includes("blocked = false"));
   assert.ok(place.includes("deleted_at IS NULL"));
-  assert.ok(place.indexOf("FOR UPDATE") < place.indexOf("public.wallets"));
-  assert.ok(buy.indexOf("ORDER BY p.id") < buy.indexOf("public.exchange_orders"));
+  assert.ok(place.indexOf("FOR UPDATE") < place.indexOf("from public.wallets"));
+  const buyProfileLock = buy.indexOf("ORDER BY p.id");
+  const buyOrderLock = buy.indexOf("for update", buy.indexOf("from public.exchange_orders", buyProfileLock));
+  assert.ok(buyProfileLock >= 0 && buyOrderLock > buyProfileLock, "exchange buy locks profiles before locking the order");
   assert.ok(buy.includes("scrl_required_scrl_holds"));
 });
