@@ -3059,12 +3059,12 @@ async function submitRemote(form) {
     const description = String(fields.get("desc") || "").trim();
     const price = Number(fields.get("price"));
     if (!title || !description || !Number.isFinite(price) || price < 0) throw new Error("Проверь заголовок, описание и цену.");
-    await backend.createPost({
+    const createdId = await backend.createPost({
       type: String(fields.get("type") || "need"), title, description,
       category: String(fields.get("category") || "Другое"), price
     });
-    await refreshRemoteData();
-    const created = data.posts[0];
+    await refreshRemoteData({ force: true });
+    const created = data.posts.find(item => String(item.id) === String(createdId)) || null;
     setPage("board");
     msg(created?.status === "review"
       ? "Публикация отправлена на проверку."
@@ -3080,11 +3080,11 @@ async function submitRemote(form) {
     const slots = Number(fields.get("slots"));
     if (!title || !description || !Number.isFinite(price) || price < 1 || price > 500 ||
         !Number.isInteger(slots) || slots < 1 || slots > 10) throw new Error("Проверь данные услуги.");
-    await backend.createListing({
+    const createdId = await backend.createListing({
       title, description, category: String(fields.get("category") || "Другое"), price, slots
     });
-    await refreshRemoteData();
-    const created = data.listings[0];
+    await refreshRemoteData({ force: true });
+    const created = data.listings.find(item => String(item.id) === String(createdId)) || null;
     setPage("market");
     msg(created?.status === "review"
       ? "Услуга отправлена на проверку."
