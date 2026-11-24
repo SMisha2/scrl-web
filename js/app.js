@@ -3346,7 +3346,7 @@ function paintWorldTheme(theme) {
   });
 
   const meta = document.querySelector && document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", normalized === "dark" ? "#0b110d" : "#e8eee4");
+  if (meta) meta.setAttribute("content", normalized === "dark" ? "#0e1511" : "#f5f7f4");
 }
 
 function applyTheme() {
