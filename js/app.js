@@ -2290,7 +2290,16 @@ function closeExpiredAuctions() {
 function endAuction(id) {
   if (remoteReady && !window.__scrlTestMode) return (async () => {
     await backend.finishAuction(id);
-    refreshRemoteData({ background: true, page: "auctions" });
+    const latest = await refreshRemoteData({ force: true });
+    const auction = latest.auctions.find(item => String(item.id) === String(id));
+    if (!auction || auction.status !== "done") {
+      throw new Error(
+        auction?.status === "settlementError"
+          ? "Аукцион остановлен: общий резерв ScRl не совпадает с обязательствами. Администратор должен проверить баланс и резервы."
+          : "Сервер не подтвердил завершение аукциона. Обнови данные и проверь его статус."
+      );
+    }
+    setPage("auctions");
   })();
 
   if (me().role !== "admin" && me().role !== "teacher") throw new Error("Нет доступа.");
