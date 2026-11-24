@@ -749,9 +749,14 @@ begin
     from public.wallets
     where user_id=v_a.leader_id
     for update;
+    if not found then
+      update public.auctions set status='settlementError' where id=p_auction;
+      perform public.scrl_notify(v_a.owner_id, 'Аукцион «'||left(v_a.title,80)||'» остановлен: кошелёк победителя не найден.');
+      perform public.scrl_notify(v_a.leader_id, 'Выплата по аукциону остановлена: кошелёк требует проверки администратором.');
+      return;
+    end if;
     v_required_hold := private.scrl_required_scrl_holds(v_a.leader_id);
-    if not found
-       or v_wallet.hold_scrl < v_required_hold
+    if v_wallet.hold_scrl < v_required_hold
        or v_wallet.hold_scrl < v_a.current_bid then
       update public.auctions set status='settlementError' where id=p_auction;
       perform public.scrl_notify(v_a.owner_id, 'Аукцион «'||left(v_a.title,80)||'» остановлен: резерв победителя требует проверки.');
@@ -768,6 +773,9 @@ begin
     update public.bids set status='won' where auction_id=p_auction and user_id=v_a.leader_id and amount=v_a.current_bid and status='active';
     insert into public.ledger(user_id,currency,delta,note,actor_id) values(v_a.leader_id,'ScRl',0,'Победная ставка списана',auth.uid());
     update public.platform_settings set burned_scrl=burned_scrl+v_a.current_bid,updated_at=now() where singleton=true;
+    if not found then
+      raise exception 'Настройки экономики не найдены. Выплата по аукциону отменена.';
+    end if;
     perform public.scrl_notify(v_a.leader_id,'Ты выиграл аукцион «'||left(v_a.title,80)||'».');
   end if;
   update public.auctions set status='done',closed_at=now() where id=p_auction;
