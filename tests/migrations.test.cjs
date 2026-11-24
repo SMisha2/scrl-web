@@ -134,8 +134,13 @@ test("moderation case and appeal decisions are atomic and cannot be processed tw
   assert.ok(cases.includes("scrl_moderation_bans"));
   assert.ok(cases.includes("source_id IS NOT NULL"));
   assert.ok(cases.includes("INSERT INTO public.notifications"));
+  assert.ok(cases.includes("UPDATE public.scrl_moderation_appeals"));
+  assert.ok(cases.includes("Дело восстановлено администратором."));
   assert.ok(appeals.includes("v_appeal.status <> 'pending'"));
   assert.ok(appeals.includes("v_ban.active = false"));
+  assert.ok(appeals.includes("UPDATE public.scrl_moderation_cases"));
+  assert.ok(appeals.includes("appeal_accepted"));
+  assert.ok(appeals.includes("appeal_rejected"));
   assert.ok(appeals.includes("NOT EXISTS ("));
   assert.ok(appeals.includes("scrl_moderation_bans"));
   assert.ok(sql.includes("GRANT EXECUTE ON FUNCTION public.scrl_moderation_admin_resolve_case(uuid, uuid, text) TO service_role"));
@@ -227,6 +232,6 @@ test("all money releases preserve aggregate ScRl and V-RUB reserves across deals
   }
   assert.ok(buy.includes("scrl_required_vrub_holds"));
   assert.ok(cancel.includes("scrl_required_vrub_holds"));
-  assert.ok(finish.includes("SET status='settlementError'"));
+  assert.ok(finish.toLowerCase().includes("set status='settlementerror'"));
   assert.ok(finish.includes("RETURN;"));
 });
