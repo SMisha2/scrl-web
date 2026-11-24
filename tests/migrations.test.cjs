@@ -147,8 +147,10 @@ test("moderation case and appeal decisions are atomic and cannot be processed tw
   assert.ok(sql.includes("GRANT EXECUTE ON FUNCTION public.scrl_moderation_admin_resolve_appeal(uuid, uuid, text, text) TO service_role"));
 
   const edge = fs.readFileSync(path.join(__dirname, "../supabase/functions/scrl-moderation/index.ts"), "utf8");
-  assert.ok(edge.includes('rpc("rpc/scrl_moderation_admin_resolve_case"') || edge.includes('"rpc/scrl_moderation_admin_resolve_case"'));
-  assert.ok(edge.includes("rpc/scrl_moderation_admin_resolve_appeal"));
+  assert.ok(edge.includes('"scrl_moderation_admin_resolve_case"'));
+  assert.ok(edge.includes('"scrl_moderation_admin_resolve_prewrite_case"'));
+  assert.ok(edge.includes("scrl_moderation_admin_resolve_appeal"));
+  assert.ok(edge.includes("const functionName=prewrite"));
   assert.ok(!edge.includes('rest("scrl_moderation_cases?id=eq."'));
 });
 
