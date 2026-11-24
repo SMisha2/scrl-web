@@ -221,7 +221,7 @@ test("all money releases preserve aggregate ScRl and V-RUB reserves across deals
   const buy = sql.slice(sql.indexOf("FUNCTION public.scrl_buy_exchange_order"));
   const cancel = sql.slice(sql.indexOf("FUNCTION public.scrl_cancel_exchange_order"));
   const bid = sql.slice(sql.indexOf("FUNCTION public.scrl_place_bid"));
-  const finish = sql.slice(sql.indexOf("FUNCTION public.scrl_finish_auction"));
+  const finish = sql.slice(sql.toLowerCase().indexOf("function public.scrl_finish_auction"));
   for (const [name, source] of [["deal", deal], ["buy", buy], ["cancel", cancel], ["bid", bid], ["finish", finish]]) {
     assert.ok(source.includes("scrl_required_scrl_holds"), name + " must validate ScRl liabilities");
   }
