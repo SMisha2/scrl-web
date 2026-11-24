@@ -181,6 +181,8 @@ AS $function$
 DECLARE
   v_appeal public.scrl_moderation_appeals%rowtype;
   v_ban public.scrl_moderation_bans%rowtype;
+  v_ban_id uuid;
+  v_user_id uuid;
   v_case_id uuid;
   v_case_user uuid;
   v_now timestamptz := now();
@@ -204,7 +206,7 @@ BEGIN
   -- case -> ban -> appeal, matching the case-review transaction and avoiding
   -- a case/appeal lock inversion when two administrators act simultaneously.
   SELECT ban_id, user_id
-  INTO v_ban.id, v_appeal.user_id
+  INTO v_ban_id, v_user_id
   FROM public.scrl_moderation_appeals
   WHERE id = p_appeal_id;
   IF NOT FOUND THEN
@@ -214,8 +216,8 @@ BEGIN
   SELECT case_id, user_id
   INTO v_case_id, v_case_user
   FROM public.scrl_moderation_bans
-  WHERE id = v_ban.id
-    AND user_id = v_appeal.user_id;
+  WHERE id = v_ban_id
+    AND user_id = v_user_id;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Связанная блокировка не найдена.';
   END IF;
@@ -227,7 +229,7 @@ BEGIN
     PERFORM 1
     FROM public.scrl_moderation_cases
     WHERE id = v_case_id
-      AND user_id = v_appeal.user_id
+      AND user_id = v_user_id
     FOR UPDATE;
     IF NOT FOUND THEN
       RAISE EXCEPTION 'Связанное дело модерации не найдено.';
@@ -236,8 +238,8 @@ BEGIN
 
   SELECT * INTO v_ban
   FROM public.scrl_moderation_bans
-  WHERE id = v_ban.id
-    AND user_id = v_appeal.user_id
+  WHERE id = v_ban_id
+    AND user_id = v_user_id
   FOR UPDATE;
   IF NOT FOUND OR v_ban.active = false THEN
     RAISE EXCEPTION 'Активная блокировка для этой апелляции не найдена.';
@@ -246,8 +248,8 @@ BEGIN
   SELECT * INTO v_appeal
   FROM public.scrl_moderation_appeals
   WHERE id = p_appeal_id
-    AND ban_id = v_ban.id
-    AND user_id = v_ban.user_id
+    AND ban_id = v_ban_id
+    AND user_id = v_user_id
   FOR UPDATE;
   IF NOT FOUND OR v_appeal.status <> 'pending' THEN
     RAISE EXCEPTION 'Апелляция уже рассмотрена или не найдена.';
