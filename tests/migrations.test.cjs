@@ -8,6 +8,13 @@ const migrationFiles = fs.readdirSync(migrationDir)
   .filter(name => name.endsWith(".sql"))
   .sort();
 
+test("school pilot documentation assigns operator and processing roles to adults appointed by the school", () => {
+  const docs = fs.readFileSync(path.join(__dirname, "../docs/school-pilot.md"), "utf8");
+  assert.match(docs, /Совершеннолетний специалист или организация, письменно назначенные школой/);
+  assert.match(docs, /Несовершеннолетний автор проекта не назначается оператором/);
+  assert.doesNotMatch(docs, /Самозанятый родитель — технический автор проекта/);
+});
+
 test("all production migrations remain versioned and tracked", () => {
   assert.ok(
     migrationFiles.length >= 36,
