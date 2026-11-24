@@ -320,12 +320,15 @@ test("обязательные согласия принимаются при р
   const { api } = boot();
 
   assert.match(html, /id="loginAllConsents"[^>]*required/);
-  assert.match(html, /id="regAllConsents"[^>]*required/);
+  assert.match(html, /id="regPersonalConsent"[^>]*required/);
+  assert.match(html, /id="regAiConsent"[^>]*type="checkbox"/);
   assert.match(html, /legal\/terms\.html/);
   assert.match(html, /legal\/privacy\.html/);
   assert.match(html, /legal\/ai-moderation\.html/);
   assert.match(html, /legal\/parent-exchange\.html/);
-  assert.match(app, /name="allConsents"/);
+  assert.match(app, /name="personalConsent"/);
+  assert.match(app, /name="aiConsent"/);
+  assert.match(app, /Материалы будут проходить ручную проверку/);
   assert.match(app, /loginAllConsents/);
   assert.match(app, /Не удалось проверить сохранённые согласия/);
   assert.match(app, /consentStatusNeedsAcceptance\(data\.safety\)/);
@@ -338,7 +341,7 @@ test("обязательные согласия принимаются при р
     needsOnboarding: false,
     hasPersonalDataConsent: true,
     hasAiConsent: false
-  }), true);
+  }), false);
   assert.equal(api.consentStatusNeedsAcceptance({
     needsOnboarding: true,
     hasPersonalDataConsent: true,
@@ -464,7 +467,7 @@ test("регистрация подтверждает почту, затем т�
   assert.match(app, /await saveProfile\(result\.user\.id, name, result\.access_token, null, \{/);
   assert.match(app, /el\("logMail"\)\.value = mail/);
   assert.match(app, /setMode\("login"\)/);
-  assert.match(app, /Почта подтверждена, согласия сохранены\. Теперь войди по email и паролю/);
+  assert.match(app, /Почта подтверждена, согласие на обработку данных сохранено/);
   assert.doesNotMatch(app, /enter\(name, result\.user\?\.email \|\| mail/);
   assert.doesNotMatch(app, /pending\.purpose === "email-login"/);
 });
@@ -595,6 +598,38 @@ test("bell counter only shows unread notices for the current user", () => {
   assert.equal(api.data.notices.find(item => item.user === "u1").seen, false);
   assert.equal(els.get("notificationCount").hidden, true);
 
+});
+
+test("notification text is escaped before insertion into the HTML panel", () => {
+  const { api, els } = boot();
+  const payload = '<img src=x onerror="alert(1)"> & "quoted"';
+  api.notify("u0", payload);
+  api.updateNotificationBell();
+  const html = els.get("notificationList").innerHTML;
+  assert.match(html, /&lt;img src=x onerror=&quot;alert\(1\)&quot;&gt;/);
+  assert.match(html, /&amp; &quot;quoted&quot;/);
+  assert.doesNotMatch(html, /<img\s/);
+});
+test("user-generated HTML is escaped in board and auction cards", () => {
+  const { api, els } = boot();
+  const payload = '<img src=x onerror="alert(1)"> & "quoted"';
+
+  api.data.posts.unshift({
+    id: "xss-post", type: "offer", title: payload, desc: payload,
+    category: payload, price: 0, user: "u0", status: "active", date: Date.now()
+  });
+  const board = api.boardPage();
+  assert.match(board, /&lt;img src=x onerror=&quot;alert\(1\)&quot;&gt;/);
+  assert.doesNotMatch(board, /<img\s/);
+
+  api.data.auctions.unshift({
+    id: "xss-auction", title: payload, prize: payload, status: "active",
+    ends: Date.now() + 60_000, owner: "u1", leader: "u2",
+    bid: 1, step: 1, startPrice: 1, bids: 0
+  });
+  const auctions = api.auctionsPage();
+  assert.match(auctions, /&lt;img src=x onerror=&quot;alert\(1\)&quot;&gt;/);
+  assert.doesNotMatch(auctions, /<img\s/);
 });
 
 test("прочитать и очистить удаляет только уведомления текущего аккаунта", () => {
@@ -848,6 +883,15 @@ test("кнопки уведомлений имеют отдельный обра
   assert.equal(api.data.notices.find(item => item.user === "u0").seen, true);
 });
 
+test("удалённые действия уведомлений вызывают защищённые RPC", () => {
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  const start = app.indexOf("async function actionRemote");
+  const end = app.indexOf("\nfunction action(", start);
+  const remoteAction = app.slice(start, end);
+  assert.match(remoteAction, /if \(type === "readall"\)[\s\S]*?await backend\.markNotificationsRead\(\)/);
+  assert.match(remoteAction, /if \(type === "clearall"\)[\s\S]*?await backend\.clearNotifications\(\)/);
+  assert.match(remoteAction, /await refreshRemoteData\(\)/);
+});
 test("форма входа и регистрации использует вертикальный курсор", () => {
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
@@ -970,6 +1014,14 @@ test("удаление своей публикации работает в де�
   assert.equal(api.data.posts.some(post => post.id === own.id), false);
 });
 
+test("publication success state is read back by the returned record ID", () => {
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  assert.match(app, /const createdId = await backend\.createPost\(/);
+  assert.match(app, /data\.posts\.find\(item => String\(item\.id\) === String\(createdId\)\)/);
+  assert.match(app, /const createdId = await backend\.createListing\(/);
+  assert.match(app, /data\.listings\.find\(item => String\(item\.id\) === String\(createdId\)\)/);
+  assert.match(app, /refreshRemoteData\(\{ force: true \}\)/);
+});
 test("удаление поста не обходит защиту активных сделок", () => {
   const { api } = boot();
   const own = {
@@ -1339,8 +1391,11 @@ test("obfuscation-aware moderation combines fields and routes manual review to a
   assert.match(moderation, /mixed_script_tokens/);
   assert.match(moderation, /result\.confidence<0\.74/);
   assert.match(moderation, /role=eq\.admin/);
-  assert.match(moderation, /Новое объявление ожидает ручной проверки администратора/);
-  assert.match(moderation, /Получена новая жалоба; требуется ручная проверка администратора/);
+  assert.match(moderation, /post:"Объявление"/);
+  assert.match(moderation, /report:"Жалоба"/);
+  assert.match(moderation, /queueMode=manualReview\?"ожидает ручной проверки":"требует проверки модератором"/);
+  assert.ok(moderation.includes('const queueMode=manualReview?"ожидает ручной проверки":"требует проверки модератором";'));
+  assert.ok(moderation.includes('await notifyAdmins((descriptions[kind]||"Материал")+" "+queueMode+".");'));
 });
 
 test("administrator deletion accepts other admin accounts but validates the acting admin in SQL", () => {
@@ -1506,18 +1561,30 @@ test("обязательное подтверждение согласий со�
   const page = api.privacyPage();
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
-  assert.match(page, /Завершение настройки/);
+  assert.match(page, /Завершение настройки|Данные и согласия/);
   assert.match(page, /privacyConsentForm/);
   assert.match(page, /privacyBirthDate/);
-  assert.match(page, /name="allConsents"/);
+  assert.match(page, /name="personalConsent"/);
+  assert.match(page, /name="aiConsent"/);
+  assert.match(page, /согласие необязательно/i);
   assert.match(page, /Сохранить согласия/);
   assert.match(page, /legal\/privacy\.html/);
   assert.doesNotMatch(html, /data-page="privacy"/);
-  assert.doesNotMatch(app, /link\("privacy"/);
+  assert.match(app, /link\("privacy", "Данные и согласия"\)/);
   assert.match(app, /consentStatusNeedsAcceptance\(data\.safety\)/);
 });
 
 
+test("review submission clearly distinguishes manual review from publication", () => {
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  const start = app.indexOf("async function saveReview(");
+  const end = app.indexOf("\nasync function submitRemote", start);
+  const source = app.slice(start, end);
+  assert.match(source, /savedReview\?\.status === "review"/);
+  assert.match(source, /Отзыв отправлен на ручную проверку/);
+  assert.match(source, /savedReview\?\.status === "hidden"/);
+  assert.match(source, /refreshRemoteData\(\{ force: true \}\)/);
+});
 test("завершённый заказ показывает заметную форму оценки и отзыв сохраняется", async () => {
   const { api } = boot();
   const deal = {
@@ -1572,7 +1639,7 @@ test("отзывы объясняют условия публикации и п�
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
   assert.match(app, /Оставить оценку можно после завершённой сделки с этим участником/);
   assert.match(app, /setPage\("privacy"\)/);
-  assert.match(app, /подтверди актуальные согласия в открывшемся разделе/);
+  assert.match(app, /подтверди политику обработки данных в открывшемся разделе/);
   assert.match(css, /review-eligibility-note/);
   assert.match(css, /@media \(max-width: 560px\)[\s\S]*?order-card/);
 });
@@ -1585,7 +1652,7 @@ test("после сохранения согласий статус перечи
   assert.match(app, /refreshRemoteData\(\{ force: true \}\)/);
   assert.match(app, /review-feedback/);
   assert.match(app, /role="alert"/);
-  assert.match(html, /после входа потребуется заполнить обязательную форму/);
+  assert.match(html, /ознакомился\(-ась\) с правилами сервиса и документами ScRl/);
   assert.match(app, /Галочка на экране входа сама по себе не записывает согласие в базу/);
 });
 

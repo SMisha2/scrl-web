@@ -17,11 +17,11 @@
   <title>ScRl</title>
   <link rel="preload" href="assets/MinecraftRus.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/style.css?v=212">
-  <link rel="stylesheet" href="css/design.css?v=11">
+  <link rel="stylesheet" href="css/design.css?v=12">
   <script src="js/config.js" defer></script>
   <script src="js/core.js" defer></script>
-  <script src="js/backend.js?v=167" defer></script>
-  <script src="js/app.js?v=217" defer></script>
+  <script src="js/backend.js?v=168" defer></script>
+  <script src="js/app.js?v=220" defer></script>
 </head>
 <body>
   <noscript><div class="noscript">Для входа и работы ScRl нужен JavaScript. Включите его в настройках браузера или обратитесь к ответственному взрослому.</div></noscript>
@@ -43,10 +43,10 @@
           <div class="book-copy">
             <h1 id="loginTitle" class="book-title">С Возвращением,</h1>
             <p id="loginDesc" class="book-subtitle">войдите, чтоб начать пользоваться</p>
-            <p class="auth-moderation-disclosure">При включённой ИИ-модерации Groq проверяет публикации и личные сообщения по сделкам. Текст передаётся внешнему сервису для проверки.</p>
+            <p class="auth-moderation-disclosure">Groq может проверять публикации и сообщения по сделкам только при отдельном согласии пользователя, включённой настройке ИИ-модерации и разрешённой внешней обработке. Без согласия тексты направляются на ручную проверку, а не передаются поставщику.</p>
           </div>
           <form id="loginForm" class="auth-form book-form">
-            <label class="auth-consent-check auth-consent-check--single" for="loginAllConsents"><input id="loginAllConsents" name="allConsents" type="checkbox" required><span>Я ознакомился(-ась) с документами ScRl и подтверждаю это перед входом. Если согласия ещё не сохранены в аккаунте, после входа потребуется заполнить обязательную форму.</span></label>
+            <label class="auth-consent-check auth-consent-check--single" for="loginAllConsents"><input id="loginAllConsents" name="allConsents" type="checkbox" required><span>Я ознакомился(-ась) с правилами сервиса и документами ScRl.</span></label>
             <label for="logMail">Электронная почта:</label>
             <span class="mc-input-shell"><input id="logMail" name="email" type="email" autocomplete="username" aria-label="Электронная почта" required></span>
             <label for="logPass">Пароль:</label>
@@ -83,13 +83,14 @@
               <h2 id="authTitle" class="book-title">Регистрация</h2>
               <p id="authDesc" class="book-subtitle">Создайте новую запись в книге.</p>
             </div>
-            <p class="auth-moderation-disclosure">При включённой ИИ-модерации публикации, отзывы, жалобы и переписка по сделкам могут проверяться через Groq. Для проверки текст передаётся внешнему сервису. Если модерация отключена или не настроена, новые проверяемые действия останавливаются. Спорные решения можно обжаловать; автобан ограничен критическими случаями.</p>
+            <p class="auth-moderation-disclosure">Проверяемые тексты могут передаваться Groq только при отдельном согласии пользователя и включённых настройках внешней обработки. Без согласия или при отключённом провайдере поддерживаемые материалы уходят на ручную проверку; сделки и начисления ScRl временно недоступны. Спорные решения можно обжаловать.</p>
             <div class="auth-legacy-tabs" hidden>
               <button class="switch-button" id="loginTab" type="button">Вход</button>
               <button class="switch-button" id="regTab" type="button">Регистрация</button>
             </div>
             <form id="regForm" class="auth-form book-form book-form--registration" hidden>
-              <label class="auth-consent-check auth-consent-check--single" for="regAllConsents"><input id="regAllConsents" name="allConsents" type="checkbox" required><span>Я ознакомился(-ась) и принимаю обязательные документы и согласия ScRl.</span></label>
+              <label class="auth-consent-check auth-consent-check--single" for="regPersonalConsent"><input id="regPersonalConsent" name="personalConsent" type="checkbox" required><span>Согласен(-на) на обработку персональных данных по политике ScRl. Это необходимо для работы аккаунта.</span></label>
+              <label class="auth-consent-check auth-consent-check--single" for="regAiConsent"><input id="regAiConsent" name="aiConsent" type="checkbox"><span>Отдельно разрешаю передавать проверяемые тексты внешнему ИИ-поставщику Groq, если ИИ-модерация включена и согласована. Это необязательно.</span></label>
               <div class="reg-name-grid" aria-label="ФИО">
                 <div class="reg-name-field">
                   <label for="regLast">Фамилия:</label>
@@ -113,12 +114,12 @@
               <label for="regAgain">Повторите пароль:</label>
               <span class="mc-input-shell"><input id="regAgain" name="passwordAgain" type="password" autocomplete="new-password" minlength="8" required></span>
               <div class="auth-consent-list auth-consent-list--details" aria-label="Состав согласий">
-                <p>Единое подтверждение включает согласие на обработку персональных данных и ИИ-модерацию с возможной передачей проверяемого текста Groq. Согласие родителя для доступа к бирже оформляется отдельно, если оно требуется.</p>
+                <p>Согласие на обработку персональных данных обязательно для использования сервиса. Согласие на внешнюю ИИ-модерацию выдаётся отдельно и может быть отозвано в настройках данных. Без него текстовые материалы направляются на ручную проверку; некоторые финансовые действия временно недоступны.</p>
               </div>
               <details class="auth-consent-details">
                 <summary>Подробнее о данных и ИИ</summary>
                 <p>Обрабатываются ФИО, e-mail, дата рождения, класс, публикации, сообщения, отзывы и сведения об операциях. Дата рождения и журнал согласий хранятся отдельно от общего профиля.</p>
-                <p>Для автоматической проверки текст может передаваться Groq — внешнему поставщику ИИ. Аккаунт и база данных работают через Supabase. Спорные случаи могут просматриваться администрацией. ИИ может ошибаться; решения можно обжаловать. Не отправляй в тексты пароли, адреса и телефоны.</p>
+                <p>Только при отдельном согласии и включённой настройке модерации проверяемый текст может передаваться Groq — внешнему поставщику ИИ. Без такого согласия контент направляется на ручную проверку администратора, а не отправляется поставщику. ИИ может ошибаться; решения можно обжаловать. Не отправляй в тексты пароли, адреса и телефоны.</p>
               </details>
               <p class="form-error" id="regErr" aria-live="polite"></p>
               <div class="auth-legal-links" aria-label="Документы ScRl"><span>Документы:</span> <a href="legal/terms.html" target="_blank" rel="noopener">Правила сервиса</a><a href="legal/privacy.html" target="_blank" rel="noopener">Политика данных</a><a href="legal/ai-moderation.html" target="_blank" rel="noopener">ИИ-модерация</a><a href="legal/parent-exchange.html" target="_blank" rel="noopener">Согласие родителя для биржи</a></div>

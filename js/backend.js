@@ -299,11 +299,16 @@
       : [];
     const nameById = new Map(profiles.map(user => [user.id, user.name]));
     const messagesByDeal = new Map();
+    const isCurrentUserAdmin = currentProfile?.role === "admin";
     rows.deal_messages.forEach(row => {
+      const status = row.status || "active";
+      // Participants must not see another user's message before a moderator approves it.
+      // The sender can see their own pending message; admins can inspect it in the case queue.
+      if (status !== "active" && row.user_id !== currentUserId && !isCurrentUserAdmin) return;
       const item = {
         user: row.user_id,
         text: row.message,
-        status: row.status || "active",
+        status,
         date: time(row.created_at)
       };
       if (!messagesByDeal.has(row.deal_id)) messagesByDeal.set(row.deal_id, []);
@@ -421,13 +426,15 @@
           }
         }, token);
       }
-      // The edge function checks current consent before forwarding text to the external AI provider.
-      await moderationCheck("profile", { full_name: fullName }, token);
+      // The edge function verifies AI consent before any external processing and can
+      // route the change to a moderator without transmitting the name to an AI provider.
+      const moderation = await moderationCheck("profile", { full_name: fullName }, token);
       const body = { full_name: fullName };
       if (room !== null && room !== undefined) body.room = String(room).trim();
-      return request("/rest/v1/profiles?id=eq." + encodeURIComponent(id), {
+      await request("/rest/v1/profiles?id=eq." + encodeURIComponent(id), {
         method: "PATCH", body, prefer: "return=minimal"
       }, token);
+      return { success: true, moderation };
     },
     saveSafetyData(safety) {
       return rpc("scrl_save_my_safety_data", {
@@ -555,16 +562,10 @@
       return rpc("scrl_scan_publications", {});
     },
     markNotificationsRead() {
-      return rpc("scrl_mark_notifications_read", {});
+      return rpc("scrl_manage_my_notifications", { p_action: "read" });
     },
     clearNotifications() {
-      const current = storedSession();
-      if (!current || !current.id) throw new Error("Не удалось определить аккаунт для очистки уведомлений.");
-      const userId = encodeURIComponent(String(current.id));
-      return request("/rest/v1/notifications?user_id=eq." + userId, {
-        method: "DELETE",
-        prefer: "return=minimal"
-      });
+      return rpc("scrl_manage_my_notifications", { p_action: "clear" });
     },
     logSelf(message) {
       return rpc("scrl_log_self", { p_message: message });

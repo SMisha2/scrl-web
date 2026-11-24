@@ -84,12 +84,12 @@ async function authenticate(request: Request) {
   return {id:String(user.id)};
 }
 async function profileFor(id:string) {
-  const rows=await rest("profiles?id=eq."+encodeURIComponent(id)+"&select=id,role,blocked,full_name&limit=1");
+  const rows=await rest("profiles?id=eq."+encodeURIComponent(id)+"&select=id,role,blocked,deleted_at,full_name&limit=1");
   return Array.isArray(rows)?rows[0]:null;
 }
 async function requireAdmin(id:string) {
   const p=await profileFor(id);
-  if(!p||p.blocked||p.role!=="admin") throw new Response(JSON.stringify({error:"Доступ только для активного администратора ScRl."}),{status:403});
+  if(!p||p.blocked||p.deleted_at||p.role!=="admin") throw new Response(JSON.stringify({error:"Доступ только для активного администратора ScRl."}),{status:403});
 }
 function normalize(kind:string,p:any) {
   const s=(k:string,max:number,fallback="")=>String(p[k]??fallback).trim().slice(0,max);
@@ -112,6 +112,25 @@ const VISUAL_CONFUSABLES: Record<string,string> = {
   "м":"m","т":"t","в":"b","н":"h","і":"i","ј":"j","ѕ":"s","ӏ":"l"
 };
 const ZERO_WIDTH = /[\u200B-\u200F\u202A-\u202E\u2060\uFEFF]/g;
+
+function externalModerationPayload(kind:string,payload:Record<string,unknown>):Record<string,unknown> {
+  const allowed:Record<string,string[]> = {
+    post:["type","title","description","category"],
+    listing:["title","description","category"],
+    auction:["title","prize"],
+    deal:["title"],
+    message:["message"],
+    review:["text"],
+    profile:["full_name"],
+    report:[],
+    teacher_issue:["reason"]
+  };
+  const result:Record<string,unknown>={};
+  for(const key of allowed[kind]||[]) {
+    if(payload[key]!==undefined&&payload[key]!==null) result[key]=payload[key];
+  }
+  return result;
+}
 
 function buildAnalysisViews(kind:string,payload:Record<string,unknown>) {
   const entries=Object.entries(payload).filter(([key,value]) =>
@@ -236,6 +255,30 @@ async function classify(kind:string,payload:Record<string,unknown>,analysisViews
   const reason=String(parsed?.reason||"Требуется дополнительная проверка.").replace(/[<>]/g,"").slice(0,240);
   return {decision,severity,confidence:Number.isFinite(confidence)?Math.max(0,Math.min(1,confidence)):0,categories,reason};
 }
+function canonicalJson(value:unknown):string {
+  if(Array.isArray(value)) return "["+value.map(canonicalJson).join(",")+"]";
+  if(value&&typeof value==="object") {
+    const record=value as Record<string,unknown>;
+    return "{"+Object.keys(record).sort().map(key=>JSON.stringify(key)+":"+canonicalJson(record[key])).join(",")+"}";
+  }
+  return JSON.stringify(value);
+}
+async function findManualRetryPermit(userId:string,kind:string,payload:any) {
+  const expiry=encodeURIComponent(new Date().toISOString());
+  const rows=await rest(
+    "scrl_moderation_tickets?select=id,payload,case_id,categories"+
+    "&user_id=eq."+encodeURIComponent(userId)+
+    "&kind=eq."+encodeURIComponent(kind)+
+    "&decision=eq.allow&consumed_at=is.null&expires_at=gt."+expiry+
+    "&order=created_at.desc&limit=20"
+  );
+  if(!Array.isArray(rows)) return null;
+  return rows.find((ticket:any)=>
+    Array.isArray(ticket.categories)&&ticket.categories.includes("manual_approved")&&
+    canonicalJson(ticket.payload)===canonicalJson(payload)
+  )||null;
+}
+
 async function createCase(userId:string,kind:string,table:string,decision:string,result:any,payload:any) {
   const rows=await rest("scrl_moderation_cases",{method:"POST",headers:{Prefer:"return=representation"},body:{
     user_id:userId,kind,source_table:table,source_id:null,decision,severity:result.severity,
@@ -244,79 +287,147 @@ async function createCase(userId:string,kind:string,table:string,decision:string
   return Array.isArray(rows)?rows[0]:null;
 }
 async function issueBan(userId:string,caseId:string,reason:string) {
-  const deadline=new Date(Date.now()+86400000).toISOString();
-  const rows=await rest("scrl_moderation_bans",{method:"POST",headers:{Prefer:"return=representation"},body:{
-    user_id:userId,case_id:caseId,reason,active:true,appeal_until:deadline
-  }});
-  await rest("profiles?id=eq."+encodeURIComponent(userId),{method:"PATCH",headers:{Prefer:"return=minimal"},body:{blocked:true,block_reason:reason,updated_at:new Date().toISOString()}});
-  await rest("notifications",{method:"POST",headers:{Prefer:"return=minimal"},body:{
-    user_id:userId,message:"Аккаунт заблокирован ИИ-модерацией. Причина: "+reason.slice(0,150)+". Апелляцию можно подать в течение 24 часов."
-  }}).catch(()=>null);
-  return Array.isArray(rows)?rows[0]:null;
+  const appealUntil=new Date(Date.now()+86400000).toISOString();
+  return await rest("rpc/scrl_moderation_issue_automatic_ban",{
+    method:"POST",
+    body:{
+      p_user:userId,
+      p_case_id:caseId,
+      p_reason:reason,
+      p_appeal_until:appealUntil
+    }
+  });
 }
 async function checkContent(userId:string,kind:string,input:any) {
   if(!ALLOWED_KINDS.has(kind)) throw new Error("Неизвестный тип содержимого.");
   const profile=await profileFor(userId);
-  if(!profile||profile.blocked) throw new Response(JSON.stringify({error:"Аккаунт заблокирован. Открой страницу апелляции."}),{status:403});
+  if(!profile||profile.blocked||profile.deleted_at) throw new Response(JSON.stringify({error:"Аккаунт заблокирован. Открой страницу апелляции."}),{status:403});
   const payload=normalize(kind,input);
-  const analysisViews=buildAnalysisViews(kind,payload);
+  const providerPayload=externalModerationPayload(kind,payload);
+  const analysisViews=buildAnalysisViews(kind,providerPayload);
   if((JSON.stringify(payload)+JSON.stringify(analysisViews)).length>14000) throw new Error("Содержимое слишком большое для проверки.");
+  const retryPermit=await findManualRetryPermit(userId,kind,payload);
+  if(retryPermit) {
+    return {
+      allowed:true,banned:false,decision:"allow",
+      reason:"Администратор ранее одобрил этот материал. Разрешение действует для одной отправки.",
+      caseId:retryPermit.case_id,manualReview:false,approvedByHuman:true
+    };
+  }
   const since=new Date(Date.now()-60000).toISOString();
   const [recentTickets,recentCases]=await Promise.all([
-    rest("scrl_moderation_tickets?select=id&user_id=eq."+encodeURIComponent(userId)+"&created_at=gte."+encodeURIComponent(since)),
+    rest("scrl_moderation_tickets?select=id,case_id&user_id=eq."+encodeURIComponent(userId)+"&created_at=gte."+encodeURIComponent(since)),
     rest("scrl_moderation_cases?select=id&user_id=eq."+encodeURIComponent(userId)+"&created_at=gte."+encodeURIComponent(since))
   ]);
-  const recentCount=(Array.isArray(recentTickets)?recentTickets.length:0)+(Array.isArray(recentCases)?recentCases.length:0);
+  // A manual-review submission creates one case and one linked ticket.
+  // Count the linked pair once, otherwise manual-only users hit the limit
+  // after roughly three actions instead of the configured six.
+  const linkedCaseIds=new Set(
+    (Array.isArray(recentTickets)?recentTickets:[])
+      .map((ticket:any)=>String(ticket.case_id||""))
+      .filter(Boolean)
+  );
+  const unlinkedCases=(Array.isArray(recentCases)?recentCases:[])
+    .filter((item:any)=>!linkedCaseIds.has(String(item.id)));
+  const recentCount=(Array.isArray(recentTickets)?recentTickets.length:0)+unlinkedCases.length;
   if(recentCount>=6) throw new Response(JSON.stringify({error:"Слишком много проверок подряд. Подожди минуту и повтори отправку."}),{status:429});
-  const result=await classify(kind,payload,analysisViews);
+  let aiConsent=false;
+  try {
+    aiConsent=await rest("rpc/scrl_has_ai_processing_consent",{
+      method:"POST",body:{p_user_id:userId}
+    })===true;
+  } catch {
+    // Never send text to an external provider when consent cannot be verified.
+    aiConsent=false;
+  }
+  const providerEnabled=Deno.env.get("SCRL_MODERATION_ENABLED")==="true" &&
+    Deno.env.get("SCRL_MODERATION_EXTERNAL_PROCESSING_APPROVED")==="true" &&
+    Boolean(Deno.env.get("GROQ_API_KEY"));
+  // Reports can contain third-party personal data or quoted private material, so they stay manual.
+  const useExternalAI=providerEnabled&&aiConsent&&kind!=="report";
+  const manualReview=!useExternalAI;
+
+  if(manualReview&&["deal","teacher_issue"].includes(kind)) {
+    throw new Response(JSON.stringify({
+      error:"Операции со сделками и начислениями временно недоступны без подтверждённой автоматической проверки. Публикации и сообщения можно отправлять на ручную проверку администратора."
+    }),{status:503});
+  }
+
+  const result=useExternalAI
+    ? await classify(kind,providerPayload,analysisViews)
+    : {
+        decision:"flag",
+        severity:"medium",
+        confidence:0,
+        categories:["manual_review"],
+        reason:"Внешняя ИИ-проверка не используется: материал ожидает ручной проверки администратора."
+      };
   if(result.decision==="allow"&&result.confidence<0.74) {
     result.decision="flag";
     result.reason="ИИ не смог с достаточной уверенностью подтвердить безопасность текста; требуется ручная проверка.";
   }
-  const autoBan=kind!=="report"&&result.decision==="ban"&&result.severity==="critical"&&result.confidence>=0.98&&result.categories.some((x:string)=>AUTO_BAN_CATEGORIES.has(x));
+  const autoBan=profile.role!=="admin"&&kind!=="report"&&result.decision==="ban"&&result.severity==="critical"&&result.confidence>=0.98&&result.categories.some((x:string)=>AUTO_BAN_CATEGORIES.has(x));
   if(autoBan) {
     const item=await createCase(userId,kind,"prewrite","ban",result,{original:payload,analysis_views:analysisViews});
     if(!item?.id) throw new Error("Не удалось сохранить дело модерации.");
-    await issueBan(userId,String(item.id),result.reason);
+    const banId=await issueBan(userId,String(item.id),result.reason);
+    if(!banId) {
+      const reason="Обнаружено критическое нарушение, но у аккаунта есть незавершённые операции. Блокировка отложена; дело передано администратору.";
+      await notifyAdmins("Критическое дело модерации ожидает ручного решения: у участника есть активные финансовые операции.");
+      return {allowed:false,banned:false,decision:"flag",reason,caseId:item.id};
+    }
     return {allowed:false,banned:true,decision:"ban",reason:result.reason};
   }
   // A report is accepted even when it quotes harmful content; its author is never auto-banned.
   const decision=kind==="report"?(result.decision==="allow"?"allow":"flag"):(result.decision==="ban"?"hide":result.decision);
   let item:any=null;
   if(decision!=="allow") {
-    item=await createCase(userId,kind,SOURCE_TABLE[kind],decision,result,{original:payload,analysis_views:analysisViews});
+    const sourceTable=["deal","teacher_issue"].includes(kind)?"prewrite":SOURCE_TABLE[kind];
+    item=await createCase(userId,kind,sourceTable,decision,result,{original:payload,analysis_views:analysisViews});
     if(!item?.id) throw new Error("Не удалось сохранить дело модерации.");
   }
-  if(item && ["post","listing"].includes(kind)) {
-    await notifyAdmins(kind==="post"
-      ? "Новое объявление ожидает ручной проверки администратора."
-      : "Новая услуга ожидает ручной проверки администратора.");
+  if(item) {
+    const descriptions:Record<string,string> = {
+      post:"Объявление",
+      listing:"Услуга",
+      auction:"Аукцион",
+      message:"Сообщение по сделке",
+      review:"Отзыв",
+      profile:"Изменение имени профиля",
+      report:"Жалоба",
+      deal:"Сделка",
+      teacher_issue:"Начисление ScRl"
+    };
+    const queueMode=manualReview?"ожидает ручной проверки":"требует проверки модератором";
+    await notifyAdmins((descriptions[kind]||"Материал")+" "+queueMode+".");
   }
-  // Don't create financial actions or deals while their text is under review.
+  // Deal creation and issuance affect balances; never allow those writes to pass
+  // merely because an item was queued for later review.
   if(["deal","teacher_issue"].includes(kind)&&decision!=="allow") return {allowed:false,banned:false,decision,reason:result.reason};
   await rest("scrl_moderation_tickets",{method:"POST",headers:{Prefer:"return=minimal"},body:{
     user_id:userId,kind,payload,decision:decision==="allow"?"allow":decision,
     severity:result.severity,confidence:result.confidence,categories:result.categories,
     reason:result.reason,case_id:item?.id||null,expires_at:new Date(Date.now()+180000).toISOString()
   }});
-  if(kind==="report") await notifyAdmins("Получена новая жалоба; требуется ручная проверка администратора.");
-  return {allowed:true,banned:false,decision,reason:result.reason,caseId:item?.id||null};
+  return {allowed:true,banned:false,decision,reason:result.reason,caseId:item?.id||null,manualReview};
 }
 async function myStatus(userId:string) {
-  const [bans,appeals,cases,profile]=await Promise.all([
+  const [bans,appeals,cases,profile,aiConsent]=await Promise.all([
     rest("scrl_moderation_bans?select=*&user_id=eq."+encodeURIComponent(userId)+"&active=eq.true&order=created_at.desc&limit=5"),
     rest("scrl_moderation_appeals?select=*&user_id=eq."+encodeURIComponent(userId)+"&order=created_at.desc&limit=10"),
     rest("scrl_moderation_cases?select=*&user_id=eq."+encodeURIComponent(userId)+"&order=created_at.desc&limit=20"),
-    profileFor(userId)
+    profileFor(userId),
+    rest("rpc/scrl_has_ai_processing_consent",{method:"POST",body:{p_user_id:userId}}).catch(()=>false)
   ]);
   const ban=Array.isArray(bans)?bans[0]:null;
   const result:any={
     activeBan:ban?{id:ban.id,reason:ban.reason,createdAt:ban.created_at,appealUntil:ban.appeal_until,canAppeal:Date.now()<=new Date(ban.appeal_until).getTime()}:null,
     appeals:Array.isArray(appeals)?appeals:[],cases:Array.isArray(cases)?cases:[],
-    blocked:Boolean(profile?.blocked),admin:profile?.role==="admin"&&!profile?.blocked,
+    blocked:Boolean(profile?.blocked),admin:profile?.role==="admin"&&!profile?.blocked&&!profile?.deleted_at,
     aiEnabled:Deno.env.get("SCRL_MODERATION_ENABLED")==="true" &&
       Deno.env.get("SCRL_MODERATION_EXTERNAL_PROCESSING_APPROVED")==="true" &&
-      Boolean(Deno.env.get("GROQ_API_KEY")),
+      Boolean(Deno.env.get("GROQ_API_KEY")) && aiConsent===true,
+    manualReviewAvailable:true,
     adminCases:[],adminAppeals:[]
   };
   if(!result.admin) return result;
@@ -347,57 +458,30 @@ async function submitAppeal(userId:string,banId:string,reason:string) {
 }
 async function adminReviewCase(adminId:string,caseId:string,decision:string) {
   await requireAdmin(adminId);
-  const rows=await rest("scrl_moderation_cases?id=eq."+encodeURIComponent(caseId)+"&select=*&limit=1");
-  const item=Array.isArray(rows)?rows[0]:null;
-  if(!item||item.status!=="pending") throw new Error("Дело уже закрыто или не найдено.");
+  if(!caseId) throw new Error("Не указано дело модерации.");
   if(!["restore","keep_hidden"].includes(decision)) throw new Error("Неизвестное решение.");
-  const allowed=new Set(["posts","listings","auctions","deal_messages","reviews","reports","profiles"]);
-  if(item.source_id&&allowed.has(item.source_table)) {
-    if(item.source_table==="reports") {
-      await rest("reports?id=eq."+encodeURIComponent(item.source_id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:{status:decision==="restore"?"resolved":"hidden"}});
-    } else if(item.source_table==="profiles") {
-      if(decision==="restore" && item.evidence && typeof item.evidence.full_name==="string") {
-        await rest("profiles?id=eq."+encodeURIComponent(item.source_id),{
-          method:"PATCH",headers:{Prefer:"return=minimal"},
-          body:{full_name:item.evidence.full_name,updated_at:new Date().toISOString()}
-        });
-      }
-    } else {
-      await rest(item.source_table+"?id=eq."+encodeURIComponent(item.source_id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:{status:decision==="restore"?"active":"hidden"}});
-    }
-  }
-  if(item.decision==="ban" && decision==="restore") {
-    await rest("scrl_moderation_bans?case_id=eq."+encodeURIComponent(caseId)+"&active=eq.true",{
-      method:"PATCH",headers:{Prefer:"return=minimal"},
-      body:{active:false,lifted_at:new Date().toISOString(),lifted_by:adminId}
-    });
-    await rest("profiles?id=eq."+encodeURIComponent(item.user_id),{
-      method:"PATCH",headers:{Prefer:"return=minimal"},
-      body:{blocked:false,block_reason:"",updated_at:new Date().toISOString()}
-    });
-  }
-  await rest("scrl_moderation_cases?id=eq."+encodeURIComponent(caseId),{method:"PATCH",headers:{Prefer:"return=minimal"},body:{
-    status:"resolved",resolution:decision==="restore"?"restored":"kept_hidden",reviewed_at:new Date().toISOString(),reviewed_by:adminId
-  }});
-  await rest("notifications",{method:"POST",headers:{Prefer:"return=minimal"},body:{
-    user_id:item.user_id,message:decision==="restore"?"Администратор проверил дело модерации и восстановил материал.":"Администратор рассмотрел материал. Скрытие оставлено в силе."
-  }}).catch(()=>null);
+  const rows=await rest("scrl_moderation_cases?id=eq."+encodeURIComponent(caseId)+"&select=id,kind,source_table,source_id&limit=1");
+  const item=Array.isArray(rows)?rows[0]:null;
+  if(!item) throw new Error("Дело уже рассмотрено или не найдено.");
+  const prewrite=item.source_table==="prewrite"||
+    (item.source_id===null&&["deal","teacher_issue"].includes(String(item.kind)));
+  const functionName=prewrite
+    ?"scrl_moderation_admin_resolve_prewrite_case"
+    :"scrl_moderation_admin_resolve_case";
+  await rest("rpc/"+functionName,{
+    method:"POST",
+    body:{p_admin:adminId,p_case_id:caseId,p_decision:decision}
+  });
   return {success:true};
 }
 async function adminReviewAppeal(adminId:string,appealId:string,decision:string,note:string) {
   await requireAdmin(adminId);
+  if(!appealId) throw new Error("Не указана апелляция.");
   if(!["accept","reject"].includes(decision)) throw new Error("Неизвестное решение по апелляции.");
-  const rows=await rest("scrl_moderation_appeals?id=eq."+encodeURIComponent(appealId)+"&select=*&limit=1");
-  const appeal=Array.isArray(rows)?rows[0]:null;
-  if(!appeal||appeal.status!=="pending") throw new Error("Апелляция уже рассмотрена или не найдена.");
-  if(decision==="accept") {
-    await rest("scrl_moderation_bans?id=eq."+encodeURIComponent(appeal.ban_id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:{active:false,lifted_at:new Date().toISOString(),lifted_by:adminId}});
-    await rest("profiles?id=eq."+encodeURIComponent(appeal.user_id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:{blocked:false,block_reason:"",updated_at:new Date().toISOString()}});
-  }
-  await rest("scrl_moderation_appeals?id=eq."+encodeURIComponent(appealId),{method:"PATCH",headers:{Prefer:"return=minimal"},body:{
-    status:decision==="accept"?"accepted":"rejected",decision_note:String(note||"").trim().slice(0,500),reviewed_at:new Date().toISOString(),reviewed_by:adminId
-  }});
-  await rest("notifications",{method:"POST",headers:{Prefer:"return=minimal"},body:{user_id:appeal.user_id,message:decision==="accept"?"Апелляция удовлетворена. Блокировка снята.":"Апелляция отклонена. Блокировка остаётся активной."}}).catch(()=>null);
+  await rest("rpc/scrl_moderation_admin_resolve_appeal",{
+    method:"POST",
+    body:{p_admin:adminId,p_appeal_id:appealId,p_decision:decision,p_note:String(note||"").trim().slice(0,500)}
+  });
   return {success:true};
 }
 
@@ -420,10 +504,9 @@ Deno.serve(async (request:Request)=>{
     if(action==="admin_review_case") return json(await adminReviewCase(identity.id,String(body.case_id||""),String(body.decision||"")),200,origin);
     if(action==="admin_review_appeal") return json(await adminReviewAppeal(identity.id,String(body.appeal_id||""),String(body.decision||""),String(body.note||"")),200,origin);
     if(action!=="check") return json({error:"Неизвестное действие модерации."},400,origin);
-    if(Deno.env.get("SCRL_MODERATION_ENABLED")!=="true"||Deno.env.get("SCRL_MODERATION_EXTERNAL_PROCESSING_APPROVED")!=="true") {
-      return json({error:"ИИ-модерация ещё не активирована. Нужны новый ключ Groq и разрешение на внешнюю проверку пользовательского контента."},503,origin);
+    if(!body.payload||typeof body.payload!=="object"||Array.isArray(body.payload)) {
+      return json({error:"Не передано содержимое для проверки."},400,origin);
     }
-    if(!body.payload||typeof body.payload!=="object") return json({error:"Не передано содержимое для проверки."},400,origin);
     const result=await checkContent(identity.id,String(body.kind||""),body.payload);
     return json(result,result.allowed?200:403,origin);
   } catch(error) {

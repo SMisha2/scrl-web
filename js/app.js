@@ -952,24 +952,27 @@ function privacyPage() {
   const status = data.safety || {};
   const birthDate = String(status.birthDate || "");
   const today = new Date().toISOString().slice(0, 10);
-  const allChecked = status.hasPersonalDataConsent === true && status.hasAiConsent === true ? " checked" : "";
+  const personalChecked = status.hasPersonalDataConsent === true ? " checked" : "";
+  const aiChecked = status.hasAiConsent === true ? " checked" : "";
   const loadWarning = status.loadError
     ? '<p class="form-error">Не удалось загрузить текущий статус согласий: ' + safe(status.loadError) + '</p>'
     : "";
-  const onboardingNotice = remoteReady && consentStatusNeedsAcceptance(status)
-    ? '<p class="muted">Перед первым использованием ScRl нужно принять обязательные документы и сохранить согласия. После проверки базы откроются остальные разделы.</p>'
+  const onboarding = remoteReady && consentStatusNeedsAcceptance(status);
+  const onboardingNotice = onboarding
+    ? '<p class="muted">Перед первым использованием ScRl нужно принять политику обработки персональных данных. Согласие на внешнюю ИИ-модерацию отдельное и необязательное.</p>'
     : "";
-  return '<p class="eyebrow">НАСТРОЙКА АККАУНТА</p><h1>Завершение настройки</h1>' +
+  return '<p class="eyebrow">НАСТРОЙКА АККАУНТА</p><h1>' + (onboarding ? 'Завершение настройки' : 'Данные и согласия') + '</h1>' +
     onboardingNotice +
     '<section class="match-box consent-panel"><h2>Какие данные обрабатываются</h2>' +
     '<p>ScRl использует ФИО, электронную почту, дату рождения, класс, публикации, сообщения, отзывы и сведения об операциях для создания аккаунта, работы сервиса, безопасности, поддержки и разбора споров.</p>' +
     '<p>Дата рождения и журнал согласий хранятся отдельно от общего профиля и не показываются другим ученикам.</p>' +
-    '<details><summary>Подробнее об ИИ-модерации</summary><p>Если ИИ-модерация включена и внешняя обработка согласована, текст публикаций, услуг, аукционов, сообщений, отзывов, имени профиля и жалоб может передаваться Groq — внешнему поставщику ИИ. Если модерация отключена или не настроена, новые проверяемые действия останавливаются, а не обходят проверку. Не отправляй в тексты пароли, адреса, телефоны и другие лишние личные сведения.</p><p>ИИ может ошибаться. Спорные случаи отправляются администратору на ручную проверку; решения можно обжаловать.</p></details>' +
+    '<details><summary>Подробнее об ИИ-модерации</summary><p>Только при отдельном согласии, включённой настройке модерации и согласованной внешней обработке проверяемый текст публикации, услуги, аукциона, сообщения, отзыва, имени профиля или жалобы может передаваться Groq — внешнему поставщику ИИ. Без согласия или при отключённом провайдере поддерживаемые текстовые материалы направляются администратору на ручную проверку и не отправляются Groq. Создание сделок и начисление ScRl в режиме только ручной проверки временно отключены, чтобы не проводить финансовые действия до проверки. Не отправляй в тексты пароли, адреса, телефоны и лишние личные сведения.</p><p>ИИ может ошибаться. Решения можно обжаловать, а согласие на внешнюю обработку можно отозвать здесь в любое время.</p></details>' +
     '<p class="small muted">Согласия сохраняются в аккаунте с датой и версией текста. Галочка на экране входа сама по себе не записывает согласие в базу. После сохранения ScRl заново проверит данные на сервере; пока проверка не пройдёт, остальные разделы останутся закрыты.</p></section>' +
     loadWarning +
     '<form id="privacyConsentForm" class="demo-form consent-form">' +
     '<label for="privacyBirthDate">Дата рождения</label><input id="privacyBirthDate" name="birthDate" type="date" max="' + today + '" value="' + safe(birthDate) + '"' + (birthDate ? ' readonly aria-readonly="true"' : "") + ' required>' +
-    '<label class="consent-check"><input type="checkbox" name="allConsents" value="yes"' + allChecked + ' required><span>Я ознакомился(-ась) и принимаю обязательные документы ScRl, включая обработку персональных данных и ИИ-модерацию.</span></label>' +
+    '<label class="consent-check"><input type="checkbox" name="personalConsent" value="yes"' + personalChecked + ' required><span>Согласен(-на) на обработку персональных данных по политике ScRl. Это необходимо для работы аккаунта.</span></label>' +
+    '<label class="consent-check"><input type="checkbox" name="aiConsent" value="yes"' + aiChecked + '><span>Отдельно разрешаю передавать проверяемые тексты внешнему ИИ-поставщику Groq, если ИИ-модерация включена и согласована. Согласие необязательно и может быть отозвано.</span></label>' +
     '<nav class="consent-document-links" aria-label="Документы ScRl"><a href="legal/terms.html" target="_blank" rel="noopener">Правила сервиса</a><a href="legal/privacy.html" target="_blank" rel="noopener">Политика данных</a><a href="legal/ai-moderation.html" target="_blank" rel="noopener">ИИ-модерация</a><a href="legal/parent-exchange.html" target="_blank" rel="noopener">Согласие родителя для биржи</a></nav>' +
     '<button class="button button-primary" type="submit">Сохранить согласия</button></form>';
 }
@@ -991,6 +994,7 @@ function settingsPage() {
     '</section>' +
     '<section class="settings-card settings-shortcuts"><h2>Быстрый переход</h2><p>Нужные разделы собраны здесь, чтобы их было проще найти.</p><div class="settings-shortcut-list">' +
       link("profile", "Профиль и мои данные") +
+      link("privacy", "Данные и согласия") +
       link("notices", "Уведомления") +
     '</div></section>';
 }
@@ -1315,7 +1319,7 @@ function ordersPage() {
     const canMessage = ["work", "ready", "dispute"].includes(deal.status);
     const messages = (deal.messages || []).map(message =>
       '<div class="chat-line"><b>' + userProfileLink(message.user) + '</b><span>' + safe(message.text) +
-      '</span><small>' + (message.status && message.status !== "active" ? "На проверке ИИ · " : "") +
+      '</span><small>' + (message.status && message.status !== "active" ? "Ожидает проверки модератором · " : "") +
       new Date(message.date).toLocaleString("ru-RU") + '</small></div>'
     ).join("");
     const counterpartyId = deal.buyer === me().id ? deal.seller : deal.buyer;
@@ -1892,8 +1896,7 @@ function updateModerationNotice() {
 function consentStatusNeedsAcceptance(status = data.safety) {
   return !status ||
     status.needsOnboarding === true ||
-    status.hasPersonalDataConsent !== true ||
-    status.hasAiConsent !== true;
+    status.hasPersonalDataConsent !== true;
 }
 
 function setPage(name, options = {}) {
@@ -2287,7 +2290,16 @@ function closeExpiredAuctions() {
 function endAuction(id) {
   if (remoteReady && !window.__scrlTestMode) return (async () => {
     await backend.finishAuction(id);
-    refreshRemoteData({ background: true, page: "auctions" });
+    const latest = await refreshRemoteData({ force: true });
+    const auction = latest.auctions.find(item => String(item.id) === String(id));
+    if (!auction || auction.status !== "done") {
+      throw new Error(
+        auction?.status === "settlementError"
+          ? "Аукцион остановлен: общий резерв ScRl не совпадает с обязательствами. Администратор должен проверить баланс и резервы."
+          : "Сервер не подтвердил завершение аукциона. Обнови данные и проверь его статус."
+      );
+    }
+    setPage("auctions");
   })();
 
   if (me().role !== "admin" && me().role !== "teacher") throw new Error("Нет доступа.");
@@ -2932,12 +2944,12 @@ async function saveReview(dealId, ratingValue, reviewText = "") {
   if (remoteReady && !window.__scrlTestMode) {
     try {
       await backend.addReview({ deal: deal.id, user: me().id, target, rating, text });
-      await refreshRemoteData();
+      await refreshRemoteData({ force: true });
     } catch (error) {
       const reason = String(error && error.message || "");
       if (reason.includes("Сначала прими актуальное согласие")) {
         setPage("privacy");
-        throw new Error("Чтобы оставить отзыв, подтверди актуальные согласия в открывшемся разделе и попробуй ещё раз.");
+        throw new Error("Чтобы оставить отзыв, подтверди политику обработки данных в открывшемся разделе и попробуй ещё раз.");
       }
       throw error;
     }
@@ -2951,9 +2963,16 @@ async function saveReview(dealId, ratingValue, reviewText = "") {
     save();
   }
 
+  const savedReview = data.reviews.find(review => review.deal === deal.id && review.user === me().id) || null;
   setPage("orders");
-  msg("Оценка сохранена.");
-  return data.reviews.find(review => review.deal === deal.id && review.user === me().id) || null;
+  if (savedReview?.status === "review") {
+    msg("Отзыв отправлен на ручную проверку. Собеседник увидит его после одобрения.");
+  } else if (savedReview?.status === "hidden") {
+    msg("Отзыв скрыт модерацией до решения администратора.");
+  } else {
+    msg("Оценка сохранена.");
+  }
+  return savedReview;
 }
 
 async function submitRemote(form) {
@@ -2962,21 +2981,20 @@ async function submitRemote(form) {
 
   if (form.id === "privacyConsentForm") {
     const birthDate = String(fields.get("birthDate") || "").trim();
-    const allConsents = ["yes", "on"].includes(String(fields.get("allConsents") || ""));
-    const personalConsent = allConsents;
-    const aiConsent = allConsents;
+    const personalConsent = ["yes", "on"].includes(String(fields.get("personalConsent") || ""));
+    const aiConsent = ["yes", "on"].includes(String(fields.get("aiConsent") || ""));
     if (!birthDate || birthDate > new Date().toISOString().slice(0, 10)) throw new Error("Проверь дату рождения.");
-    if (!allConsents) throw new Error("Подтверди ознакомление с обязательными документами и согласиями ScRl.");
+    if (!personalConsent) throw new Error("Для работы аккаунта необходимо принять политику обработки персональных данных.");
     await backend.saveSafetyData({
       birthDate, personalConsent, aiConsent,
       personalVersion: PERSONAL_DATA_CONSENT_VERSION, aiVersion: AI_MODERATION_CONSENT_VERSION
     });
     await refreshRemoteData({ force: true });
     if (!data.safety || data.safety.loadError || consentStatusNeedsAcceptance(data.safety)) {
-      throw new Error("База данных пока не подтвердила сохранение обоих согласий. Проверь подключение и попробуй ещё раз.");
+      throw new Error("База данных пока не подтвердила согласие на обработку персональных данных. Проверь подключение и попробуй ещё раз.");
     }
     setPage("home");
-    msg("Согласия сохранены.");
+    msg(aiConsent ? "Согласие на данные и отдельное согласие на ИИ сохранены." : "Согласие на обработку данных сохранено. Материалы будут проходить ручную проверку.");
     return;
   }
   if (form.dataset.form === "parent-exchange-request") {
@@ -3041,12 +3059,12 @@ async function submitRemote(form) {
     const description = String(fields.get("desc") || "").trim();
     const price = Number(fields.get("price"));
     if (!title || !description || !Number.isFinite(price) || price < 0) throw new Error("Проверь заголовок, описание и цену.");
-    await backend.createPost({
+    const createdId = await backend.createPost({
       type: String(fields.get("type") || "need"), title, description,
       category: String(fields.get("category") || "Другое"), price
     });
-    await refreshRemoteData();
-    const created = data.posts[0];
+    await refreshRemoteData({ force: true });
+    const created = data.posts.find(item => String(item.id) === String(createdId)) || null;
     setPage("board");
     msg(created?.status === "review"
       ? "Публикация отправлена на проверку."
@@ -3062,11 +3080,11 @@ async function submitRemote(form) {
     const slots = Number(fields.get("slots"));
     if (!title || !description || !Number.isFinite(price) || price < 1 || price > 500 ||
         !Number.isInteger(slots) || slots < 1 || slots > 10) throw new Error("Проверь данные услуги.");
-    await backend.createListing({
+    const createdId = await backend.createListing({
       title, description, category: String(fields.get("category") || "Другое"), price, slots
     });
-    await refreshRemoteData();
-    const created = data.listings[0];
+    await refreshRemoteData({ force: true });
+    const created = data.listings.find(item => String(item.id) === String(createdId)) || null;
     setPage("market");
     msg(created?.status === "review"
       ? "Услуга отправлена на проверку."
@@ -3141,7 +3159,13 @@ async function submitRemote(form) {
     const selectedRole = String(fields.get("role") || "");
     if (!name) throw new Error("Имя не может быть пустым.");
     if (name.length > 100) throw new Error("ФИО не должно быть длиннее 100 символов.");
-    await backend.updateProfile(me().id, name, room);
+    const profileResult = await backend.updateProfile(me().id, name, room);
+    if (profileResult?.moderation && profileResult.moderation.decision !== "allow") {
+      await refreshRemoteData({ force: true });
+      setPage("profile");
+      msg("Изменение имени отправлено на ручную проверку. До решения модератора будет отображаться прежнее имя.");
+      return;
+    }
     me().name = name;
     me().room = room;
     const session = sess();
@@ -3556,14 +3580,13 @@ reg.addEventListener("submit", async event => {
   const pass = el("regPass").value;
   const again = el("regAgain").value;
   const birthDate = String(el("regBirth")?.value || "").trim();
-  const allConsents = Boolean(el("regAllConsents")?.checked);
-  const personalConsent = allConsents;
-  const aiConsent = allConsents;
+  const personalConsent = Boolean(el("regPersonalConsent")?.checked);
+  const aiConsent = Boolean(el("regAiConsent")?.checked);
   if (!last || !first) return el("regErr").textContent = "Напиши фамилию и имя.";
   if (!mail) return el("regErr").textContent = "Введи электронную почту.";
   if (!birthDate) return el("regErr").textContent = "Укажи дату рождения.";
   if (birthDate > new Date().toISOString().slice(0, 10)) return el("regErr").textContent = "Дата рождения не может быть в будущем.";
-  if (!allConsents) return el("regErr").textContent = "Подтверди ознакомление с обязательными документами и согласиями ScRl.";
+  if (!personalConsent) return el("regErr").textContent = "Для создания аккаунта необходимо принять политику обработки персональных данных.";
   if (pass.length < 8) return el("regErr").textContent = "Пароль должен быть не короче 8 символов.";
   if (pass !== again) return el("regErr").textContent = "Пароли не совпадают.";
   const name = [last, first, pat].filter(Boolean).join(" ");
@@ -3600,14 +3623,16 @@ codeForm.addEventListener("submit", async event => {
     el("logMail").value = mail;
     setMode("login");
     try {
-      await saveProfile(result.user.id, name, result.access_token, null, {
+      const saved = await saveProfile(result.user.id, name, result.access_token, null, {
         birthDate: registration.birthDate,
         personalConsent: registration.personalConsent === true,
         aiConsent: registration.aiConsent === true,
         personalVersion: PERSONAL_DATA_CONSENT_VERSION,
         aiVersion: AI_MODERATION_CONSENT_VERSION
       });
-      msg("Почта подтверждена, согласия сохранены. Теперь войди по email и паролю.");
+      msg(saved?.moderation && saved.moderation.decision !== "allow"
+        ? "Почта подтверждена. Данные сохранены, имя отправлено на ручную проверку. Теперь войди по email и паролю."
+        : "Почта подтверждена, согласие на обработку данных сохранено. Теперь войди по email и паролю.");
     } catch (profileError) {
       msg("Почта подтверждена, но профиль не удалось полностью сохранить. Попробуй войти и повторить сохранение.");
       console.warn("ScRl profile/consent save:", profileError);
