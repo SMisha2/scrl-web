@@ -43,12 +43,15 @@ function serviceHeaders() {
   if (!key) throw new Error("Не настроен внутренний ключ Supabase для модерации.");
   return { apikey:key, Authorization:"Bearer "+key, "Content-Type":"application/json", Accept:"application/json" };
 }
-async function rest(path: string, init: RequestInit = {}) {
+type RestInit = Omit<RequestInit, "body"> & { body?: unknown };
+async function rest(path: string, init: RestInit = {}) {
   const headers = new Headers(serviceHeaders());
   new Headers(init.headers || {}).forEach((v,k)=>headers.set(k,v));
-  const body = (init as any).body;
-  const safeInit: RequestInit = { ...init, headers };
-  if (body !== undefined && body !== null && typeof body !== "string") safeInit.body = JSON.stringify(body);
+  const { body, ...requestOptions } = init;
+  const safeInit: RequestInit = { ...requestOptions, headers };
+  if (body !== undefined && body !== null) {
+    safeInit.body = typeof body === "string" ? body : JSON.stringify(body);
+  }
   const response = await fetch(baseUrl()+"/rest/v1/"+path, { ...safeInit, signal:AbortSignal.timeout(12000) });
   const raw = await response.text();
   let parsed: any = null;
