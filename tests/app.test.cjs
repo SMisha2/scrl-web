@@ -610,6 +610,36 @@ test("notification text is escaped before insertion into the HTML panel", () => 
   assert.match(html, /&amp; &quot;quoted&quot;/);
   assert.doesNotMatch(html, /<img\s/);
 });
+test("user-generated HTML is escaped in board, service and auction cards", () => {
+  const { api } = boot();
+  const payload = '<img src=x onerror="alert(1)"> & "quoted"';
+
+  api.data.posts.unshift({
+    id: "xss-post", type: "offer", title: payload, desc: payload,
+    category: payload, price: 0, user: "u0", status: "active", date: Date.now()
+  });
+  const board = api.boardPage();
+  assert.match(board, /&lt;img src=x onerror=&quot;alert\(1\)&quot;&gt;/);
+  assert.doesNotMatch(board, /<img\s/);
+
+  api.data.listings.unshift({
+    id: "xss-listing", title: payload, desc: payload,
+    category: payload, price: 1, slots: 1, user: "u0", status: "active", date: Date.now()
+  });
+  const market = api.marketPage();
+  assert.match(market, /&lt;img src=x onerror=&quot;alert\(1\)&quot;&gt;/);
+  assert.doesNotMatch(market, /<img\s/);
+
+  api.data.auctions.unshift({
+    id: "xss-auction", title: payload, prize: payload, status: "active",
+    ends: Date.now() + 60_000, owner: "u1", leader: "u2",
+    bid: 1, step: 1, startPrice: 1, bids: 0
+  });
+  const auctions = api.auctionsPage();
+  assert.match(auctions, /&lt;img src=x onerror=&quot;alert\(1\)&quot;&gt;/);
+  assert.doesNotMatch(auctions, /<img\s/);
+});
+
 test("прочитать и очистить удаляет только уведомления текущего аккаунта", () => {
   const { api, els } = boot();
   api.notify("u0", "Моё уведомление.");
