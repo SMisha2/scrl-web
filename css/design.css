@@ -1394,7 +1394,7 @@
 
 
   /* ---------- Cohesive visual finish ---------- */
-  :root {
+  html[data-style="classic"] {
     --scrl-radius-sm: 7px;
     --scrl-radius-md: 11px;
     --scrl-radius-lg: 16px;
@@ -1577,12 +1577,14 @@
     background: var(--scrl-surface-2) !important;
     color: var(--scrl-text) !important;
   }
-  html[data-style="classic"] .logout-button { font-size: 0 !important; }
-  html[data-style="classic"] .logout-button::before {
-    content: "↗";
-    font-size: 17px !important;
-    line-height: 1 !important;
+  html[data-style="classic"] .logout-button {
+    width: auto !important;
+    min-width: 0 !important;
+    padding: 7px 12px !important;
+    font-size: 12px !important;
+    transform: none !important;
   }
+  html[data-style="classic"] .logout-button::before { content: none !important; }
   html[data-style="classic"] .user-avatar {
     width: 32px !important;
     height: 32px !important;
@@ -1972,13 +1974,19 @@
     html[data-style="classic"] .topbar-actions { gap: 5px !important; }
     html[data-style="classic"] .topbar-balance { display: none !important; }
     html[data-style="classic"] .notification-bell,
-    html[data-style="classic"] .theme-btn,
-    html[data-style="classic"] .logout-button {
+    html[data-style="classic"] .theme-btn {
       width: 36px !important;
       min-width: 36px !important;
       height: 36px !important;
       min-height: 36px !important;
       border-radius: 11px !important;
+    }
+    html[data-style="classic"] .logout-button {
+      min-width: 60px !important;
+      height: 36px !important;
+      min-height: 36px !important;
+      padding: 0 9px !important;
+      font-size: 11px !important;
     }
     html[data-style="classic"] .nav-tab,
     html[data-style="classic"] .more-btn {
