@@ -26,6 +26,17 @@ jobs:
         with:
           node-version: 22
 
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Check Supabase Edge Function types
+        run: |
+          deno check supabase/functions/scrl-account/index.ts
+          deno check supabase/functions/scrl-ai/index.ts
+          deno check supabase/functions/scrl-moderation/index.ts
+
       - name: Check JavaScript syntax
         run: |
           node --check js/config.js
