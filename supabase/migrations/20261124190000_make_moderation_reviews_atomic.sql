@@ -125,18 +125,25 @@ BEGIN
     SET active = false, lifted_at = v_now, lifted_by = p_admin
     WHERE case_id = p_case_id AND active = true;
 
-    IF FOUND AND v_ban.user_id IS NOT NULL THEN
-      UPDATE public.profiles AS p
-      SET blocked = false, block_reason = '', updated_at = v_now
-      WHERE p.id = v_case.user_id
-        AND p.blocked = true
-        AND p.block_reason = v_ban.reason
-        AND NOT EXISTS (
-          SELECT 1
-          FROM public.scrl_moderation_bans AS other_ban
-          WHERE other_ban.user_id = p.id AND other_ban.active = true
-        );
-    END IF;
+    UPDATE public.scrl_moderation_appeals
+    SET status = 'accepted',
+        decision_note = 'Дело восстановлено администратором.',
+        reviewed_at = v_now,
+        reviewed_by = p_admin
+    WHERE ban_id = v_ban.id
+      AND user_id = v_case.user_id
+      AND status = 'pending';
+
+    UPDATE public.profiles AS p
+    SET blocked = false, block_reason = '', updated_at = v_now
+    WHERE p.id = v_case.user_id
+      AND p.blocked = true
+      AND p.block_reason = v_ban.reason
+      AND NOT EXISTS (
+        SELECT 1
+        FROM public.scrl_moderation_bans AS other_ban
+        WHERE other_ban.user_id = p.id AND other_ban.active = true
+      );
   END IF;
 
   UPDATE public.scrl_moderation_cases
@@ -174,6 +181,8 @@ AS $function$
 DECLARE
   v_appeal public.scrl_moderation_appeals%rowtype;
   v_ban public.scrl_moderation_bans%rowtype;
+  v_case_id uuid;
+  v_case_user uuid;
   v_now timestamptz := now();
 BEGIN
   IF coalesce(current_setting('request.jwt.claim.role', true), '') <> 'service_role' THEN
@@ -191,27 +200,67 @@ BEGIN
     RAISE EXCEPTION 'Доступ только для действующего администратора.';
   END IF;
 
-  SELECT * INTO v_appeal
+  -- Resolve immutable references without locking. Every path then locks
+  -- case -> ban -> appeal, matching the case-review transaction and avoiding
+  -- a case/appeal lock inversion when two administrators act simultaneously.
+  SELECT ban_id, user_id
+  INTO v_ban.id, v_appeal.user_id
   FROM public.scrl_moderation_appeals
-  WHERE id = p_appeal_id
-  FOR UPDATE;
-  IF NOT FOUND OR v_appeal.status <> 'pending' THEN
-    RAISE EXCEPTION 'Апелляция уже рассмотрена или не найдена.';
+  WHERE id = p_appeal_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Апелляция не найдена.';
+  END IF;
+
+  SELECT case_id, user_id
+  INTO v_case_id, v_case_user
+  FROM public.scrl_moderation_bans
+  WHERE id = v_ban.id
+    AND user_id = v_appeal.user_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Связанная блокировка не найдена.';
+  END IF;
+  IF v_case_user IS DISTINCT FROM v_appeal.user_id THEN
+    RAISE EXCEPTION 'Апелляция не соответствует владельцу блокировки.';
+  END IF;
+
+  IF v_case_id IS NOT NULL THEN
+    PERFORM 1
+    FROM public.scrl_moderation_cases
+    WHERE id = v_case_id
+      AND user_id = v_appeal.user_id
+    FOR UPDATE;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Связанное дело модерации не найдено.';
+    END IF;
   END IF;
 
   SELECT * INTO v_ban
   FROM public.scrl_moderation_bans
-  WHERE id = v_appeal.ban_id
+  WHERE id = v_ban.id
     AND user_id = v_appeal.user_id
   FOR UPDATE;
   IF NOT FOUND OR v_ban.active = false THEN
     RAISE EXCEPTION 'Активная блокировка для этой апелляции не найдена.';
   END IF;
 
+  SELECT * INTO v_appeal
+  FROM public.scrl_moderation_appeals
+  WHERE id = p_appeal_id
+    AND ban_id = v_ban.id
+    AND user_id = v_ban.user_id
+  FOR UPDATE;
+  IF NOT FOUND OR v_appeal.status <> 'pending' THEN
+    RAISE EXCEPTION 'Апелляция уже рассмотрена или не найдена.';
+  END IF;
+
   IF p_decision = 'accept' THEN
     UPDATE public.scrl_moderation_bans
     SET active = false, lifted_at = v_now, lifted_by = p_admin
     WHERE id = v_appeal.ban_id AND active = true;
+
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Не удалось безопасно снять блокировку.';
+    END IF;
 
     UPDATE public.profiles AS p
     SET blocked = false, block_reason = '', updated_at = v_now
@@ -231,6 +280,18 @@ BEGIN
       reviewed_at = v_now,
       reviewed_by = p_admin
   WHERE id = p_appeal_id;
+
+  IF v_case_id IS NOT NULL THEN
+    UPDATE public.scrl_moderation_cases
+    SET status = 'resolved',
+        resolution = CASE
+          WHEN p_decision = 'accept' THEN 'appeal_accepted'
+          ELSE 'appeal_rejected'
+        END,
+        reviewed_at = v_now,
+        reviewed_by = p_admin
+    WHERE id = v_case_id;
+  END IF;
 
   INSERT INTO public.notifications(user_id, message)
   VALUES (
