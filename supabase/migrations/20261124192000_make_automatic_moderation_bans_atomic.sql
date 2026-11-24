@@ -16,7 +16,7 @@ AS $function$
 DECLARE
   v_case public.scrl_moderation_cases%rowtype;
   v_ban_id uuid;
-  v_reason text := left(btrim(coalesce(p_reason, 'Критическое нарушение правил')), 240);
+  v_reason text := left(btrim(coalesce(p_reason, 'Критическое нарушение правил')), 180);
   v_now timestamptz := now();
 BEGIN
   IF coalesce(current_setting('request.jwt.claim.role', true), '') <> 'service_role' THEN
