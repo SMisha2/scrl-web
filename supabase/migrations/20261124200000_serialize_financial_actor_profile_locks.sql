@@ -132,7 +132,9 @@ declare v_id uuid; v_role text;
 begin
   if auth.uid() is null then raise exception 'Требуется вход.'; end if;
   select role into v_role from public.profiles where id=auth.uid() and not blocked and deleted_at is null for update;
-  if v_role not in ('teacher','admin') then raise exception 'Создавать аукционы могут учителя и администраторы.'; end if;
+  if v_role is null or v_role not in ('teacher','admin') then
+    raise exception 'Создавать аукционы могут только активные учителя и администраторы.';
+  end if;
   if length(trim(p_title)) not between 1 and 100 or length(trim(p_prize)) not between 1 and 250 or p_start not between 1 and 1000000 or p_step not between 1 and 1000000 or p_minutes not between 1 and 10080 then
     raise exception 'Проверь данные аукциона.';
   end if;
