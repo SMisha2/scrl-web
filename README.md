@@ -89,7 +89,7 @@ ScRl — общая платформа школьной взаимопомощи
 - `js/backend.js` — клиент общей базы и REST/RPC-вызовы.
 - `js/core.js` — чистые расчёты экономики.
 - `js/config.js` — URL и публичный ключ Supabase.
-- `supabase/schema.sql` — legacy bootstrap для старой схемы профиля. В репозитории восстановлена полная история из 47 SQL-миграций на 24 ноября 2026 года. Это не доказывает, что production Supabase применил те же версии: перед обновлением нужно сверить `supabase_migrations.schema_migrations`, сделать backup и проверить порядок на отдельном проекте.
+- `supabase/schema.sql` — legacy bootstrap для старой схемы профиля. В репозитории восстановлена полная история из 48 SQL-миграций на 24 ноября 2026 года. Это не доказывает, что production Supabase применил те же версии: перед обновлением нужно сверить `supabase_migrations.schema_migrations`, сделать backup и проверить порядок на отдельном проекте.
 - `tests/` — автоматические проверки.
 - `.github/workflows/deploy-pages.yml` — проверка синтаксиса, тесты и публикация GitHub Pages.
 
