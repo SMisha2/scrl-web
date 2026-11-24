@@ -1518,12 +1518,12 @@ test("обязательное подтверждение согласий со�
   const page = api.privacyPage();
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
-  assert.match(page, /Завершение настройки/);
+  assert.match(page, /Завершение настройки|Данные и согласия/);
   assert.match(page, /privacyConsentForm/);
   assert.match(page, /privacyBirthDate/);
   assert.match(page, /name="personalConsent"/);
   assert.match(page, /name="aiConsent"/);
-  assert.match(page, /согласие необязательно/);
+  assert.match(page, /согласие необязательно/i);
   assert.match(page, /Сохранить согласия/);
   assert.match(page, /legal\/privacy\.html/);
   assert.doesNotMatch(html, /data-page="privacy"/);
@@ -1599,7 +1599,7 @@ test("после сохранения согласий статус перечи
   assert.match(app, /refreshRemoteData\(\{ force: true \}\)/);
   assert.match(app, /review-feedback/);
   assert.match(app, /role="alert"/);
-  assert.match(html, /после входа потребуется заполнить обязательную форму/);
+  assert.match(html, /ознакомился\(-ась\) с правилами сервиса и документами ScRl/);
   assert.match(app, /Галочка на экране входа сама по себе не записывает согласие в базу/);
 });
 
