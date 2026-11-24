@@ -96,8 +96,9 @@ BEGIN
 
   INSERT INTO public.audit(actor_id, message)
   VALUES (
-    p_user,
-    'Система создала временную блокировку по критическому делу модерации ' || p_case_id::text || '.'
+    NULL,
+    'Система создала временную блокировку для участника ' || p_user::text ||
+    ' по критическому делу модерации ' || p_case_id::text || '.'
   );
 
   RETURN v_ban_id;
