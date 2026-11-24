@@ -241,27 +241,33 @@ test("financial operations lock active participant profiles before reserves and 
   const name = "20261124200000_serialize_financial_actor_profile_locks.sql";
   const sql = fs.readFileSync(path.join(migrationDir, name), "utf8");
 
-  const deal = sql.slice(sql.indexOf("FUNCTION public.scrl_create_deal"));
-  const teacher = sql.slice(sql.indexOf("FUNCTION public.scrl_teacher_issue"));
-  const auction = sql.slice(sql.indexOf("FUNCTION public.scrl_create_auction"));
-  const place = sql.slice(sql.indexOf("FUNCTION public.scrl_place_exchange_order"));
-  const buy = sql.slice(sql.indexOf("FUNCTION public.scrl_buy_exchange_order"));
+  const normalized = sql.toLowerCase();
+  const from = (signature) => {
+    const index = normalized.indexOf(signature.toLowerCase());
+    assert.ok(index >= 0, "Missing SQL function: " + signature);
+    return normalized.slice(index);
+  };
+  const deal = from("function public.scrl_create_deal");
+  const teacher = from("function public.scrl_teacher_issue");
+  const auction = from("function public.scrl_create_auction");
+  const place = from("function public.scrl_place_exchange_order");
+  const buy = from("function public.scrl_buy_exchange_order");
 
   for (const [name, source] of [["deal", deal], ["teacher_issue", teacher], ["buy", buy]]) {
-    assert.ok(source.includes("ORDER BY p.id"), name + " must lock profiles in stable UUID order");
-    assert.ok(source.includes("GET DIAGNOSTICS v_locked_profiles = ROW_COUNT"), name + " must verify both profiles exist");
-    assert.ok(source.indexOf("ORDER BY p.id") < source.indexOf("FOR UPDATE"), name + " must lock profiles before proceeding");
+    assert.ok(source.includes("order by p.id"), name + " must lock profiles in stable UUID order");
+    assert.ok(source.includes("get diagnostics v_locked_profiles = row_count"), name + " must verify both profiles exist");
+    assert.ok(source.indexOf("order by p.id") < source.indexOf("for update"), name + " must lock profiles before proceeding");
   }
 
-  assert.ok(deal.indexOf("ORDER BY p.id") < deal.indexOf("select * into v_listing"), "deal creation locks profiles before publication rows");
-  assert.ok(teacher.indexOf("ORDER BY p.id") < teacher.indexOf("teacher_issuance"), "teacher issuance locks profiles before quotas and wallets");
+  assert.ok(deal.indexOf("order by p.id") < deal.indexOf("select * into v_listing"), "deal creation locks profiles before publication rows");
+  assert.ok(teacher.indexOf("order by p.id") < teacher.indexOf("teacher_issuance"), "teacher issuance locks profiles before quotas and wallets");
   assert.ok(auction.includes("deleted_at is null"));
   assert.ok(auction.includes("v_role is null or v_role not in ('teacher','admin')"));
   assert.ok(auction.includes("for update"));
   assert.ok(place.includes("blocked = false"));
-  assert.ok(place.includes("deleted_at IS NULL"));
-  assert.ok(place.indexOf("FOR UPDATE") < place.indexOf("from public.wallets"));
-  const buyProfileLock = buy.indexOf("ORDER BY p.id");
+  assert.ok(place.includes("deleted_at is null"));
+  assert.ok(place.indexOf("for update") < place.indexOf("from public.wallets"));
+  const buyProfileLock = buy.indexOf("order by p.id");
   const buyOrderLock = buy.indexOf("for update", buy.indexOf("from public.exchange_orders", buyProfileLock));
   assert.ok(buyProfileLock >= 0 && buyOrderLock > buyProfileLock, "exchange buy locks profiles before locking the order");
   assert.ok(buy.includes("scrl_required_scrl_holds"));
