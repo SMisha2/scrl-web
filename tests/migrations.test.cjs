@@ -233,5 +233,5 @@ test("all money releases preserve aggregate ScRl and V-RUB reserves across deals
   assert.ok(buy.includes("scrl_required_vrub_holds"));
   assert.ok(cancel.includes("scrl_required_vrub_holds"));
   assert.ok(finish.toLowerCase().includes("set status='settlementerror'"));
-  assert.ok(finish.includes("RETURN;"));
+  assert.ok(finish.toLowerCase().includes("return;"));
 });
