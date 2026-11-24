@@ -982,6 +982,14 @@ test("удаление своей публикации работает в де�
   assert.equal(api.data.posts.some(post => post.id === own.id), false);
 });
 
+test("publication success state is read back by the returned record ID", () => {
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  assert.match(app, /const createdId = await backend\.createPost\(/);
+  assert.match(app, /data\.posts\.find\(item => String\(item\.id\) === String\(createdId\)\)/);
+  assert.match(app, /const createdId = await backend\.createListing\(/);
+  assert.match(app, /data\.listings\.find\(item => String\(item\.id\) === String\(createdId\)\)/);
+  assert.match(app, /refreshRemoteData\(\{ force: true \}\)/);
+});
 test("удаление поста не обходит защиту активных сделок", () => {
   const { api } = boot();
   const own = {
