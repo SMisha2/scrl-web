@@ -1354,7 +1354,8 @@ test("obfuscation-aware moderation combines fields and routes manual review to a
   assert.match(moderation, /post:"Объявление"/);
   assert.match(moderation, /report:"Жалоба"/);
   assert.match(moderation, /queueMode=manualReview\?"ожидает ручной проверки":"требует проверки модератором"/);
-  assert.match(moderation, /await notifyAdmins\(\(descriptions\[kind\] \|\| "Материал"\)\+ " " \+ queueMode/);
+  assert.ok(moderation.includes('const queueMode=manualReview?"ожидает ручной проверки":"требует проверки модератором";'));
+  assert.ok(moderation.includes('await notifyAdmins((descriptions[kind]||"Материал")+" "+queueMode+".");'));
 });
 
 test("administrator deletion accepts other admin accounts but validates the acting admin in SQL", () => {
