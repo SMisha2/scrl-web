@@ -467,7 +467,7 @@ test("регистрация подтверждает почту, затем т�
   assert.match(app, /await saveProfile\(result\.user\.id, name, result\.access_token, null, \{/);
   assert.match(app, /el\("logMail"\)\.value = mail/);
   assert.match(app, /setMode\("login"\)/);
-  assert.match(app, /Почта подтверждена, согласия сохранены\. Теперь войди по email и паролю/);
+  assert.match(app, /Почта подтверждена, согласие на обработку данных сохранено/);
   assert.doesNotMatch(app, /enter\(name, result\.user\?\.email \|\| mail/);
   assert.doesNotMatch(app, /pending\.purpose === "email-login"/);
 });
